@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 from __future__ import absolute_import
@@ -15,7 +15,11 @@ class x86_64Architecture(CrashArchitecture):
     def __init__(self):
         super(x86_64Architecture, self).__init__()
         # PC for blocked threads
-        self.rip = gdb.lookup_minimal_symbol("thread_return").value()
+        try:
+            self.rip = gdb.lookup_minimal_symbol("thread_return").value()
+        except MissingSymbolError:
+            raise RuntimeError("{} requires symbol 'thread_return'"
+                               .format(self.__class__.__name__))
         self.ulong_type = gdb.lookup_type('unsigned long')
 
     def setup_thread(self, task):
@@ -34,7 +38,7 @@ class x86_64Architecture(CrashArchitecture):
 
         # ex = in_exception_stack(rsp)
         # if ex:
-        #     print "EXCEPTION STACK: pid %d" % task['pid']
+        #     print("EXCEPTION STACK: pid {:d}".format(task['pid']))
 
         thread.registers['rsp'].value = rsp
         thread.registers['rbp'].value = rbp
