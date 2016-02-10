@@ -3,8 +3,8 @@
 
 import gdb
 from kdumpfile import kdumpfile
-from util import list_for_each_entry
 from kdumpfile.exceptions import *
+from crash.types.list import list_for_each_entry
 
 #arch = "i386:x86-64"
 #
