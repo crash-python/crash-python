@@ -53,14 +53,14 @@ class Target(gdb.Target):
     def __init__(self, fil):
         if isinstance(fil, str):
             fil = file(fil)
-            self.fil = fil
-            print "kdump (%s)" % fil
-            self.kdump = kdumpfile(fil)
-            self.kdump.symbol_func = symbol_func
-            self.kdump.vtop_init()
-            super(Target, self).__init__()
-	    gdb.execute('set print thread-events 0')
-	    self.setup_tasks()
+        self.fil = fil
+        print "kdump (%s)" % fil
+        self.kdump = kdumpfile(fil)
+        self.kdump.symbol_func = symbol_func
+        self.kdump.vtop_init()
+        super(Target, self).__init__()
+        gdb.execute('set print thread-events 0')
+        self.setup_tasks()
 
     def setup_tasks(self):
         init_task = gdb.lookup_global_symbol('init_task')
@@ -77,16 +77,16 @@ class Target(gdb.Target):
     def to_xfer_partial(self, obj, annex, readbuf, writebuf, offset, ln):
         ret = -1
         if obj == self.TARGET_OBJECT_MEMORY:
-	    try:
-		r = self.kdump.read (self.kdump.KDUMP_KVADDR, offset, ln)
-		readbuf[:] = r
-		ret = ln
-	    except EOFException, e:
-		raise gdb.TargetXferEof(str(e))
-	    except NoDataException, e:
-		raise gdb.TargetXferUnavailable(str(e))
-	else:
-	    raise IOError("Unknown obj type")
+            try:
+                r = self.kdump.read (self.kdump.KDUMP_KVADDR, offset, ln)
+                readbuf[:] = r
+                ret = ln
+            except EOFException, e:
+                raise gdb.TargetXferEof(str(e))
+            except NoDataException, e:
+                raise gdb.TargetXferUnavailable(str(e))
+        else:
+            raise IOError("Unknown obj type")
         return ret
 
     def to_thread_alive(self, ptid):
