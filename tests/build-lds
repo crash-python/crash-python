@@ -1,0 +1,5 @@
+#!/bin/bash
+ld -verbose | awk 'BEGIN { doit=0; };
+		/====/ { doit = !doit; next; };
+		/\.data.*:/ { while (getline line < "'$1'") { print line; }; };
+		// { if (doit) { print $0 }; }' > $2

@@ -1,0 +1,8 @@
+  . = ALIGN(8);
+  __per_cpu_load = .;
+  .data..percpu : AT(__per_cpu_load) {
+  __per_cpu_start = .;
+  *(.data..percpu)
+  __per_cpu_end = .;
+  } 
+  . = __per_cpu_load + SIZEOF(.data..percpu);

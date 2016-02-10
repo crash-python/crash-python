@@ -210,3 +210,8 @@ class TypesUtilClass(object):
             return gdb.lookup_type(name)
         except gdb.error:
             return None
+
+    @export
+    @staticmethod
+    def array_size(value):
+        return value.type.sizeof // value[0].type.sizeof
