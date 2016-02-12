@@ -64,7 +64,7 @@ class Target(gdb.Target):
         return ret
 
     def to_thread_alive(self, ptid):
-        return 1
+        return True
 
     def to_pid_to_str(self, ptid):
         return "pid %d" % ptid[1]
