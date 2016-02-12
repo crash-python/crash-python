@@ -6,12 +6,19 @@ from __future__ import print_function
 from __future__ import division
 
 import gdb
+import sys
 from kdumpfile import kdumpfile, KDUMP_KVADDR
 from kdumpfile.exceptions import *
 from crash.types.list import list_for_each_entry
-
+from crash.types.percpu import get_percpu_var
+from crash.types.task import LinuxTask
 import crash.arch
 import crash.arch.x86_64
+
+if sys.version_info.major >= 3:
+    long = int
+
+LINUX_KERNEL_PID = 1
 
 class Target(gdb.Target):
     def __init__(self, filename):
@@ -56,12 +63,37 @@ class Target(gdb.Target):
     def setup_tasks(self):
         init_task = gdb.lookup_global_symbol('init_task')
         task_list = init_task.value()['tasks']
+        runqueues = gdb.lookup_global_symbol('runqueues')
+
+        rqs = get_percpu_var(runqueues)
+        rqscurrs = {long(x["curr"]) : k for (k, x) in rqs.items()}
 
         self.pid_to_task_struct = {}
 
+        tasks = []
+        for taskg in list_for_each_entry(task_list, init_task.type, 'tasks'):
+            tasks.append(taskg)
+            for task in list_for_each_entry(taskg['thread_group'], init_task.type, 'thread_group'):
+                tasks.append(task)
+
         for task in list_for_each_entry(task_list, init_task.type, 'tasks'):
-            thread = gdb.selected_inferior().new_thread((1, task['pid'], 0), task)
+            cpu = None
+            regs = None
+            active = long(task.address) in rqscurrs
+            if active:
+                cpu = rqscurrs[long(task.address)]
+                regs = self.kdump.attr.cpu[cpu].reg
+
+            ltask = LinuxTask(task, active, cpu, regs)
+            ptid = (LINUX_KERNEL_PID, task['pid'], 0)
+            try:
+                thread = gdb.selected_inferior().new_thread(ptid, ltask)
+            except gdb.error as e:
+                print("Failed to setup task @{:#x}".format(long(task.address)))
+                continue
             thread.name = task['comm'].string()
+
+            ltask.attach_thread(thread)
 
         gdb.selected_inferior().executing = False
 
