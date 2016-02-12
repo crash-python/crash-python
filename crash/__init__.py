@@ -9,6 +9,7 @@ import gdb
 import sys
 from crash.kernel import load_debuginfo, load_modules
 import crash.kdump.target
+import crash.commands
 
 class Session(object):
     """crash.Session is the main driver component for crash-python"""
@@ -33,3 +34,4 @@ class Session(object):
 
         self.target = crash.kdump.target.Target(vmcore, debug)
         load_modules(self.searchpath)
+        crash.commands.discover()
