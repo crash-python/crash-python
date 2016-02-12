@@ -5,7 +5,11 @@ import gdb
 from kdumpfile import kdumpfile
 from kdumpfile.exceptions import *
 from crash.types.list import list_for_each_entry
+from crash.types.percpu import get_percpu_var
+from crash.types.task import LinuxTask
 import crash.arch
+
+LINUX_KERNEL_PID = 1
 
 def symbol_func(symname):
     ms = gdb.lookup_minimal_symbol(symname)
@@ -39,12 +43,27 @@ class Target(gdb.Target):
     def setup_tasks(self):
         init_task = gdb.lookup_global_symbol('init_task')
         task_list = init_task.value()['tasks']
+        runqueues = gdb.lookup_global_symbol('runqueues')
+
+        rqs = get_percpu_var(runqueues)
+        rqscurrs = { long(x["curr"]) : k for (k, x) in rqs.items() }
 
         self.pid_to_task_struct = {}
 
         for task in list_for_each_entry(task_list, init_task.type, 'tasks'):
-            thread = gdb.selected_inferior().new_thread((1, task['pid'], 0), task)
+            cpu = None
+            regs = None
+            active = long(task.address) in rqscurrs
+            if active:
+                cpu = rqscurrs[long(task.address)]
+                regs = self.kdump.attr("cpu.%d.reg" % cpu)
+
+            ltask = LinuxTask(task, active, cpu, regs)
+            ptid = (LINUX_KERNEL_PID, task['pid'], 0)
+            thread = gdb.selected_inferior().new_thread(ptid, ltask)
             thread.name = task['comm'].string()
+
+            ltask.attach_thread(thread)
 
         gdb.selected_inferior().executing = False
 

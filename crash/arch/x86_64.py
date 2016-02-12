@@ -13,8 +13,16 @@ class x86_64Architecture(CrashArchitecture):
         self.rip = gdb.lookup_minimal_symbol("thread_return").value()
         self.ulong_type = gdb.lookup_type('unsigned long')
 
-    def setup_thread(self, task):
+    def setup_thread_active(self, thread):
+        task = thread.info
+        for reg in task.regs:
+            if reg in ["gs_base", "orig_ax", "rflags", "fs_base"]:
+                continue
+            thread.registers[reg].value = task.regs[reg]
+
+    def setup_thread_scheduled(self, thread):
         ulong_type = self.ulong_type
+        task = thread.info.task_struct
 
         rsp = task['thread']['sp'].cast(ulong_type.pointer())
         rbp = rsp.dereference().cast(ulong_type.pointer())
