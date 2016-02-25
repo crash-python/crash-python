@@ -38,6 +38,13 @@ class Target(gdb.Target):
         if not archclass:
             raise NotImplementedError("Architecture %s is not supported yet." % archname)
 
+        # Doesn't matter what symbol as long as it's everywhere
+        # Use vsnprintf since 'printk' can be dropped with CONFIG_PRINTK=n
+        sym = gdb.lookup_symbol('vsnprintf', None)[0]
+        if sym.symtab.objfile.architecture.name() != archclass.ident:
+            raise TypeError("Dump file is for `%s' but provided kernel is for `%s'" \
+                            % (archname, archclass.ident))
+
         self.arch = archclass()
 
     def setup_tasks(self):
@@ -63,7 +70,9 @@ class Target(gdb.Target):
             thread = gdb.selected_inferior().new_thread(ptid, ltask)
             thread.name = task['comm'].string()
 
+            self.arch.setup_thread_info(thread)
             ltask.attach_thread(thread)
+            ltask.set_get_stack_pointer(self.arch.get_stack_pointer)
 
         gdb.selected_inferior().executing = False
 
