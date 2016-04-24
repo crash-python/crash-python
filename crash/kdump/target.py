@@ -2,7 +2,7 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from kdumpfile import kdumpfile
+from kdumpfile import kdumpfile, KDUMP_KVADDR
 from util import list_for_each_entry
 from kdumpfile.exceptions import *
 
@@ -78,7 +78,7 @@ class Target(gdb.Target):
         ret = -1
         if obj == self.TARGET_OBJECT_MEMORY:
 	    try:
-		r = self.kdump.read (self.kdump.KDUMP_KVADDR, offset, ln)
+		r = self.kdump.read (KDUMP_KVADDR, offset, ln)
 		readbuf[:] = r
 		ret = ln
 	    except EOFException, e:
