@@ -9,6 +9,7 @@ import gdb
 import sys
 from crash.kernel import load_debuginfo, load_modules
 import crash.kdump.target
+import crash.cache
 import crash.commands
 
 class Session(object):
@@ -34,4 +35,5 @@ class Session(object):
 
         self.target = crash.kdump.target.Target(vmcore, debug)
         load_modules(self.searchpath)
+        crash.cache.discover()
         crash.commands.discover()
