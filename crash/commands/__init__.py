@@ -8,10 +8,13 @@ import glob
 import importlib
 
 class CrashCommand(gdb.Command):
+    commands = {}
     def __init__(self, name, parser):
-        gdb.Command.__init__(self, "py" + name, gdb.COMMAND_USER)
+        name = "py" + name
+        gdb.Command.__init__(self, name, gdb.COMMAND_USER)
         parser.format_help = lambda: self.__doc__
         self.parser = parser
+        self.commands[name] = self
 
     def invoke(self, argstr, from_tty):
         argv = gdb.string_to_argv(argstr)
@@ -22,6 +25,9 @@ class CrashCommand(gdb.Command):
             return
         except KeyboardInterrupt:
             return
+
+    def execute(self, argv):
+        raise NotImplementedError("CrashCommand should not be called directly")
 
 modules = glob.glob(os.path.dirname(__file__)+"/[A-Za-z]*.py")
 __all__ = [ os.path.basename(f)[:-3] for f in modules]

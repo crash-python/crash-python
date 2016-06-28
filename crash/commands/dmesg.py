@@ -19,7 +19,8 @@ def get_value(name):
     return gdb.lookup_symbol(name, None)[0].value()
 
 class LogCommand(CrashCommand):
-    """
+    """dump system message buffer
+
 NAME
   log - dump system message buffer
 

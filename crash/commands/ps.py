@@ -7,7 +7,8 @@ from crash.commands import CrashCommand
 from crash.types.task import LinuxTask
 
 class PSCommand(CrashCommand):
-    """
+    """display process status information
+
 NAME
   ps - display process status information
 
