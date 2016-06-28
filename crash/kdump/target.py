@@ -3,6 +3,7 @@
 
 import gdb
 from kdumpfile import kdumpfile
+from kdumpfile import KDUMP_KVADDR
 from kdumpfile.exceptions import *
 from crash.types.list import list_for_each_entry
 from crash.types.percpu import get_percpu_var
@@ -33,7 +34,7 @@ class Target(gdb.Target):
         self.setup_tasks()
 
     def setup_arch(self):
-        archname = self.kdump.attr("arch")['name']
+        archname = self.kdump.attr.arch.name
         archclass = crash.arch.get_architecture(archname)
         if not archclass:
             raise NotImplementedError("Architecture %s is not supported yet." % archname)
@@ -63,7 +64,7 @@ class Target(gdb.Target):
             active = long(task.address) in rqscurrs
             if active:
                 cpu = rqscurrs[long(task.address)]
-                regs = self.kdump.attr("cpu.%d.reg" % cpu)
+                regs = self.kdump.attr.cpu[cpu].reg
 
             ltask = LinuxTask(task, active, cpu, regs)
             ptid = (LINUX_KERNEL_PID, task['pid'], 0)
@@ -80,7 +81,7 @@ class Target(gdb.Target):
         ret = -1
         if obj == self.TARGET_OBJECT_MEMORY:
             try:
-                r = self.kdump.read (self.kdump.KDUMP_KVADDR, offset, ln)
+                r = self.kdump.read (KDUMP_KVADDR, offset, ln)
                 readbuf[:] = r
                 ret = ln
             except EOFException, e:
