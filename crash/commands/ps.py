@@ -11,7 +11,8 @@ from crash.commands import CrashCommand
 from crash.types.task import LinuxTask, TaskStateFlags as TF
 
 class PSCommand(CrashCommand):
-    """
+    """display process status information
+
 NAME
   ps - display process status information
 

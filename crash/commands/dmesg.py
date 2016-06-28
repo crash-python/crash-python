@@ -25,7 +25,8 @@ class LogInvalidOption(Exception):
     pass
 
 class LogCommand(CrashCommand):
-    """
+    """dump system message buffer
+
 NAME
   log - dump system message buffer
 
