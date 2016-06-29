@@ -20,16 +20,24 @@ class x86_64Architecture(CrashArchitecture):
         thread_info = task['stack'].cast(self.thread_info_p_type)
         thread.info.set_thread_info(thread_info)
 
-    def setup_thread_active(self, thread):
+    def fetch_register_active(self, thread, register):
         task = thread.info
         for reg in task.regs:
+            if reg == "rip" and (register != 16 and register != -1):
+                continue
             if reg in ["gs_base", "orig_ax", "rflags", "fs_base"]:
                 continue
             thread.registers[reg].value = task.regs[reg]
 
-    def setup_thread_scheduled(self, thread):
+    def fetch_register_scheduled(self, thread, register):
         ulong_type = self.ulong_type
         task = thread.info.task_struct
+
+        # Only write rip when requested; It resets the frame cache
+        if register == 16 or register == -1:
+            thread.registers['rip'].value = self.rip
+            if register == 16:
+                return True
 
         rsp = task['thread']['sp'].cast(ulong_type.pointer())
         rbp = rsp.dereference().cast(ulong_type.pointer())
@@ -48,7 +56,6 @@ class x86_64Architecture(CrashArchitecture):
 
         thread.registers['rsp'].value = rsp
         thread.registers['rbp'].value = rbp
-        thread.registers['rip'].value = self.rip
         thread.registers['rbx'].value = rbx
         thread.registers['r12'].value = r12
         thread.registers['r13'].value = r13

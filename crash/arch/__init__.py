@@ -11,20 +11,20 @@ class CrashArchitecture:
     def __init__(self):
         pass
 
-    def setup_thread_active(self, thread):
+    def fetch_register_active(self, thread):
         raise NotImplementedError("setup_thread_active not implemented")
 
-    def setup_thread_scheduled(self, thread):
+    def fetch_register_scheduled(self, thread):
         raise NotImplementedError("setup_thread_scheduled not implemented")
 
     def setup_thread_info(self, thread):
         raise NotImplementedError("setup_thread_info not implemented")
 
-    def setup_thread(self, thread):
+    def fetch_register(self, thread, register):
         if thread.info.active:
-            self.setup_thread_active(thread)
+            self.fetchsregister_active(thread, register)
         else:
-            self.setup_thread_scheduled(thread)
+            self.fetch_register_scheduled(thread, register)
 
 architectures = {}
 def register(arch):
