@@ -18,10 +18,13 @@ def get_value(name):
 
     return None
 
-
 class CrashCacheSlab(CrashCache):
 
-    kmem_caches = None 
+    kmem_caches = None
+    array_caches = None
+
+    def __fill_all_array_caches(self, kmem_cache):
+        array_caches[kmem_cache.name] = kmem_cache.get_all_array_caches()
 
     def init_kmem_caches(self):
         if self.kmem_caches:
