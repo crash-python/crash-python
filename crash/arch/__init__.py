@@ -22,7 +22,7 @@ class CrashArchitecture:
 
     def fetch_register(self, thread, register):
         if thread.info.active:
-            self.fetchsregister_active(thread, register)
+            self.fetch_register_active(thread, register)
         else:
             self.fetch_register_scheduled(thread, register)
 
