@@ -47,10 +47,12 @@ class KmemCache():
         if avail == 0:
             return res
 
+        cache_dict = {"ac_type" : ac_type, "nid_src" : nid_src,
+                        "nid_tgt" : nid_tgt}
+
         for i in range(avail):
             ptr = long(acache["entry"][i])
-            res[ptr] = {"ac_type" : ac_type, "nid_src" : nid_src,
-                        "nid_tgt" : nid_tgt}
+            res[ptr] = cache_dict
 
         return res
 
@@ -83,10 +85,10 @@ class KmemCache():
 
         for (nid, node) in self.__get_nodelists():
             shared_cache = node["shared"]
-            res.update(self.__get_array_cache(shared_cache, AC_SHARED, nid, nid)
+            res.update(self.__get_array_cache(shared_cache, AC_SHARED, nid, nid))
             alien_cache = node["alien"]
             # TODO check that this only happens for single-node systems?
-            if (long(alien_cache) == 0L)
+            if long(alien_cache) == 0L:
                 continue
             # TODO real limit
             res.update(self.__get_array_caches(alien_cache, AC_ALIEN, nid, 10))
