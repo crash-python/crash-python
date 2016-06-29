@@ -58,7 +58,13 @@ class Target(gdb.Target):
 
         self.pid_to_task_struct = {}
 
-        for task in list_for_each_entry(task_list, init_task.type, 'tasks'):
+        tasks = []
+        for taskg in list_for_each_entry(task_list, init_task.type, 'tasks'):
+            tasks.append(taskg)
+            for task in list_for_each_entry(taskg['thread_group'], init_task.type, 'thread_group'):
+                tasks.append(task)
+
+        for task in tasks:
             cpu = None
             regs = None
             active = long(task.address) in rqscurrs
