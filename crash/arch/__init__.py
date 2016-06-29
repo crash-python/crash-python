@@ -13,20 +13,20 @@ class CrashArchitecture(object):
     def __init__(self):
         pass
 
-    def setup_thread_active(self, thread):
+    def fetch_register_active(self, thread, register):
         raise NotImplementedError("setup_thread_active not implemented")
 
-    def setup_thread_scheduled(self, thread):
+    def fetch_register_scheduled(self, thread, register):
         raise NotImplementedError("setup_thread_scheduled not implemented")
 
     def setup_thread_info(self, thread):
         raise NotImplementedError("setup_thread_info not implemented")
 
-    def setup_thread(self, thread):
+    def fetch_register(self, thread, register):
         if thread.info.active:
-            self.setup_thread_active(thread)
+            self.fetch_register_active(thread, register)
         else:
-            self.setup_thread_scheduled(thread)
+            self.fetch_register_scheduled(thread, register)
 
 # This keeps stack traces from continuing into userspace and causing problems.
 class KernelFrameFilter(object):

@@ -149,7 +149,7 @@ class Target(gdb.Target):
 
     def to_fetch_registers(self, register):
         thread = gdb.selected_thread()
-        self.arch.setup_thread(thread)
+        self.arch.fetch_register(thread, register.regnum)
         return True
 
     @staticmethod
