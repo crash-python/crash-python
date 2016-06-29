@@ -5,6 +5,9 @@ import gdb
 from util import container_of
 
 kmem_cache_type = gdb.lookup_type('struct kmem_cache')
+# TODO abstract away
+nr_cpu_ids = long(gdb.lookup_global_symbol("nr_cpu_ids").value())
+nr_node_ids = long(gdb.lookup_global_symbol("nr_node_ids").value())
 
 AC_PERCPU = "percpu"
 AC_SHARED = "shared"
@@ -21,14 +24,11 @@ class KmemCache():
         return self.gdb_obj["nodelists"][node]
         
     def __get_nodelists(self):
-        # TODO use real number of nodes
-        i = 0;
-        while True:
+        for i in range(nr_node_ids):
             node = self.__get_nodelist(i)
             if long(node) == 0L:
-                break
+                continue
             yield (i, node.dereference())
-            i += 1
 
     def __init__(self, name, gdb_obj):
         self.name = name
@@ -80,9 +80,9 @@ class KmemCache():
         res = dict()
 
         percpu_cache = self.gdb_obj["array"]
-        # TODO real limit
-        res.update(self.__get_array_caches(percpu_cache, AC_PERCPU, -1, 10))
+        res.update(self.__get_array_caches(percpu_cache, AC_PERCPU, -1, nr_cpu_ids))
 
+        # TODO check and report collisions
         for (nid, node) in self.__get_nodelists():
             shared_cache = node["shared"]
             res.update(self.__get_array_cache(shared_cache, AC_SHARED, nid, nid))
@@ -90,7 +90,6 @@ class KmemCache():
             # TODO check that this only happens for single-node systems?
             if long(alien_cache) == 0L:
                 continue
-            # TODO real limit
-            res.update(self.__get_array_caches(alien_cache, AC_ALIEN, nid, 10))
+            res.update(self.__get_array_caches(alien_cache, AC_ALIEN, nid, nr_node_ids))
 
         return res
