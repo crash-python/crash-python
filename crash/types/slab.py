@@ -27,7 +27,7 @@ class KmemCache():
             node = self.__get_nodelist(i)
             if long(node) == 0L:
                 break
-            yield node
+            yield (i, node.dereference())
             i += 1
 
     def __init__(self, name, gdb_obj):
@@ -47,20 +47,20 @@ class KmemCache():
         if avail == 0:
             return res
 
-        for i in range(0, avail - 1):
+        for i in range(avail):
             ptr = long(acache["entry"][i])
             res[ptr] = {"ac_type" : ac_type, "nid_src" : nid_src,
                         "nid_tgt" : nid_tgt}
 
         return res
 
-    def __get_array_caches(self, array, ac_type, nid_src):
+    def __get_array_caches(self, array, ac_type, nid_src, limit):
         res = dict()
 
-        i = 0;
-        while True:
+        for i in range(limit):
             ptr = array[i]
 
+            # TODO: limit should prevent this?
             if long(ptr) == 0L:
                 break
 
@@ -69,15 +69,8 @@ class KmemCache():
             if ac_type == AC_ALIEN and nid_src == i:
                 break
 
-            if ac_type == AC_SHARED:
-                nid_tgt = -1
-            else:
-                nid_tgt = i
-
             res.update(self.__get_array_cache(ptr.dereference(), ac_type,
-                        nid_src, nid_tgt))
-
-            i += 1
+                        nid_src, i))
 
         return res
 
@@ -85,6 +78,17 @@ class KmemCache():
         res = dict()
 
         percpu_cache = self.gdb_obj["array"]
-        res.update(self.__get_array_caches(percpu_cache, AC_PERCPU, -1))
+        # TODO real limit
+        res.update(self.__get_array_caches(percpu_cache, AC_PERCPU, -1, 10))
+
+        for (nid, node) in self.__get_nodelists():
+            shared_cache = node["shared"]
+            res.update(self.__get_array_cache(shared_cache, AC_SHARED, nid, nid)
+            alien_cache = node["alien"]
+            # TODO check that this only happens for single-node systems?
+            if (long(alien_cache) == 0L)
+                continue
+            # TODO real limit
+            res.update(self.__get_array_caches(alien_cache, AC_ALIEN, nid, 10))
 
         return res
