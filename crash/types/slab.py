@@ -3,10 +3,11 @@
 
 import gdb
 from util import container_of
+from crash.types.list import list_for_each_entry
 
 kmem_cache_type = gdb.lookup_type("struct kmem_cache")
 slab_type = gdb.lookup_type("struct slab")
-bufctlp_type = gdb.lookup_type("kmem_bufctl_t").pointer()
+bufctl_type = gdb.lookup_type("kmem_bufctl_t")
 
 # TODO abstract away
 nr_cpu_ids = long(gdb.lookup_global_symbol("nr_cpu_ids").value())
@@ -16,49 +17,47 @@ AC_PERCPU = "percpu"
 AC_SHARED = "shared"
 AC_ALIEN  = "alien"
 
-BUFCTL_END = ~0
+slab_partial = 0
+slab_full = 1
+slab_free = 3
+
+BUFCTL_END = ~0 & 0xffffffff
 
 class Slab:
-    gdb_obj = None
-    kmem_cache = None
-
-    inuse = 0
-    s_mem = 0L
-    free = set()
-
     def __populate_free(self):
-        bufctl = self.gdb.obj.address[1].cast(bufctlp_type).dereference()
+        bufctl = self.gdb_obj.address[1].cast(bufctl_type).address
         bufsize = self.kmem_cache.buffer_size
         objs_per_slab = self.kmem_cache.objs_per_slab
 
         f = int(self.gdb_obj["free"])
+        # print "free = " + str(f)
         while f != BUFCTL_END:
             if f >= objs_per_slab:
                 print "bufctl value overflow"
                 break
 
-            free.add(s_mem + f * bufsize)
-    
-            if len(free) > objs_per_slab:
+            self.free.add(self.s_mem + f * bufsize)
+
+            if len(self.free) > objs_per_slab:
                 print "bufctl cycle detected"
                 break
 
             f = int(bufctl[f])
+            # print f
+
+    def check(self, slab_type):
+        self.__populate_free()
+        return len(self.free)
             
     def __init__(self, gdb_obj, kmem_cache):
         self.gdb_obj = gdb_obj
         self.kmem_cache = kmem_cache
+        self.free = set()
 
         self.inuse = int(gdb_obj["inuse"])
         self.s_mem = long(gdb_obj["s_mem"])
 
 class KmemCache:
-    gdb_obj = None
-
-    objs_per_slab = 0
-    buffer_size = 0
-    name = ""
-
     def __get_nodelist(self, node):
         return self.gdb_obj["nodelists"][node]
         
@@ -132,3 +131,20 @@ class KmemCache:
             res.update(self.__get_array_caches(alien_cache, AC_ALIEN, nid, nr_node_ids))
 
         return res
+
+    def __check_slabs(self, slab_list, slabtype):
+        free = 0
+        for gdb_slab in list_for_each_entry(slab_list, slab_type, "list"):
+            slab = Slab(gdb_slab, self)
+            free += slab.check(slabtype)
+        return free
+
+    def check_all(self):
+        for (nid, node) in self.__get_nodelists():
+            free_declared = long(node["free_objects"])
+            free_counted = self.__check_slabs(node["slabs_partial"], slab_partial)
+            free_counted += self.__check_slabs(node["slabs_full"], slab_full)
+            free_counted += self.__check_slabs(node["slabs_free"], slab_free)
+            if free_declared != free_counted:
+                print "free counted doesn't match"
+
