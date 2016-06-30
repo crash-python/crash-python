@@ -70,7 +70,8 @@ class Target(gdb.Target):
             active = long(task.address) in rqscurrs
             if active:
                 cpu = rqscurrs[long(task.address)]
-                regs = self.kdump.attr.cpu[cpu].reg
+                if 'cpu' in dir(self.kdump.attr):
+                    regs = self.kdump.attr.cpu[cpu].reg
 
             ltask = LinuxTask(task, active, cpu, regs)
             ptid = (LINUX_KERNEL_PID, task['pid'], 0)
