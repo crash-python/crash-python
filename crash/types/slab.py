@@ -4,7 +4,10 @@
 import gdb
 from util import container_of
 
-kmem_cache_type = gdb.lookup_type('struct kmem_cache')
+kmem_cache_type = gdb.lookup_type("struct kmem_cache")
+slab_type = gdb.lookup_type("struct slab")
+bufctlp_type = gdb.lookup_type("kmem_bufctl_t").pointer()
+
 # TODO abstract away
 nr_cpu_ids = long(gdb.lookup_global_symbol("nr_cpu_ids").value())
 nr_node_ids = long(gdb.lookup_global_symbol("nr_node_ids").value())
@@ -13,10 +16,46 @@ AC_PERCPU = "percpu"
 AC_SHARED = "shared"
 AC_ALIEN  = "alien"
 
-class KmemCache():
+BUFCTL_END = ~0
+
+class Slab:
+    gdb_obj = None
+    kmem_cache = None
+
+    inuse = 0
+    s_mem = 0L
+    free = set()
+
+    def __populate_free(self):
+        bufctl = self.gdb.obj.address[1].cast(bufctlp_type).dereference()
+        bufsize = self.kmem_cache.buffer_size
+        objs_per_slab = self.kmem_cache.objs_per_slab
+
+        f = int(self.gdb_obj["free"])
+        while f != BUFCTL_END:
+            if f >= objs_per_slab:
+                print "bufctl value overflow"
+                break
+
+            free.add(s_mem + f * bufsize)
+    
+            if len(free) > objs_per_slab:
+                print "bufctl cycle detected"
+                break
+
+            f = int(bufctl[f])
+            
+    def __init__(self, gdb_obj, kmem_cache):
+        self.gdb_obj = gdb_obj
+        self.kmem_cache = kmem_cache
+
+        self.inuse = int(gdb_obj["inuse"])
+        self.s_mem = long(gdb_obj["s_mem"])
+
+class KmemCache:
     gdb_obj = None
 
-    num = 0
+    objs_per_slab = 0
     buffer_size = 0
     name = ""
 
@@ -34,7 +73,7 @@ class KmemCache():
         self.name = name
         self.gdb_obj = gdb_obj
         
-        self.num = int(gdb_obj["num"])
+        self.objs_per_slab = int(gdb_obj["num"])
         self.buffer_size = int(gdb_obj["buffer_size"])
 
     def __get_array_cache(self, acache, ac_type, nid_src, nid_tgt):
