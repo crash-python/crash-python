@@ -106,7 +106,7 @@ class Target(gdb.Target):
 
     def to_fetch_registers(self, register):
         thread = gdb.selected_thread()
-        self.arch.fetch_register(thread, register.regnum)
+        self.arch.fetch_register(thread, register)
         return True
 
     def to_prepare_to_store(self, thread):
