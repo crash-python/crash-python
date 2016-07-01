@@ -1,6 +1,5 @@
 CFLAGS = -ggdb
-<<<<<<< HEAD
-TARGETS := test-util.o test-list.o test-list test-util test-percpu
+TARGETS := test-util.o test-list.o test-list test-util test-percpu test-syscache
 all: $(TARGETS)
 
 test-percpu.lds : test-percpu.lds.in build-lds
