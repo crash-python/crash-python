@@ -71,6 +71,7 @@ class KmemCache:
     def __init__(self, name, gdb_obj):
         self.name = name
         self.gdb_obj = gdb_obj
+        self.array_caches = None
         
         self.objs_per_slab = int(gdb_obj["num"])
         self.buffer_size = int(gdb_obj["buffer_size"])
@@ -114,7 +115,7 @@ class KmemCache:
 
         return res
 
-    def get_all_array_caches(self):
+    def __fill_array_caches(self):
         res = dict()
 
         percpu_cache = self.gdb_obj["array"]
@@ -130,7 +131,13 @@ class KmemCache:
                 continue
             res.update(self.__get_array_caches(alien_cache, AC_ALIEN, nid, nr_node_ids))
 
-        return res
+        self.array_caches = res
+
+    def get_array_caches(self):
+        if not self.array_caches:
+            self.__fill_array_caches()
+
+        return self.array_caches
 
     def __check_slabs(self, slab_list, slabtype):
         free = 0

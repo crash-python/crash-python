@@ -20,9 +20,6 @@ def get_value(name):
 
 class CrashCacheSlab(CrashCache):
 
-    def __fill_all_array_caches(self, kmem_cache):
-        array_caches[kmem_cache.name] = kmem_cache.get_all_array_caches()
-
     def __init_kmem_caches(self):
         if self.kmem_caches:
             return
