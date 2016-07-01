@@ -58,6 +58,7 @@ EXAMPLES
 
 
     def show_default(self):
+        print "      UPTIME: %s" % (sys.cache.kernel_cache['uptime'])
         print "    NODENAME: %s" % (sys.cache.utsname_cache['nodename'])
         print "     RELEASE: %s" % (sys.cache.utsname_cache['release'])
         print "     VERSION: %s" % (sys.cache.utsname_cache['version'])

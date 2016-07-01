@@ -2,6 +2,7 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
+import re
 import zlib
 from crash.cache import CrashCache
 
@@ -18,6 +19,9 @@ class CrashCacheSys(CrashCache):
 
     utsname_cache = None
     ikconfig_raw_cache = None
+    ikconfig_cache = None
+    machdep_cache = None
+    kernel_cache = None
 
     def read_buf(self, address, size):
         return str(gdb.selected_inferior().read_memory(address, size))
@@ -79,9 +83,91 @@ class CrashCacheSys(CrashCache):
 
         self.ikconfig_raw_cache = zlib.decompress(buf, -15, buf_len)
 
+
+    def init_ikconfig_cache(self):
+        if self.ikconfig_cache:
+            return
+
+        if not self.ikconfig_raw_cache:
+            self.init_ikconfig_raw_cache()
+
+        self.ikconfig_cache = dict()
+
+        for line in self.ikconfig_raw_cache.splitlines():
+            # bin comments
+            line = re.sub("#.*$", "", line)
+            # bin white space at the beginning and the end of the line
+            line = re.sub("^\s*", "", line)
+            line = re.sub("\s*$", "", line)
+
+            if not line:
+                continue
+
+            items = re.split("=", line)
+            if len(items) == 2:
+                self.ikconfig_cache[items[0]] = items[1]
+            else:
+                print "Warning: did not parse kernel config line: %s" % (line)
+
+
+    def convert_time(self, jiffies):
+        SEC_MINUTES = 60
+        SEC_HOURS = 60 * SEC_MINUTES
+        SEC_DAYS = 24 * SEC_HOURS
+
+        total = jiffies / self.machdep_cache['hz']
+
+        days = total / SEC_DAYS
+        total %= SEC_DAYS
+        hours = total / SEC_HOURS
+        total %= SEC_HOURS
+        minutes = total / SEC_MINUTES
+        seconds = total % SEC_MINUTES
+
+        buf = ""
+        if days:
+            buf = "%d days, " % (days)
+        buf += "%02d:%02d:%02d" % (hours, minutes, seconds)
+
+        return buf
+
+    def get_uptime(self):
+        jiffies = gdb.lookup_global_symbol('jiffies_64').value()
+        if jiffies:
+            # FIXME: Only kernel above 2.6.0 initializes 64-bit jiffies
+            #        value by 2^32 + 5 minutes
+            jiffies -= long(0x100000000) - 300 * self.machdep_cache['hz']
+        else:
+            jiffies = gdb.lookup_global_symbol('jiffies').value()
+
+        return self.convert_time(jiffies)
+
+
+    def init_machdep_cache(self):
+        if self.machdep_cache:
+            return
+
+        if not self.ikconfig_cache:
+            self.init_ikconfig_cache()
+
+        self.machdep_cache = dict()
+        self.machdep_cache["hz"] = long(self.ikconfig_cache["CONFIG_HZ"])
+
+
+    def init_kernel_cache(self):
+        if self.kernel_cache:
+            return
+
+        if not self.machdep_cache:
+            self.init_machdep_cache()
+
+        self.kernel_cache = dict()
+        self.kernel_cache["uptime"] = self.get_uptime()
+
+
     def init_sys_caches(self):
         self.init_utsname_cache()
-        self.init_ikconfig_raw_cache()
+        self.init_kernel_cache()
 
     def __init__(self):
         super(CrashCacheSys, self).__init__()
