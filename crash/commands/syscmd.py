@@ -8,7 +8,7 @@ from __future__ import division
 import gdb
 from crash.commands import CrashCommand, CrashCommandParser
 from crash.commands import CrashCommandLineError
-from crash.cache.syscache import utsname, config
+from crash.cache.syscache import utsname, config, kernel
 
 class SysCommand(CrashCommand):
     """system data
@@ -56,6 +56,7 @@ EXAMPLES
 
     @staticmethod
     def show_default():
+        print("      UPTIME: {}".format(kernel.uptime))
         print("    NODENAME: {}".format(utsname.nodename))
         print("     RELEASE: {}".format(utsname.release))
         print("     VERSION: {}".format(utsname.version))

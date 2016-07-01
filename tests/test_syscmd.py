@@ -18,7 +18,8 @@ class TestSysCmd(unittest.TestCase):
         self.cmd = SysCommand("pysys")
 
     def test_sys(self):
-        self.cmd.invoke_uncaught("", from_tty=False)
+        with self.assertRaises(MissingSymbolError):
+            self.cmd.invoke_uncaught("", from_tty=False)
 
     def test_sys_garbage(self):
         with self.assertRaises(CrashCommandLineError):

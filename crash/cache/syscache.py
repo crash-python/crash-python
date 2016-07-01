@@ -6,8 +6,15 @@ from __future__ import print_function
 from __future__ import division
 
 import gdb
+import re
 import zlib
 from crash.exceptions import MissingSymbolError
+import sys
+from datetime import timedelta
+
+if sys.version_info.major >= 3:
+    long = int
+
 from crash.cache import CrashCache
 from crash.infra import delayed_init
 
@@ -47,6 +54,9 @@ class CrashConfigCache(CrashCache):
         if name == 'config_buffer':
             self.config_buffer = self.decompress_config_buffer()
             return self.config_buffer
+        elif name == 'ikconfig_cache':
+            self._parse_config()
+            return self.ikconfig_cache
         raise AttributeError
 
     @staticmethod
@@ -90,5 +100,59 @@ class CrashConfigCache(CrashCache):
     def __str__(self):
         return self.config_buffer
 
+    def _parse_config(self):
+        self.ikconfig_cache = {}
+
+        for line in self.config_buffer.splitlines():
+            # bin comments
+            line = re.sub("#.*$", "", line).strip()
+
+            if not line:
+                continue
+
+            m = re.match("CONFIG_([^=]*)=(.*)", line)
+            if m:
+                self.ikconfig_cache[m.group(1)] = m.group(2)
+
+    def __getitem__(self, name):
+        self._parse_config()
+        return self.ikconfig_cache[name]
+
+@delayed_init
+class CrashKernelCache(CrashCache):
+    def __init__(self):
+        CrashCache.__init__(self)
+        self.hz = long(config['HZ'])
+        self.uptime = self.get_uptime()
+
+    @classmethod
+    def _get_uptime(cls, hz):
+        jiffies_sym = gdb.lookup_global_symbol('jiffies_64')
+        if jiffies_sym:
+            jiffies = long(jiffies_sym.value())
+            # FIXME: Only kernel above 2.6.0 initializes 64-bit jiffies
+            #        value by 2^32 + 5 minutes
+            jiffies -= long(0x100000000) - 300 * hz
+        else:
+            jiffies_sym = gdb.lookup_global_symbol('jiffies')
+            if jiffies_sym:
+                jiffies = long(jiffies_sym.value())
+
+        if jiffies_sym is None:
+            raise MissingSymbolError("Could not locate jiffies_64 or jiffies")
+
+        return cls._convert_time(jiffies, hz)
+
+    def get_uptime(self):
+        return self._get_uptime(self.hz)
+
+    @staticmethod
+    def _convert_time(jiffies, hz):
+        return timedelta(seconds=jiffies // hz)
+
+    def convert_time(self, jiffies):
+        return self._convert_time(jiffies, self.hz)
+
 utsname = CrashUtsnameCache()
 config = CrashConfigCache()
+kernel = CrashKernelCache()

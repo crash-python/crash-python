@@ -8,7 +8,7 @@ from __future__ import division
 import unittest
 import gdb
 
-from crash.cache.syscache import utsname, config
+from crash.cache.syscache import utsname, config, kernel
 from crash.cache.syscache import CrashConfigCache
 
 fake_config = (
@@ -42,3 +42,16 @@ class TestSysCache(unittest.TestCase):
 
         x = test_class()
         self.assertTrue(str(x) == fake_config)
+
+    def test_config_dict(self):
+        class test_class(CrashConfigCache):
+            def decompress_config_buffer(self):
+                return fake_config
+
+        x = test_class()
+        self.assertTrue(x['HZ'] == '250')
+
+    def test_get_uptime(self):
+        x = kernel._get_uptime(250)
+        self.assertTrue(x.seconds == 154)
+        self.assertTrue(str(x) == '0:02:34')
