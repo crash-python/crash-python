@@ -7,7 +7,8 @@ from __future__ import division
 
 import gdb
 from crash.commands import CrashCommand, CrashCommandParser
-from crash.cache.syscache import utsname
+from crash.commands import CrashCommandLineError
+from crash.cache.syscache import utsname, config
 
 class SysCommand(CrashCommand):
     """system data
@@ -16,15 +17,19 @@ NAME
   sys - system data
 
 SYNOPSIS
-  sys
+  sys [config]
 
 DESCRIPTION
-  This command displays system-specific data.
+  This command displays system-specific data. If no arguments are entered,
+  the same system data shown during crash invocation is shown.
+
+    config            If the kernel was configured with CONFIG_IKCONFIG, then
+                      dump the in-kernel configuration data.
 
 EXAMPLES
   Display essential system information:
 
-    crash> sys
+    crash> sys config
           KERNEL: vmlinux.4
         DUMPFILE: lcore.cr.4
             CPUS: 4
@@ -44,7 +49,9 @@ EXAMPLES
 
         parser = CrashCommandParser(prog=name)
 
-        parser.format_usage = lambda: "sys\n"
+        parser.add_argument('config', nargs='?')
+
+        parser.format_usage = lambda: "sys [config]\n"
         CrashCommand.__init__(self, name, parser)
 
     @staticmethod
@@ -55,6 +62,13 @@ EXAMPLES
         print("     MACHINE: {}".format(utsname.machine))
 
     def execute(self, args):
-        self.show_default()
+        if args.config:
+            if args.config == "config":
+                print(config)
+            else:
+                raise CrashCommandLineError("error: unknown option: {}"
+                                            .format(args.config))
+        else:
+            self.show_default()
 
 SysCommand("sys")

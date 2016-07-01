@@ -8,7 +8,19 @@ from __future__ import division
 import unittest
 import gdb
 
-from crash.cache.syscache import utsname
+from crash.cache.syscache import utsname, config
+from crash.cache.syscache import CrashConfigCache
+
+fake_config = (
+"""
+#
+# Linux kernel 4.4
+#
+CONFIG_HZ=250
+# CONFIG_HZ_1000 is not set
+#
+
+""")
 
 class TestSysCache(unittest.TestCase):
     def setUp(self):
@@ -21,3 +33,12 @@ class TestSysCache(unittest.TestCase):
         self.assertTrue(utsname.version == '#7 SMP Wed Nov 2 16:08:46 EDT 2016')
         self.assertTrue(utsname.machine == 'x86_64')
         self.assertTrue(utsname.domainname == 'suse.de')
+
+    # Kind of a silly test, but otherwise we need to have a real config
+    def test_config(self):
+        class test_class(CrashConfigCache):
+            def decompress_config_buffer(self):
+                return fake_config
+
+        x = test_class()
+        self.assertTrue(str(x) == fake_config)
