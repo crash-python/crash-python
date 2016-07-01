@@ -25,6 +25,7 @@ NAME
         CrashCommand.__init__(self, name, parser)
 
     def execute(self, args):
-        slab.cache.init_kmem_caches()
+        for cache in slab.cache.get_kmem_caches().values():
+            print cache.name
 
 KmemCommand("kmem")
