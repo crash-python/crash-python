@@ -2,8 +2,10 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
+import crash
 from util import container_of
 from crash.types.list import list_for_each_entry
+from crash.types.page import Page
 
 kmem_cache_type = gdb.lookup_type("struct kmem_cache")
 slab_type = gdb.lookup_type("struct slab")
@@ -24,6 +26,27 @@ slab_free = 3
 BUFCTL_END = ~0 & 0xffffffff
 
 class Slab:
+    @staticmethod
+    def from_addr(slab_addr, kmem_cache):
+        if not isinstance(kmem_cache, KmemCache):
+            kmem_cache = KmemCache.from_addr(kmem_cache)
+        slab_struct = gdb.Value(slab_addr).cast(slab_type.pointer()).dereference()
+        return Slab(slab_struct, kmem_cache)
+
+    @staticmethod
+    def from_page(page):
+        kmem_cache_addr = long(page.gdb_obj["lru"]["next"])
+        slab_addr = long(page.gdb_obj["lru"]["prev"])
+        return Slab.from_addr(slab_addr, kmem_cache_addr)
+
+    @staticmethod
+    def from_obj(addr):
+        page = Page.from_addr(addr).compound_head()
+        if not page.is_slab():
+            return None
+
+        return Slab.from_page(page)
+
     def __populate_free(self):
         bufctl = self.gdb_obj.address[1].cast(bufctl_type).address
         bufsize = self.kmem_cache.buffer_size
@@ -67,6 +90,10 @@ class KmemCache:
             if long(node) == 0L:
                 continue
             yield (i, node.dereference())
+
+    @staticmethod
+    def from_addr(addr):
+        return crash.cache.slab.cache.get_kmem_cache_addr(addr)
 
     def __init__(self, name, gdb_obj):
         self.name = name

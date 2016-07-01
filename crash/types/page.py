@@ -4,8 +4,10 @@
 import gdb
 from util import container_of
 
-VMEMMAP_START = 0xffffea0000000000
-PAGE_SIZE = 4096L
+# TODO: un-hardcode this
+VMEMMAP_START   = 0xffffea0000000000
+DIRECTMAP_START = 0xffff880000000000
+PAGE_SIZE       = 4096L
 
 struct_page_type = gdb.lookup_type('struct page')
 
@@ -18,17 +20,13 @@ PG_tail = get_flag("tail")
 PG_slab = get_flag("slab")
 
 class Page:
-
-    gdb_obj = None
-    flags = None
-
     @staticmethod
     def from_pfn(pfn):
         return Page(vmemmap[pfn])
 
     @staticmethod
     def from_addr(addr):
-        return Page.from_pfn(addr / PAGE_SIZE)
+        return Page.from_pfn((addr - DIRECTMAP_START) / PAGE_SIZE)
 
     @staticmethod
     def from_page_addr(addr):
@@ -37,6 +35,9 @@ class Page:
 
     def is_tail(self):
         return bool(self.flags & PG_tail)
+
+    def is_slab(self):
+        return bool(self.flags & PG_slab)
 
     def compound_head(self):
         if not self.is_tail():
