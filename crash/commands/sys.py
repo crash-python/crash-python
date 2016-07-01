@@ -19,15 +19,19 @@ NAME
   sys - system data
 
 SYNOPSIS
-  sys
+  sys [config]
 
 DESCRIPTION
-  This command displays system-specific data.
+  This command displays system-specific data. If no arguments are entered,
+  the same system data shown during crash invocation is shown.
+
+    config            If the kernel was configured with CONFIG_IKCONFIG, then
+                      dump the in-kernel configuration data.
 
 EXAMPLES
   Display essential system information:
 
-    crash> sys
+    crash> sys config
           KERNEL: vmlinux.4
         DUMPFILE: lcore.cr.4
             CPUS: 4
@@ -47,8 +51,11 @@ EXAMPLES
 
         parser = argparse.ArgumentParser(prog=name)
 
-        parser.format_usage = lambda : "sys\n"
+        parser.add_argument('config', nargs='?')
+
+        parser.format_usage = lambda : "sys [config]\n"
         CrashCommand.__init__(self, name, parser)
+
 
     def show_default(self):
         print "    NODENAME: %s" % (sys.cache.utsname_cache['nodename'])
@@ -56,8 +63,18 @@ EXAMPLES
         print "     VERSION: %s" % (sys.cache.utsname_cache['version'])
         print "     MACHINE: %s" % (sys.cache.utsname_cache['machine'])
 
+    def show_raw_ikconfig(self):
+        print sys.cache.ikconfig_raw_cache
+
     def execute(self, args):
         sys.cache.init_sys_caches()
-        self.show_default()
+
+        if args.config:
+            if args.config == "config":
+                self.show_raw_ikconfig()
+            else:
+                print "Error: unknown option: %s" % (args.config)
+        else:
+            self.show_default()
 
 SysCommand("sys")
