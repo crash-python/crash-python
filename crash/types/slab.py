@@ -48,12 +48,15 @@ class Slab:
         return Slab.from_page(page)
 
     def __populate_free(self):
+        if self.free:
+            return
+        
+        self.free = set()
         bufctl = self.gdb_obj.address[1].cast(bufctl_type).address
         bufsize = self.kmem_cache.buffer_size
         objs_per_slab = self.kmem_cache.objs_per_slab
 
         f = int(self.gdb_obj["free"])
-        # print "free = " + str(f)
         while f != BUFCTL_END:
             if f >= objs_per_slab:
                 print "bufctl value overflow"
@@ -66,7 +69,37 @@ class Slab:
                 break
 
             f = int(bufctl[f])
-            # print f
+
+    def find_obj(self, addr):
+        bufsize = self.kmem_cache.buffer_size
+        objs_per_slab = self.kmem_cache.objs_per_slab
+        
+        if long(addr) < self.s_mem:
+            return None
+
+        idx = (long(addr) - self.s_mem) / bufsize
+        if idx >= objs_per_slab:
+            return None
+
+        return self.s_mem + (idx * bufsize)
+
+    def contains_obj(self, addr):
+        obj_addr = self.find_obj(addr)
+
+        if not obj_addr:
+            return (False, 0L, None)
+
+        self.__populate_free()
+        if obj_addr in self.free:
+            return (False, obj_addr, None)
+
+        ac = self.kmem_cache.get_array_caches()
+
+        if obj_addr in ac:
+            return (False, obj_addr, ac)
+
+        return (True, obj_addr, None)
+        
 
     def check(self, slab_type):
         self.__populate_free()
@@ -75,7 +108,7 @@ class Slab:
     def __init__(self, gdb_obj, kmem_cache):
         self.gdb_obj = gdb_obj
         self.kmem_cache = kmem_cache
-        self.free = set()
+        self.free = None
 
         self.inuse = int(gdb_obj["inuse"])
         self.s_mem = long(gdb_obj["s_mem"])
@@ -105,7 +138,7 @@ class KmemCache:
 
     def __get_array_cache(self, acache, ac_type, nid_src, nid_tgt):
         res = dict()
-        
+
         avail = int(acache["avail"])
         limit = int(acache["limit"])
 
@@ -130,12 +163,12 @@ class KmemCache:
 
             # TODO: limit should prevent this?
             if long(ptr) == 0L:
-                break
+                continue
 
             # A node cannot have alien cache on the same node, but some
             # kernels (xen) seem to have a non-null pointer there anyway
             if ac_type == AC_ALIEN and nid_src == i:
-                break
+                continue
 
             res.update(self.__get_array_cache(ptr.dereference(), ac_type,
                         nid_src, i))
@@ -151,7 +184,8 @@ class KmemCache:
         # TODO check and report collisions
         for (nid, node) in self.__get_nodelists():
             shared_cache = node["shared"]
-            res.update(self.__get_array_cache(shared_cache, AC_SHARED, nid, nid))
+            if long(shared_cache) != 0:
+                res.update(self.__get_array_cache(shared_cache.dereference(), AC_SHARED, nid, nid))
             alien_cache = node["alien"]
             # TODO check that this only happens for single-node systems?
             if long(alien_cache) == 0L:
