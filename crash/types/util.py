@@ -38,3 +38,10 @@ def container_of(val, gdbtype, member):
     gdbtype = resolve_type(gdbtype)
     offset = offsetof(gdbtype, member)
     return (val.cast(charp) - offset).cast(gdbtype.pointer()).dereference()
+
+def find_member_variant(gdbtype, variants):
+    for v in variants:
+        if v in gdbtype:
+            return v
+    raise TypeError("Unrecognized '%s': could not find member '%s'" %
+                        (str(gdbtype), variants[0]))

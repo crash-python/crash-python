@@ -34,5 +34,6 @@ NAME
             
         for cache in slab.cache.get_kmem_caches().values():
             print cache.name
+            cache.check_all()
 
 KmemCommand("kmem")

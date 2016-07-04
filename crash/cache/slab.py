@@ -4,6 +4,7 @@
 import gdb
 from crash.types.list import list_for_each_entry
 from crash.types.slab import KmemCache, kmem_cache_type
+from crash.types.util import find_member_variant
 from crash.cache import CrashCache
 
 def dump(obj):
@@ -29,9 +30,12 @@ class CrashCacheSlab(CrashCache):
         if not list_caches:
             list_caches = get_value("cache_chain")
 
+        head_name = find_member_variant(kmem_cache_type, ("next", "list"))
+
         # TODO exception if still None
 
-        for cache in list_for_each_entry(list_caches, kmem_cache_type, "next"):
+        for cache in list_for_each_entry(list_caches, kmem_cache_type,
+                                                                head_name):
             name = cache["name"].string()
             kmem_cache = KmemCache(name, cache)
  

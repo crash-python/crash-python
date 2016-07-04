@@ -3,7 +3,7 @@
 
 import gdb
 import crash
-from util import container_of
+from util import container_of, find_member_variant
 from crash.types.list import list_for_each_entry
 from crash.types.page import Page
 
@@ -114,8 +114,13 @@ class Slab:
         self.s_mem = long(gdb_obj["s_mem"])
 
 class KmemCache:
+
+    buffer_size_name = find_member_variant(kmem_cache_type,
+                                        ("buffer_size", "size"))
+    nodelists_name = find_member_variant(kmem_cache_type,
+                                        ("nodelists", "node"))
     def __get_nodelist(self, node):
-        return self.gdb_obj["nodelists"][node]
+        return self.gdb_obj[KmemCache.nodelists_name][node]
         
     def __get_nodelists(self):
         for i in range(nr_node_ids):
@@ -142,7 +147,7 @@ class KmemCache:
         self.array_caches = None
         
         self.objs_per_slab = int(gdb_obj["num"])
-        self.buffer_size = int(gdb_obj["buffer_size"])
+        self.buffer_size = int(gdb_obj[KmemCache.buffer_size_name])
 
     def __get_array_cache(self, acache, ac_type, nid_src, nid_tgt):
         res = dict()
