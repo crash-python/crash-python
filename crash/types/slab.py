@@ -128,6 +128,14 @@ class KmemCache:
     def from_addr(addr):
         return crash.cache.slab.cache.get_kmem_cache_addr(addr)
 
+    @staticmethod
+    def from_name(name):
+        return crash.cache.slab.cache.get_kmem_cache(name)
+
+    @staticmethod
+    def get_all_caches():
+        return crash.cache.slab.cache.get_kmem_caches().values()
+
     def __init__(self, name, gdb_obj):
         self.name = name
         self.gdb_obj = gdb_obj
