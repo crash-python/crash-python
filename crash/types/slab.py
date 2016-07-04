@@ -21,7 +21,7 @@ AC_ALIEN  = "alien"
 
 slab_partial = 0
 slab_full = 1
-slab_free = 3
+slab_free = 2
 
 BUFCTL_END = ~0 & 0xffffffff
 
@@ -100,10 +100,32 @@ class Slab:
 
         return (True, obj_addr, None)
         
+    def __free_error(self, list_name):
+        print ("cache %s slab %x is on list %s, but has %d/%d objects" %
+                (self.kmem_cache.name, self.gdb_obj.address, list_name,
+                    len(self.free), self.kmem_cache.objs_per_slab))
 
-    def check(self, slab_type):
+    def check(self, slabtype):
         self.__populate_free()
-        return len(self.free)
+        num_free = len(self.free)
+        max_free = self.kmem_cache.objs_per_slab
+
+        if self.inuse + num_free != max_free:
+            print ("cache %s slab %x inuse=%d free=%d adds up to %d != %d" %
+                    (self.kmem_cache.name, self.gdb_obj.address, self.inuse,
+                     num_free, self.inuse + num_free, max_free))
+            
+        if slabtype == slab_free:
+            if num_free != max_free:
+                self.__free_error("slab_free")
+        elif slabtype == slab_partial:
+            if num_free == 0 or num_free == max_free:
+                self.__free_error("slab_partial")
+        elif slabtype == slab_full:
+            if num_free > 0:
+                self.__free_error("slab_full")
+                        
+        return num_free
             
     def __init__(self, gdb_obj, kmem_cache):
         self.gdb_obj = gdb_obj
@@ -231,5 +253,6 @@ class KmemCache:
             free_counted += self.__check_slabs(node["slabs_full"], slab_full)
             free_counted += self.__check_slabs(node["slabs_free"], slab_free)
             if free_declared != free_counted:
-                print "free counted doesn't match"
+                print ("free objects mismatch: declared=%d counted=%d" %
+                                                (free_declared, free_counted))
 
