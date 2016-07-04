@@ -17,16 +17,21 @@ def offsetof(val, member):
     if not isinstance(val, gdb.Type):
         raise TypeError("offsetof requires gdb.Type or a string/value that can be used to lookup a gdb.Type")
 
-    if member in gdbtype:
-        return gdbtype[member].bitpos >> 3
+    try:
+        if member in gdbtype:
+            return gdbtype[member].bitpos >> 3
+ 
+        for key in gdbtype.keys():
+            res = offsetof(gdbtype[key].type, member)
+            if res is not None:
+                off = gdbtype[key].bitpos >> 3
+                return res + off
+    except TypeError, e:
+        # not iterable, skip
+        pass
 
-    for key in gdbtype.keys():
-        res = offsetof(gdbtype[key].type, member)
-        if res is not None:
-            off = gdbtype[key].bitpos >> 3
-            return res + off
-
-    return None
+    raise TypeError("offsetof couldn't find member '%s' in type '%s'" 
+                            % (member, str(gdbtype)))
 
 charp = gdb.lookup_type('char').pointer()
 def container_of(val, gdbtype, member):
