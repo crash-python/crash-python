@@ -150,23 +150,19 @@ class KmemCache:
         self.buffer_size = int(gdb_obj[KmemCache.buffer_size_name])
 
     def __get_array_cache(self, acache, ac_type, nid_src, nid_tgt):
-        res = dict()
-
         avail = int(acache["avail"])
         limit = int(acache["limit"])
 
         # TODO check avail > limit
         if avail == 0:
-            return res
+            return
 
         cache_dict = {"ac_type" : ac_type, "nid_src" : nid_src,
                         "nid_tgt" : nid_tgt}
 
         for i in range(avail):
             ptr = long(acache["entry"][i])
-            res[ptr] = cache_dict
-
-        return res
+            yield (ptr, cache_dict)
 
     def __get_array_caches(self, array, ac_type, nid_src, limit):
         res = dict()
@@ -183,29 +179,37 @@ class KmemCache:
             if ac_type == AC_ALIEN and nid_src == i:
                 continue
 
-            res.update(self.__get_array_cache(ptr.dereference(), ac_type,
-                        nid_src, i))
+            for (ptr, cache_dict) in self.__get_array_cache(ptr.dereference(),
+                                                        ac_type, nid_src, i):
+                yield (ptr, cache_dict)
 
-        return res
+    def __fill_array_cache(self, add):
+        for (ptr, cache_dict) in add:
+            if ptr in self.array_caches:
+                print ("WARNING: array cache duplicity detected!")
+            else:
+                self.array_caches[ptr] = cache_dict
 
     def __fill_array_caches(self):
-        res = dict()
+        self.array_caches = dict()
 
         percpu_cache = self.gdb_obj["array"]
-        res.update(self.__get_array_caches(percpu_cache, AC_PERCPU, -1, nr_cpu_ids))
+
+        add = self.__get_array_caches(percpu_cache, AC_PERCPU, -1, nr_cpu_ids)
+        self.__fill_array_cache(add) 
 
         # TODO check and report collisions
         for (nid, node) in self.__get_nodelists():
             shared_cache = node["shared"]
             if long(shared_cache) != 0:
-                res.update(self.__get_array_cache(shared_cache.dereference(), AC_SHARED, nid, nid))
+                add = self.__get_array_cache(shared_cache.dereference(), AC_SHARED, nid, nid)
+                self.__fill_array_cache(add)
             alien_cache = node["alien"]
             # TODO check that this only happens for single-node systems?
             if long(alien_cache) == 0L:
                 continue
-            res.update(self.__get_array_caches(alien_cache, AC_ALIEN, nid, nr_node_ids))
-
-        self.array_caches = res
+            add = self.__get_array_caches(alien_cache, AC_ALIEN, nid, nr_node_ids)
+            self.__fill_array_cache(add)
 
     def get_array_caches(self):
         if not self.array_caches:
