@@ -134,7 +134,11 @@ class Slab:
             if num_free > 0:
                 self.__free_error("slab_full")
 
+        ac = self.kmem_cache.get_array_caches()
         for obj in self.get_objects():
+            if obj in self.free and obj in ac:
+                self.__error(": obj %x is marked as free but in array cache:")
+                print(ac[obj])
             page = Page.from_addr(obj).compound_head()
             if not page.is_slab():
                 self.__error(": obj %x is not on PageSlab page" % obj)
