@@ -35,8 +35,8 @@ class Slab:
 
     @staticmethod
     def from_page(page):
-        kmem_cache_addr = long(page.gdb_obj["lru"]["next"])
-        slab_addr = long(page.gdb_obj["lru"]["prev"])
+        kmem_cache_addr = long(page.get_slab_cache())
+        slab_addr = long(page.get_slab_page())
         return Slab.from_addr(slab_addr, kmem_cache_addr)
 
     @staticmethod
@@ -99,11 +99,21 @@ class Slab:
             return (False, obj_addr, ac)
 
         return (True, obj_addr, None)
-        
+    
+    def __error(self, msg):
+        print ("cache %s slab %x%s" % (self.kmem_cache.name,
+                    long(self.gdb_obj.address), msg))
+ 
     def __free_error(self, list_name):
-        print ("cache %s slab %x is on list %s, but has %d/%d objects" %
-                (self.kmem_cache.name, self.gdb_obj.address, list_name,
-                    len(self.free), self.kmem_cache.objs_per_slab))
+        self.__error("is on list %s, but has %d/%d objects" %
+                (list_name, len(self.free), self.kmem_cache.objs_per_slab))
+
+    def get_objects(self):
+        bufsize = self.kmem_cache.buffer_size
+        obj = self.s_mem
+        for i in range(self.kmem_cache.objs_per_slab):
+            yield obj
+            obj += bufsize
 
     def check(self, slabtype):
         self.__populate_free()
@@ -111,9 +121,8 @@ class Slab:
         max_free = self.kmem_cache.objs_per_slab
 
         if self.inuse + num_free != max_free:
-            print ("cache %s slab %x inuse=%d free=%d adds up to %d != %d" %
-                    (self.kmem_cache.name, self.gdb_obj.address, self.inuse,
-                     num_free, self.inuse + num_free, max_free))
+            self.__error(": inuse=%d free=%d adds up to %d != %d" %
+                    (self.inuse, num_free, self.inuse + num_free, max_free))
             
         if slabtype == slab_free:
             if num_free != max_free:
@@ -124,7 +133,19 @@ class Slab:
         elif slabtype == slab_full:
             if num_free > 0:
                 self.__free_error("slab_full")
-                        
+
+        for obj in self.get_objects():
+            page = Page.from_addr(obj).compound_head()
+            if not page.is_slab():
+                self.__error(": obj %x is not on PageSlab page" % obj)
+            kmem_cache_addr = long(page.get_slab_cache())
+            if kmem_cache_addr != long(self.kmem_cache.gdb_obj.address):
+                self.__error(": obj %x is on page where pointer to kmem_cache points to %x instead of %x" %
+                                            (obj, kmem_cache_addr, long(self.kmem_cache.gdb_obj.address)))
+            slab_addr = long(page.get_slab_page())
+            if slab_addr != self.gdb_obj.address:
+                self.__error(": obj %x is on page where pointer to slab wrongly points to %x" %
+                                                                        (obj, slab_addr))
         return num_free
             
     def __init__(self, gdb_obj, kmem_cache):
