@@ -2,7 +2,7 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from util import container_of
+from util import container_of, find_member_variant
 
 # TODO: un-hardcode this
 VMEMMAP_START   = 0xffffea0000000000
@@ -20,6 +20,11 @@ PG_tail = get_flag("tail")
 PG_slab = get_flag("slab")
 
 class Page:
+    slab_cache_name = find_member_variant(struct_page_type,
+                                    ("slab_cache", "lru"))
+    slab_page_name = find_member_variant(struct_page_type,
+                                    ("slab_page", "lru"))
+
     @staticmethod
     def from_pfn(pfn):
         return Page(vmemmap[pfn])
@@ -38,6 +43,16 @@ class Page:
 
     def is_slab(self):
         return bool(self.flags & PG_slab)
+
+    def get_slab_cache(self):
+        if Page.slab_cache_name == "lru":
+            return self.gdb_obj["lru"]["next"]
+        return self.gdb_obj[Page.slab_cache_name]
+
+    def get_slab_page(self):
+        if Page.slab_page_name == "lru":
+            return self.gdb_obj["lru"]["prev"]
+        return self.gdb_obj[Page.slab_page_name]
 
     def compound_head(self):
         if not self.is_tail():
