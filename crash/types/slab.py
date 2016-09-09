@@ -96,7 +96,7 @@ class Slab:
         ac = self.kmem_cache.get_array_caches()
 
         if obj_addr in ac:
-            return (False, obj_addr, ac)
+            return (False, obj_addr, ac[obj_addr])
 
         return (True, obj_addr, None)
     
@@ -114,6 +114,12 @@ class Slab:
         for i in range(self.kmem_cache.objs_per_slab):
             yield obj
             obj += bufsize
+
+    def get_allocated_objects(self):
+        for obj in self.get_objects():
+            c = self.contains_obj(obj)
+            if c[0]:
+                yield obj
 
     def check(self, slabtype):
         self.__populate_free()
@@ -263,6 +269,19 @@ class KmemCache:
             self.__fill_array_caches()
 
         return self.array_caches
+
+    def __get_allocated_objects(self, slab_list):
+        for gdb_slab in list_for_each_entry(slab_list, slab_type, "list"):
+            slab = Slab(gdb_slab, self)
+            for obj in slab.get_allocated_objects():
+                yield obj
+
+    def get_allocated_objects(self):
+        for (nid, node) in self.__get_nodelists():
+            for obj in self.__get_allocated_objects(node["slabs_partial"]):
+                yield obj
+            for obj in self.__get_allocated_objects(node["slabs_full"]):
+                yield obj
 
     def __check_slabs(self, slab_list, slabtype):
         free = 0
