@@ -6,12 +6,15 @@ import gdb
 import os
 import glob
 import importlib
+import argparse
 
 class CrashCommand(gdb.Command):
     commands = {}
-    def __init__(self, name, parser):
+    def __init__(self, name, parser=None):
         name = "py" + name
         gdb.Command.__init__(self, name, gdb.COMMAND_USER)
+        if parser is None:
+            parser = argparse.ArgumentParser(prog=name)
         parser.format_help = lambda: self.__doc__
         self.parser = parser
         self.commands[name] = self
