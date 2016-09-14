@@ -19,7 +19,11 @@ class CrashCommand(gdb.Command):
         gdb.Command.__init__(self, name, gdb.COMMAND_USER)
         if parser is None:
             parser = argparse.ArgumentParser(prog=name)
-        parser.format_help = lambda: self.__doc__
+
+        nl = ""
+        if self.__doc__[-1] != '\n':
+            nl = "\n"
+        parser.format_help = lambda: self.__doc__ + nl
         self.parser = parser
         self.commands[name] = self
 
