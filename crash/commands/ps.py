@@ -17,7 +17,7 @@ NAME
   ps - display process status information
 
 SYNOPSIS
-  ps [-k|-u|-G][-s][-p|-c|-t|-l|-a|-g|-r] [pid | taskp | command] ...
+  ps [-k|-u|-G][-s|-n][-p|-c|-t|-l|-a|-g|-r] [pid | taskp | command] ...
 
 DESCRIPTION
   This command displays process status for selected, or all, processes
@@ -78,6 +78,7 @@ DESCRIPTION
            selected, or all, user-mode tasks.
        -g  display tasks by thread group, of selected, or all, tasks.
        -r  display resource limits (rlimits) of selected, or all, tasks.
+       -n  display gdb thread number
 
 EXAMPLES
   Show the process status of all current tasks:
@@ -389,7 +390,9 @@ EXAMPLES
         group.add_argument('-u', action='store_true', default=False)
         group.add_argument('-G', action='store_true', default=False)
 
-        parser.add_argument('-s', action='store_true', default=False)
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument('-s', action='store_true', default=False)
+        group.add_argument('-n', action='store_true', default=False)
 
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-p', action='store_true', default=False)
@@ -435,6 +438,9 @@ EXAMPLES
 # 17077  16749   0  ffff8800b956b848 RU   0.0      0      0  [less]
         self.line_template = "{0} {1:>5}   {2:>5}  {3:>3}  {4:{5}x} {6:3}  {7:.1f}"
         self.line_template += " {8:7d} {9:6d}  {10:.{11}}{12}{13:.{14}}"
+
+        self.num_line_template = "{0} {1:>5}   {2:>5}  {3:>3}  {4:{5}d}  {6:3}  {7:.1f}"
+        self.num_line_template += " {8:7d} {9:6d}  {10:.{11}}{12}{13:.{14}}"
 
     def task_state_string(self, task):
         state = task.task_state()
@@ -484,13 +490,17 @@ EXAMPLES
                               self.task_state_string(task),
                               self.task_header(task)))
 
-    def print_one(self, argv, task):
+    def print_one(self, argv, thread):
+        task = thread.info
         specified = argv.args is None
         task_struct = task.task_struct
 
         pointer = task_struct.address
         if argv.s:
             pointer = task.get_stack_pointer()
+
+        if argv.n:
+            pointer = thread.num
 
         if argv.l:
             self.print_last_run(task)
@@ -509,16 +519,20 @@ EXAMPLES
             active = ">"
         else:
             active = " "
-        print(self.line_template.format(active, task_struct['pid'], parent_pid,
-                                        task.get_thread_info()['cpu'],
-                                        long(pointer), 16,
-                                        self.task_state_string(task),
-                                        0, #task.pct_physmem,
-                                        task.total_vm * 4096 // 1024,
-                                        task.rss * 4096 // 1024,
-                                        "[", int(task.is_kernel_task()),
-                                        task_struct['comm'].string(),
-                                        "]", int(task.is_kernel_task())))
+        line = self.line_template
+        width = 16
+        if argv.n:
+            line = self.num_line_template
+            width = 7
+
+        print(line.format(active, task_struct['pid'], parent_pid,
+                          task.get_thread_info()['cpu'], long(pointer), width,
+                          self.task_state_string(task), 0,
+                          task.total_vm * 4096 // 1024,
+                          task.rss * 4096 // 1024,
+                          "[", int(task.is_kernel_task()),
+                          task_struct['comm'].string(),
+                          "]", int(task.is_kernel_task())))
 
     def execute(self, argv):
         sort_by_pid = lambda x: x.info.task_struct['pid']
@@ -530,9 +544,14 @@ EXAMPLES
         else:
             if argv.s:
                 col4name = "KSTACK"
+                width = 16
+            elif argv.n:
+                col4name = " THREAD#"
+                width = 7
             else:
                 col4name = "TASK"
-            print(self.header_template.format(16, col4name))
+                width = 16
+            print(self.header_template.format(width, col4name))
 
         if not argv.args:
             for thread in sorted(gdb.selected_inferior().threads(), key=sort_by):
@@ -547,5 +566,5 @@ EXAMPLES
 #                    if argv.G and task.pid != int(task.task_struct['tgid']):
 
                     task.update_mem_usage()
-                    self.print_one(argv, task)
+                    self.print_one(argv, thread)
 PSCommand()
