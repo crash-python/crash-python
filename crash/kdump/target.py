@@ -94,6 +94,8 @@ class Target(gdb.Target):
                 raise gdb.TargetXferEof(str(e))
             except NoDataException, e:
                 raise gdb.TargetXferUnavailable(str(e))
+            except AddressTranslationException, e:
+                raise gdb.TargetXferUnavailable(str(e))
         else:
             raise IOError("Unknown obj type")
         return ret
