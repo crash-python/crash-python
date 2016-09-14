@@ -45,6 +45,11 @@ DESCRIPTION
                     text = self.commands[cmd].__doc__
                     if text is None:
                         print("No help text available.")
+                    f = text.find("")
+                    if f == -1:
+                        print(text)
+                    else:
+                        print(text[f+1:])
                 except KeyError, e:
                     print("No such command `{}'".format(cmd))
 
