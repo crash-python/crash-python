@@ -56,9 +56,8 @@ class Zone:
         return stats
 
     def add_vmstat_diffs(self, diffs):
-        pagesets = get_percpu_var(self.gdb_obj["pageset"])
-
-        for cpu, pageset in pagesets.iteritems():
+        for cpu in range(0, nr_cpu_ids):
+            pageset = get_percpu_var(self.gdb_obj["pageset"], cpu)
             vmdiff = pageset["vm_stat_diff"]
             for item in range (0, VmStat.nr_stat_items):
                 diffs[item] += int(vmdiff[item])
