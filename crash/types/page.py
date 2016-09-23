@@ -19,6 +19,9 @@ def get_flag(flagname):
 PG_tail = get_flag("tail")
 PG_slab = get_flag("slab")
 
+#TODO debuginfo won't tell us, depends on version?
+PAGE_MAPPING_ANON = 1
+
 class Page:
     slab_cache_name = find_member_variant(struct_page_type,
                                     ("slab_cache", "lru"))
@@ -27,7 +30,7 @@ class Page:
 
     @staticmethod
     def from_pfn(pfn):
-        return Page(vmemmap[pfn])
+        return Page(vmemmap[pfn], pfn)
 
     @staticmethod
     def from_addr(addr):
@@ -35,14 +38,30 @@ class Page:
 
     @staticmethod
     def from_page_addr(addr):
-        page = gdb.Value(addr).cast(struct_page_type.pointer()).dereference()
-        return Page(page)
+        page_ptr = gdb.Value(addr).cast(struct_page_type.pointer())
+        pfn = (addr - VMEMMAP_START) / struct_page_type.sizeof
+        return Page(page_ptr.dereference(), pfn)
+
+    @staticmethod
+    def for_each():
+        # TODO works only on x86?
+        max_pfn = long(gdb.lookup_global_symbol("max_pfn").value())
+        for pfn in range(max_pfn):
+            try:
+                yield Page.from_pfn(pfn)
+            except gdb.error, e:
+                # TODO: distinguish pfn_valid() and report failures for those?
+                pass
 
     def is_tail(self):
         return bool(self.flags & PG_tail)
 
     def is_slab(self):
         return bool(self.flags & PG_slab)
+
+    def is_anon(self):
+        mapping = long(self.gdb_obj["mapping"])
+        return (mapping & PAGE_MAPPING_ANON) != 0
 
     def get_slab_cache(self):
         if Page.slab_cache_name == "lru":
@@ -61,6 +80,7 @@ class Page:
         first_page = long(self.gdb_obj["first_page"])
         return Page.from_page_addr(first_page)
         
-    def __init__(self, obj):
+    def __init__(self, obj, pfn):
         self.gdb_obj = obj
+        self.pfn = pfn
         self.flags = long(obj["flags"])
