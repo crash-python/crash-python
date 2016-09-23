@@ -33,6 +33,7 @@ DESCRIPTION
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-s', action='store_true', default=False)
         group.add_argument('-z', action='store_true', default=False)
+        group.add_argument('-V', action='store_true', default=False)
 
         parser.add_argument('arg', nargs=argparse.REMAINDER)
 
@@ -42,6 +43,9 @@ DESCRIPTION
     def execute(self, args):
         if args.z:
             self.print_zones()
+            return
+        elif args.V:
+            self.print_vmstats()
             return
         elif args.s:
             if args.arg:
@@ -96,10 +100,37 @@ DESCRIPTION
                 print ("FREE object %x from slab %s (in %s)" %
                                             (obj[1], name, ac_desc))
 
-    def print_zones(self):
+    def __print_vmstat(self, vmstat, diffs):
         vmstat_names = Zone.get_vmstat_names();
         just = max(map(len, vmstat_names))
         nr_items = int(getValue("NR_VM_ZONE_STAT_ITEMS"))
+
+        vmstat = [sum(x) for x in zip(vmstat, diffs)]
+
+        for i in range(0, nr_items):
+            print("%s: %d (%d)" % (vmstat_names[i].rjust(just),
+                                                vmstat[i], diffs[i]))
+
+    def print_vmstats(self):
+        print "  VM_STAT:"
+        #TODO put this... where?
+        nr_items = int(getValue("NR_VM_ZONE_STAT_ITEMS"))
+    
+        stats = [0L] * nr_items
+        vm_stat = getValue("vm_stat")
+
+        for item in range (0, nr_items):
+            # TODO abstract atomic?
+            stats[item] = long(vm_stat[item]["counter"])
+
+        diffs = [0L] * nr_items
+
+        for zone in Zone.for_each_populated():
+            zone.add_vmstat_diffs(diffs)
+
+        self.__print_vmstat(stats, diffs)
+
+    def print_zones(self):
         for zone in Zone.for_each():
             zone_struct = zone.gdb_obj
             
@@ -113,14 +144,9 @@ DESCRIPTION
                 continue
 
             print "  VM_STAT:"
-
             vmstat = zone.get_vmstat()
-            zone.add_vmstat_diffs(vmstat)
             diffs = zone.get_vmstat_diffs()
-
-            for i in range(0, nr_items):
-                print("%s: %d (%d)" % (vmstat_names[i].rjust(just),
-                                                    vmstat[i], diffs[i]))
+            self.__print_vmstat(vmstat, diffs)
 
             print
                 

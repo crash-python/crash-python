@@ -33,6 +33,13 @@ class Zone:
                 yield zone
 
     @staticmethod
+    def for_each_populated():
+        #TODO: some filter thing?
+        for zone in Zone.for_each():
+            if zone.is_populated():
+                yield zone
+
+    @staticmethod
     def get_vmstat_names():
         global vm_stat_names
         if vm_stat_names is None:
