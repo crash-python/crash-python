@@ -3,7 +3,7 @@
 
 import gdb
 from util import container_of, find_member_variant
-from crash.types.zone import Zone
+import crash.types.zone
 
 # TODO: un-hardcode this
 VMEMMAP_START   = 0xffffea0000000000
@@ -38,7 +38,7 @@ class Node:
         node_zones = self.gdb_obj["node_zones"]
         (first, last) = node_zones.type.range()
         for zid in range(first, last + 1):
-            yield Zone(node_zones[zid])
+            yield crash.types.zone.Zone(node_zones[zid])
 
     def __init__(self, obj):
         self.gdb_obj = obj

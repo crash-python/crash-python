@@ -3,7 +3,7 @@
 
 import gdb
 from util import container_of, find_member_variant
-from crash.types.node import Node
+import crash.types.node
 
 # TODO: un-hardcode this
 VMEMMAP_START   = 0xffffea0000000000
@@ -20,7 +20,7 @@ class Zone:
 
     @staticmethod
     def for_each():
-        for node in Node.for_each_node():
+        for node in crash.types.node.Node.for_each_node():
             for zone in node.for_each_zone():
                 yield zone
 
