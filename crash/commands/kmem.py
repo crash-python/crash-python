@@ -7,6 +7,7 @@ from crash.commands import CrashCommand
 from crash.cache import slab
 from crash.types.slab import KmemCache, Slab
 from crash.types.zone import Zone
+from crash.types.vmstat import VmStat
 import argparse
 import re
 
@@ -101,9 +102,9 @@ DESCRIPTION
                                             (obj[1], name, ac_desc))
 
     def __print_vmstat(self, vmstat, diffs):
-        vmstat_names = Zone.get_vmstat_names();
+        vmstat_names = VmStat.get_stat_names();
         just = max(map(len, vmstat_names))
-        nr_items = int(getValue("NR_VM_ZONE_STAT_ITEMS"))
+        nr_items = VmStat.nr_stat_items
 
         vmstat = [sum(x) for x in zip(vmstat, diffs)]
 
@@ -114,7 +115,7 @@ DESCRIPTION
     def print_vmstats(self):
         print "  VM_STAT:"
         #TODO put this... where?
-        nr_items = int(getValue("NR_VM_ZONE_STAT_ITEMS"))
+        nr_items = VmStat.nr_stat_items
     
         stats = [0L] * nr_items
         vm_stat = getValue("vm_stat")
@@ -129,6 +130,16 @@ DESCRIPTION
             zone.add_vmstat_diffs(diffs)
 
         self.__print_vmstat(stats, diffs)
+
+        print
+        print "  VM_EVENT_STATES:"
+
+        vm_events = VmStat.get_events()
+        names = VmStat.get_event_names()
+        just = max(map(len, names))
+    
+        for name, val in zip(names, vm_events):
+            print("%s: %d" % (name.rjust(just), val))
 
     def print_zones(self):
         for zone in Zone.for_each():
