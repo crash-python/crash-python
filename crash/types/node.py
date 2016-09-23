@@ -38,7 +38,7 @@ class Node:
         node_zones = self.gdb_obj["node_zones"]
         (first, last) = node_zones.type.range()
         for zid in range(first, last + 1):
-            yield crash.types.zone.Zone(node_zones[zid])
+            yield crash.types.zone.Zone(node_zones[zid], zid)
 
     def __init__(self, obj):
         self.gdb_obj = obj

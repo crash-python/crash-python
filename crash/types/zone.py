@@ -46,8 +46,9 @@ class Zone:
             vm_stat_names = names
         return vm_stat_names
 
-    def __init__(self, obj):
+    def __init__(self, obj, zid):
         self.gdb_obj = obj
+        self.zid = zid
 
     def get_vmstat(self):
         stats = [0L] * nr_stat_items

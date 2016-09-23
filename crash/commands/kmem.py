@@ -6,6 +6,7 @@ import crash
 from crash.commands import CrashCommand
 from crash.cache import slab
 from crash.types.slab import KmemCache, Slab
+from crash.types.zone import Zone
 import argparse
 import re
 
@@ -26,7 +27,9 @@ DESCRIPTION
     def __init__(self, name):
         parser = argparse.ArgumentParser(prog=name)
 
-        parser.add_argument('-s', action='store_true', default=False)
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument('-s', action='store_true', default=False)
+        group.add_argument('-z', action='store_true', default=False)
 
         parser.add_argument('arg', nargs=argparse.REMAINDER)
 
@@ -34,7 +37,10 @@ DESCRIPTION
         CrashCommand.__init__(self, name, parser)
 
     def execute(self, args):
-        if args.s:
+        if args.z:
+            self.print_zones()
+            return
+        elif args.s:
             if args.arg:
                 cache_name = args.arg[0]
                 print "Checking kmem cache " + cache_name
@@ -86,5 +92,13 @@ DESCRIPTION
                     
                 print ("FREE object %x from slab %s (in %s)" %
                                             (obj[1], name, ac_desc))
+
+    def print_zones(self):
+       for zone in Zone.for_each():
+            zone_struct = zone.gdb_obj
+            
+            print("NODE: %d  ZONE: %d  ADDR: %x  NAME: \"%s\"" %
+                    (zone_struct["node"], zone.zid, zone_struct.address,
+                                    zone_struct["name"].string()))
                 
 KmemCommand("kmem")
