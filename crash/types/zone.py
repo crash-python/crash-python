@@ -22,6 +22,8 @@ def getValue(sym):
 
 nr_stat_items = int(getValue("NR_VM_ZONE_STAT_ITEMS"))
 
+vm_stat_names = None
+
 class Zone:
 
     @staticmethod
@@ -29,6 +31,20 @@ class Zone:
         for node in crash.types.node.Node.for_each_node():
             for zone in node.for_each_zone():
                 yield zone
+
+    @staticmethod
+    def get_vmstat_names():
+        global vm_stat_names
+        if vm_stat_names is None:
+            names = ["__UNKNOWN__"] * nr_stat_items
+
+            enum = gdb.lookup_type("enum zone_stat_item")
+            for field in enum.fields():
+                if field.enumval < nr_stat_items:
+                    names[field.enumval] = field.name 
+
+            vm_stat_names = names
+        return vm_stat_names
 
     def __init__(self, obj):
         self.gdb_obj = obj
