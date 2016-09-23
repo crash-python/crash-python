@@ -10,6 +10,9 @@ from crash.types.zone import Zone
 import argparse
 import re
 
+def getValue(sym):
+    return gdb.lookup_symbol(sym, None)[0].value()
+
 class KmemCommand(CrashCommand):
     """ kernel memory inspection
 
@@ -94,11 +97,31 @@ DESCRIPTION
                                             (obj[1], name, ac_desc))
 
     def print_zones(self):
-       for zone in Zone.for_each():
+        vmstat_names = Zone.get_vmstat_names();
+        just = max(map(len, vmstat_names))
+        nr_items = int(getValue("NR_VM_ZONE_STAT_ITEMS"))
+        for zone in Zone.for_each():
             zone_struct = zone.gdb_obj
             
             print("NODE: %d  ZONE: %d  ADDR: %x  NAME: \"%s\"" %
                     (zone_struct["node"], zone.zid, zone_struct.address,
                                     zone_struct["name"].string()))
+
+            if not zone.is_populated():
+                print "  [unpopulated]"
+                print
+                continue
+
+            print "  VM_STAT:"
+
+            vmstat = zone.get_vmstat()
+            zone.add_vmstat_diffs(vmstat)
+            diffs = zone.get_vmstat_diffs()
+
+            for i in range(0, nr_items):
+                print("%s: %d (%d)" % (vmstat_names[i].rjust(just),
+                                                    vmstat[i], diffs[i]))
+
+            print
                 
 KmemCommand("kmem")

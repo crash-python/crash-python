@@ -50,6 +50,12 @@ class Zone:
         self.gdb_obj = obj
         self.zid = zid
 
+    def is_populated(self):
+        if self.gdb_obj["present_pages"] != 0:
+            return True
+        else:
+            return False
+
     def get_vmstat(self):
         stats = [0L] * nr_stat_items
         vm_stat = self.gdb_obj["vm_stat"]
