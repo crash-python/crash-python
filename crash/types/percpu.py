@@ -15,7 +15,6 @@ def is_percpu_symbol(sym):
     return sym.section is not None and 'percpu' in sym.section
 
 def get_percpu_var_nocheck(sym, cpu=None):
-    symtype = sym.type
     if cpu is None:
         vals = {}
         for cpu in range(0, nr_cpus):
@@ -23,11 +22,20 @@ def get_percpu_var_nocheck(sym, cpu=None):
         return vals
 
     addr  = per_cpu_offset_sym.value()[cpu]
-    addr += sym.value().address.cast(charp)
-    return addr.cast(symtype.pointer()).dereference()
+    if isinstance(sym, gdb.Symbol):
+        addr += sym.value().address.cast(charp)
+        symtype = sym.type.pointer()
+    else:
+        addr += sym.cast(charp)
+        symtype = sym.type
+    return addr.cast(symtype).dereference()
 
 def get_percpu_var(sym, cpu=None):
-    if not is_percpu_symbol(sym):
-        raise TypeError("symbol not in percpu section")
+    if isinstance(sym, gdb.Symbol):
+        if not is_percpu_symbol(sym):
+            raise TypeError("symbol not in percpu section")
+    else:
+        if sym.type.code != gdb.TYPE_CODE_PTR:
+            raise TypeError("value is not of pointer type")
 
     return get_percpu_var_nocheck(sym, cpu)
