@@ -12,6 +12,7 @@ from kdumpfile.exceptions import *
 from crash.types.list import list_for_each_entry
 from crash.types.percpu import get_percpu_var
 from crash.types.task import LinuxTask
+import crash.cache.tasks
 import crash.arch
 import crash.arch.x86_64
 
@@ -101,6 +102,8 @@ class Target(gdb.Target):
             self.arch.setup_thread_info(thread)
             ltask.attach_thread(thread)
             ltask.set_get_stack_pointer(self.arch.get_stack_pointer)
+
+            crash.cache.tasks.cache_task(ltask)
 
             task_count += 1
             if task_count % 100 == 0:
