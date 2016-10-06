@@ -8,6 +8,7 @@ from kdumpfile.exceptions import *
 from crash.types.list import list_for_each_entry
 from crash.types.percpu import get_percpu_var
 from crash.types.task import LinuxTask
+import crash.cache.tasks
 import crash.arch
 
 LINUX_KERNEL_PID = 1
@@ -80,6 +81,8 @@ class Target(gdb.Target):
             self.arch.setup_thread_info(thread)
             ltask.attach_thread(thread)
             ltask.set_get_stack_pointer(self.arch.get_stack_pointer)
+
+            crash.cache.tasks.cache_task(ltask)
 
         gdb.selected_inferior().executing = False
 
