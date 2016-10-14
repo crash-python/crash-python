@@ -50,3 +50,10 @@ def find_member_variant(gdbtype, variants):
             return v
     raise TypeError("Unrecognized '%s': could not find member '%s'" %
                         (str(gdbtype), variants[0]))
+
+def safe_lookup_type(name):
+    try:
+        return gdb.lookup_type(name)
+    except gdb.error:
+        return None
+

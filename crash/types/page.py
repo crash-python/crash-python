@@ -14,7 +14,11 @@ struct_page_type = gdb.lookup_type('struct page')
 vmemmap = gdb.Value(VMEMMAP_START).cast(struct_page_type.pointer())
 
 def get_flag(flagname):
-    return 1L << long(gdb.lookup_symbol("PG_" + flagname, None)[0].value())
+    sym = gdb.lookup_symbol("PG_" + flagname, None)[0]
+    if sym is not None:
+        return 1L << long(sym.value())
+    else:
+        return None
 
 PG_tail = get_flag("tail")
 PG_slab = get_flag("slab")
@@ -54,7 +58,10 @@ class Page:
                 pass
 
     def is_tail(self):
-        return bool(self.flags & PG_tail)
+        if PG_tail is not None:
+            return bool(self.flags & PG_tail)
+        else:
+            return bool(self.gdb_obj["compound_head"] & 1)
 
     def is_slab(self):
         return bool(self.flags & PG_slab)
@@ -77,7 +84,10 @@ class Page:
         if not self.is_tail():
             return self
 
-        first_page = long(self.gdb_obj["first_page"])
+        if PG_tail is not None:
+            first_page = long(self.gdb_obj["first_page"])
+        else:
+            first_page = long(self.gdb_obj["compound_head"]) - 1
         return Page.from_page_addr(first_page)
         
     def __init__(self, obj, pfn):

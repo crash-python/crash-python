@@ -3,13 +3,13 @@
 
 import gdb
 import crash
-from util import container_of, find_member_variant
+from util import container_of, find_member_variant, safe_lookup_type
 from crash.types.list import list_for_each_entry
 from crash.types.page import Page
 
 kmem_cache_type = gdb.lookup_type("struct kmem_cache")
-slab_type = gdb.lookup_type("struct slab")
-bufctl_type = gdb.lookup_type("kmem_bufctl_t")
+slab_type = safe_lookup_type("struct slab")
+bufctl_type = safe_lookup_type("kmem_bufctl_t")
 
 # TODO abstract away
 nr_cpu_ids = long(gdb.lookup_global_symbol("nr_cpu_ids").value())
