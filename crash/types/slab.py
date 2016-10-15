@@ -3,17 +3,26 @@
 
 import gdb
 import crash
-from util import container_of, find_member_variant, safe_lookup_type
+from util import container_of, find_member_variant, safe_lookup_type, get_symbol_value
+from percpu import get_percpu_var
 from crash.types.list import list_for_each_entry
 from crash.types.page import Page
+from crash.types.node import Node
+from crash.types.cpu import for_each_online_cpu
 
 kmem_cache_type = gdb.lookup_type("struct kmem_cache")
-slab_type = safe_lookup_type("struct slab")
-bufctl_type = safe_lookup_type("kmem_bufctl_t")
 
-# TODO abstract away
-nr_cpu_ids = long(gdb.lookup_global_symbol("nr_cpu_ids").value())
-nr_node_ids = long(gdb.lookup_global_symbol("nr_node_ids").value())
+slab_type = safe_lookup_type("struct slab")
+slab_list_head = "list"
+page_slab = False
+if slab_type is None:
+    slab_type = gdb.lookup_type("struct page")
+    slab_list_head = "lru"
+    page_slab = True
+
+bufctl_type = safe_lookup_type("kmem_bufctl_t")
+if bufctl_type is None:
+    bufctl_type = safe_lookup_type("freelist_idx_t")
 
 AC_PERCPU = "percpu"
 AC_SHARED = "shared"
@@ -36,8 +45,12 @@ class Slab:
     @staticmethod
     def from_page(page):
         kmem_cache_addr = long(page.get_slab_cache())
-        slab_addr = long(page.get_slab_page())
-        return Slab.from_addr(slab_addr, kmem_cache_addr)
+        kmem_cache = KmemCache.from_addr(kmem_cache_addr)
+        if page_slab:
+            return Slab(page.gdb_obj, kmem_cache)
+        else:
+            slab_addr = long(page.get_slab_page())
+            return Slab.from_addr(slab_addr, kmem_cache)
 
     @staticmethod
     def from_obj(addr):
@@ -47,28 +60,48 @@ class Slab:
 
         return Slab.from_page(page)
 
+    def __add_free_obj_by_idx(self, idx):
+        objs_per_slab = self.kmem_cache.objs_per_slab
+        bufsize = self.kmem_cache.buffer_size
+        
+        if (idx >= objs_per_slab):
+            self.__error(": free object index %d overflows %d" % (idx,
+                                                            objs_per_slab))
+            return
+
+        obj_addr = self.s_mem + idx * bufsize
+        if obj_addr in self.free:
+            self.__error(": object %x duplicated on freelist" % obj_addr)
+        else:
+            self.free.add(obj_addr)       
+
     def __populate_free(self):
         if self.free:
             return
         
         self.free = set()
-        bufctl = self.gdb_obj.address[1].cast(bufctl_type).address
         bufsize = self.kmem_cache.buffer_size
         objs_per_slab = self.kmem_cache.objs_per_slab
 
-        f = int(self.gdb_obj["free"])
-        while f != BUFCTL_END:
-            if f >= objs_per_slab:
-                print "bufctl value overflow"
-                break
+        if page_slab:
+            page = self.gdb_obj
+            active = int(page["active"])
+            freelist = page["freelist"].cast(bufctl_type.pointer())
+            for i in range(active, objs_per_slab):
+                obj_idx  = int(freelist[i])
+                self.__add_free_obj_by_idx(obj_idx)
 
-            self.free.add(self.s_mem + f * bufsize)
+        else:
+            bufctl = self.gdb_obj.address[1].cast(bufctl_type).address
+            f = int(self.gdb_obj["free"])
+            while f != BUFCTL_END:
+                self.__add_free_obj_by_idx(f)
 
-            if len(self.free) > objs_per_slab:
-                print "bufctl cycle detected"
-                break
+                if len(self.free) > objs_per_slab:
+                    self.__error("bufctl cycle detected")
+                    break
 
-            f = int(bufctl[f])
+                f = int(bufctl[f])
 
     def find_obj(self, addr):
         bufsize = self.kmem_cache.buffer_size
@@ -152,6 +185,10 @@ class Slab:
             if kmem_cache_addr != long(self.kmem_cache.gdb_obj.address):
                 self.__error(": obj %x is on page where pointer to kmem_cache points to %x instead of %x" %
                                             (obj, kmem_cache_addr, long(self.kmem_cache.gdb_obj.address)))
+
+            if page_slab:
+                continue
+
             slab_addr = long(page.get_slab_page())
             if slab_addr != self.gdb_obj.address:
                 self.__error(": obj %x is on page where pointer to slab wrongly points to %x" %
@@ -163,7 +200,10 @@ class Slab:
         self.kmem_cache = kmem_cache
         self.free = None
 
-        self.inuse = int(gdb_obj["inuse"])
+        if page_slab:
+            self.inuse = int(gdb_obj["inuse"])
+        else:
+            self.inuse = int(gdb_obj["active"])
         self.s_mem = long(gdb_obj["s_mem"])
 
 class KmemCache:
@@ -172,15 +212,23 @@ class KmemCache:
                                         ("buffer_size", "size"))
     nodelists_name = find_member_variant(kmem_cache_type,
                                         ("nodelists", "node"))
+
+    percpu_name = find_member_variant(kmem_cache_type,
+                                        ("cpu_cache", "array"))
+
+    percpu_cache = bool(percpu_name == "cpu_cache")
+
+    alien_cache_type = safe_lookup_type("struct alien_cache");
+
     def __get_nodelist(self, node):
         return self.gdb_obj[KmemCache.nodelists_name][node]
         
     def __get_nodelists(self):
-        for i in range(nr_node_ids):
-            node = self.__get_nodelist(i)
+        for nid in Node.for_each_nid():
+            node = self.__get_nodelist(nid)
             if long(node) == 0L:
                 continue
-            yield (i, node.dereference())
+            yield (nid, node.dereference())
 
     @staticmethod
     def from_addr(addr):
@@ -202,7 +250,7 @@ class KmemCache:
         self.objs_per_slab = int(gdb_obj["num"])
         self.buffer_size = int(gdb_obj[KmemCache.buffer_size_name])
 
-    def __get_array_cache(self, acache, ac_type, nid_src, nid_tgt):
+    def __fill_array_cache(self, acache, ac_type, nid_src, nid_tgt):
         avail = int(acache["avail"])
         limit = int(acache["limit"])
 
@@ -215,63 +263,67 @@ class KmemCache:
 
         for i in range(avail):
             ptr = long(acache["entry"][i])
-            yield (ptr, cache_dict)
-
-    def __get_array_caches(self, array, ac_type, nid_src, limit):
-        res = dict()
-
-        for i in range(limit):
-            ptr = array[i]
-
-            # TODO: limit should prevent this?
-            if long(ptr) == 0L:
-                continue
-
-            # A node cannot have alien cache on the same node, but some
-            # kernels (xen) seem to have a non-null pointer there anyway
-            if ac_type == AC_ALIEN and nid_src == i:
-                continue
-
-            for (ptr, cache_dict) in self.__get_array_cache(ptr.dereference(),
-                                                        ac_type, nid_src, i):
-                yield (ptr, cache_dict)
-
-    def __fill_array_cache(self, add):
-        for (ptr, cache_dict) in add:
             if ptr in self.array_caches:
                 print ("WARNING: array cache duplicity detected!")
             else:
                 self.array_caches[ptr] = cache_dict
 
-    def __fill_array_caches(self):
+    def __fill_alien_caches(self, node, nid_src):
+        alien_cache = node["alien"]
+
+        # TODO check that this only happens for single-node systems?
+        if long(alien_cache) == 0L:
+            return
+
+        for nid in Node.for_each_nid():
+            array = alien_cache[nid].dereference()
+
+            # TODO: limit should prevent this?
+            if array.address == 0:
+                continue
+
+            if KmemCache.alien_cache_type is not None:
+                array = array["ac"]
+
+            # A node cannot have alien cache on the same node, but some
+            # kernels (xen) seem to have a non-null pointer there anyway
+            if nid_src == nid:
+                continue
+
+            self.__fill_array_cache(array, AC_ALIEN, nid_src, nid)
+
+    def __fill_percpu_caches(self):
+        cpu_cache = self.gdb_obj[KmemCache.percpu_name]
+
+        for cpu in for_each_online_cpu():
+            if (KmemCache.percpu_cache):
+                array = get_percpu_var(cpu_cache, cpu)
+            else:
+                array = array_ptr[cpu].dereference()
+
+            self.__fill_array_cache(array, AC_PERCPU, -1, cpu)
+
+    def __fill_all_array_caches(self):
         self.array_caches = dict()
 
-        percpu_cache = self.gdb_obj["array"]
-
-        add = self.__get_array_caches(percpu_cache, AC_PERCPU, -1, nr_cpu_ids)
-        self.__fill_array_cache(add) 
+        self.__fill_percpu_caches()
 
         # TODO check and report collisions
         for (nid, node) in self.__get_nodelists():
             shared_cache = node["shared"]
             if long(shared_cache) != 0:
-                add = self.__get_array_cache(shared_cache.dereference(), AC_SHARED, nid, nid)
-                self.__fill_array_cache(add)
-            alien_cache = node["alien"]
-            # TODO check that this only happens for single-node systems?
-            if long(alien_cache) == 0L:
-                continue
-            add = self.__get_array_caches(alien_cache, AC_ALIEN, nid, nr_node_ids)
-            self.__fill_array_cache(add)
+                self.__fill_array_cache(shared_cache.dereference(), AC_SHARED, nid, nid)
+            
+            self.__fill_alien_caches(node, nid)
 
     def get_array_caches(self):
-        if not self.array_caches:
-            self.__fill_array_caches()
+        if self.array_caches is None:
+            self.__fill_all_array_caches()
 
         return self.array_caches
 
     def __get_allocated_objects(self, slab_list):
-        for gdb_slab in list_for_each_entry(slab_list, slab_type, "list"):
+        for gdb_slab in list_for_each_entry(slab_list, slab_type, slab_list_head):
             slab = Slab(gdb_slab, self)
             for obj in slab.get_allocated_objects():
                 yield obj
@@ -285,9 +337,10 @@ class KmemCache:
 
     def __check_slabs(self, slab_list, slabtype):
         free = 0
-        for gdb_slab in list_for_each_entry(slab_list, slab_type, "list"):
+        for gdb_slab in list_for_each_entry(slab_list, slab_type, slab_list_head):
             slab = Slab(gdb_slab, self)
             free += slab.check(slabtype)
+        #TODO: check if array cache contains bogus pointers or free objects
         return free
 
     def check_all(self):
