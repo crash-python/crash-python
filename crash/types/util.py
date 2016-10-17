@@ -3,6 +3,9 @@
 
 import gdb
 
+def get_symbol_value(sym):
+    return gdb.lookup_symbol(sym, None)[0].value()
+
 def resolve_type(val):
     if isinstance(val, str):
         gdbtype = gdb.lookup_gdbtype(val)
