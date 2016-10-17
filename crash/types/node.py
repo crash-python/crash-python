@@ -2,7 +2,8 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from util import container_of, find_member_variant
+from util import container_of, find_member_variant, get_symbol_value
+from bitmap import for_each_set_bit
 import crash.types.zone
 
 # TODO: un-hardcode this
@@ -10,18 +11,37 @@ VMEMMAP_START   = 0xffffea0000000000
 DIRECTMAP_START = 0xffff880000000000
 PAGE_SIZE       = 4096L
 
-# TODO abstract away
-nr_cpu_ids = long(gdb.lookup_global_symbol("nr_cpu_ids").value())
-nr_node_ids = long(gdb.lookup_global_symbol("nr_node_ids").value())
-
 pgdat_type = gdb.lookup_type('pg_data_t')
 
 class Node:
 
+    nids_online = None
+    nids_possible = None
+
+    @staticmethod
+    def __get_nodes_state(state):
+        n_state = get_symbol_value(state)
+        node_states = get_symbol_value("node_states")
+        bits = node_states[n_state]["bits"]
+        return list(for_each_set_bit(bits))
+
+    @staticmethod
+    def for_each_online_nid():
+        if Node.nids_online is None:
+            Node.nids_online = Node.__get_nodes_state("N_ONLINE")
+        for nid in Node.nids_online:
+            yield nid
+
+    @staticmethod
+    def for_each_online_node():
+        for nid in Node.for_each_online_nid():
+            yield Node.from_nid(nid)
+
     @staticmethod
     def for_each_nid():
-        # TODO: use real bitmap for online nodes
-        for nid in range(nr_node_ids):
+        if Node.nids_possible is None:
+            Node.nids_possible = Node.__get_nodes_state("N_POSSIBLE")
+        for nid in Node.nids_possible:
             yield nid
 
     @staticmethod
