@@ -5,15 +5,12 @@ import gdb
 from util import container_of, find_member_variant
 import crash.types.node
 from crash.types.percpu import get_percpu_var, get_percpu_var_nocheck
+from cpu import for_each_online_cpu
 
 # TODO: un-hardcode this
 VMEMMAP_START   = 0xffffea0000000000
 DIRECTMAP_START = 0xffff880000000000
 PAGE_SIZE       = 4096L
-
-# TODO abstract away
-nr_cpu_ids = long(gdb.lookup_global_symbol("nr_cpu_ids").value())
-nr_node_ids = long(gdb.lookup_global_symbol("nr_node_ids").value())
 
 def getValue(sym):
     return gdb.lookup_symbol(sym, None)[0].value()
@@ -57,7 +54,7 @@ class VmStat:
         nr = VmStat.nr_event_items
         events = [0L] * nr
 
-        for cpu in range(0, nr_cpu_ids):
+        for cpu in for_each_online_cpu():
             states = get_percpu_var_nocheck(states_sym, cpu)
             for item in range(0, nr):
                 events[item] += long(states["event"][item])

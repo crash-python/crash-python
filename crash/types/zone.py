@@ -6,15 +6,12 @@ from util import container_of, find_member_variant
 import crash.types.node
 from crash.types.percpu import get_percpu_var
 from crash.types.vmstat import VmStat
+from cpu import for_each_online_cpu
 
 # TODO: un-hardcode this
 VMEMMAP_START   = 0xffffea0000000000
 DIRECTMAP_START = 0xffff880000000000
 PAGE_SIZE       = 4096L
-
-# TODO abstract away
-nr_cpu_ids = long(gdb.lookup_global_symbol("nr_cpu_ids").value())
-nr_node_ids = long(gdb.lookup_global_symbol("nr_node_ids").value())
 
 zone_type = gdb.lookup_type('struct zone')
 
@@ -56,7 +53,7 @@ class Zone:
         return stats
 
     def add_vmstat_diffs(self, diffs):
-        for cpu in range(0, nr_cpu_ids):
+        for cpu in for_each_online_cpu():
             pageset = get_percpu_var(self.gdb_obj["pageset"], cpu)
             vmdiff = pageset["vm_stat_diff"]
             for item in range (0, VmStat.nr_stat_items):
