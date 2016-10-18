@@ -3,8 +3,16 @@
 
 import gdb
 
-def get_symbol_value(sym):
-    return gdb.lookup_symbol(sym, None)[0].value()
+def get_symbol_value(symname):
+    return gdb.lookup_symbol(symname, None)[0].value()
+
+def safe_get_symbol_value(symname):
+    sym = gdb.lookup_symbol(symname, None)[0]
+
+    if sym is not None:
+        return sym.value()
+    else:
+        return None
 
 def resolve_type(val):
     if isinstance(val, str):
