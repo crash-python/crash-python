@@ -4,11 +4,13 @@
 import gdb
 import crash
 from util import container_of, find_member_variant, safe_lookup_type, get_symbol_value
+from util import safe_get_symbol_value
 from percpu import get_percpu_var
 from crash.types.list import list_for_each_entry
 from crash.types.page import Page
 from crash.types.node import Node
 from crash.types.cpu import for_each_online_cpu
+from crash.cache.slab import cache as caches_cache
 
 kmem_cache_type = gdb.lookup_type("struct kmem_cache")
 
@@ -85,9 +87,8 @@ class Slab:
 
         if page_slab:
             page = self.gdb_obj
-            active = int(page["active"])
             freelist = page["freelist"].cast(bufctl_type.pointer())
-            for i in range(active, objs_per_slab):
+            for i in range(self.inuse, objs_per_slab):
                 obj_idx  = int(freelist[i])
                 self.__add_free_obj_by_idx(obj_idx)
 
@@ -201,9 +202,9 @@ class Slab:
         self.free = None
 
         if page_slab:
-            self.inuse = int(gdb_obj["inuse"])
-        else:
             self.inuse = int(gdb_obj["active"])
+        else:
+            self.inuse = int(gdb_obj["inuse"])
         self.s_mem = long(gdb_obj["s_mem"])
 
 class KmemCache:
@@ -231,16 +232,43 @@ class KmemCache:
             yield (nid, node.dereference())
 
     @staticmethod
+    def __init_kmem_caches():
+        if caches_cache.populated:
+            return
+
+        list_caches = safe_get_symbol_value("slab_caches")
+
+        if not list_caches:
+            list_caches = safe_get_symbol_value("cache_chain")
+
+        head_name = find_member_variant(kmem_cache_type, ("next", "list"))
+
+        for cache in list_for_each_entry(list_caches, kmem_cache_type,
+                                                                head_name):
+            name = cache["name"].string()
+            kmem_cache = KmemCache(name, cache)
+ 
+            caches_cache.kmem_caches[name] = kmem_cache
+            caches_cache.kmem_caches_by_addr[long(cache.address)] = kmem_cache
+
+        caches_cache.populated = True
+
+    @staticmethod
     def from_addr(addr):
-        return crash.cache.slab.cache.get_kmem_cache_addr(addr)
+        if not addr in caches_cache.kmem_caches_by_addr:
+            KmemCache.__init_kmem_caches()
+            
+        return caches_cache.kmem_caches_by_addr[addr]
 
     @staticmethod
     def from_name(name):
-        return crash.cache.slab.cache.get_kmem_cache(name)
+        KmemCache.__init_kmem_caches()
+        return caches_cache.kmem_caches[name]
 
     @staticmethod
     def get_all_caches():
-        return crash.cache.slab.cache.get_kmem_caches().values()
+        KmemCache.__init_kmem_caches()
+        return caches_cache.kmem_caches.values()
 
     def __init__(self, name, gdb_obj):
         self.name = name
@@ -299,7 +327,7 @@ class KmemCache:
             if (KmemCache.percpu_cache):
                 array = get_percpu_var(cpu_cache, cpu)
             else:
-                array = array_ptr[cpu].dereference()
+                array = cpu_cache[cpu].dereference()
 
             self.__fill_array_cache(array, AC_PERCPU, -1, cpu)
 

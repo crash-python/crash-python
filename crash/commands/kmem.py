@@ -4,7 +4,6 @@
 import gdb
 import crash
 from crash.commands import CrashCommand
-from crash.cache import slab
 from crash.types.slab import KmemCache, Slab
 from crash.types.zone import Zone
 from crash.types.vmstat import VmStat
@@ -56,7 +55,7 @@ DESCRIPTION
                 cache.check_all()
             else:
                 print "Checking all kmem caches..."  
-                for cache in crash.cache.slab.cache.get_kmem_caches().values():
+                for cache in KmemCache.get_all_caches():
                     print cache.name
                     cache.check_all()
 
