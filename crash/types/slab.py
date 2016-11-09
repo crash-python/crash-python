@@ -69,13 +69,16 @@ class Slab:
         if (idx >= objs_per_slab):
             self.__error(": free object index %d overflows %d" % (idx,
                                                             objs_per_slab))
-            return
+            return False
 
         obj_addr = self.s_mem + idx * bufsize
         if obj_addr in self.free:
             self.__error(": object %x duplicated on freelist" % obj_addr)
+            return False
         else:
-            self.free.add(obj_addr)       
+            self.free.add(obj_addr)
+        
+        return True
 
     def __populate_free(self):
         if self.free:
@@ -96,10 +99,8 @@ class Slab:
             bufctl = self.gdb_obj.address[1].cast(bufctl_type).address
             f = int(self.gdb_obj["free"])
             while f != BUFCTL_END:
-                self.__add_free_obj_by_idx(f)
-
-                if len(self.free) > objs_per_slab:
-                    self.__error("bufctl cycle detected")
+                if not self.__add_free_obj_by_idx(f):
+                    self.__error(": bufctl cycle detected")
                     break
 
                 f = int(bufctl[f])
@@ -139,7 +140,7 @@ class Slab:
                     long(self.gdb_obj.address), msg))
  
     def __free_error(self, list_name):
-        self.__error("is on list %s, but has %d/%d objects" %
+        self.__error(": is on list %s, but has %d of %d objects allocated" %
                 (list_name, len(self.free), self.kmem_cache.objs_per_slab))
 
     def get_objects(self):
@@ -161,7 +162,7 @@ class Slab:
         max_free = self.kmem_cache.objs_per_slab
 
         if self.inuse + num_free != max_free:
-            self.__error(": inuse=%d free=%d adds up to %d != %d" %
+            self.__error(": inuse=%d free=%d adds up to %d (should be %d)" %
                     (self.inuse, num_free, self.inuse + num_free, max_free))
             
         if slabtype == slab_free:
@@ -177,7 +178,7 @@ class Slab:
         ac = self.kmem_cache.get_array_caches()
         for obj in self.get_objects():
             if obj in self.free and obj in ac:
-                self.__error(": obj %x is marked as free but in array cache:")
+                self.__error(": obj %x is marked as free but in array cache:" % obj)
                 print(ac[obj])
             page = Page.from_addr(obj).compound_head()
             if not page.is_slab():
