@@ -11,10 +11,27 @@ def list_for_each(list_head):
     elif list_head.type != list_head_type:
         raise gdb.GdbError("Must be struct list_head not %s" % list_head.type)
 
-    node = list_head['next'].dereference()
+    try:
+        nxt = list_head['next']
+        prev = list_head
+        node = nxt.dereference()
+    except gdb.error, e:
+        print ("Failed to read list_head %x" % list_head.address, (nxt))
+        return
+
     while node.address != list_head.address:
         yield node.address
-        node = node['next'].dereference()
+
+        try:
+            if long(prev.address) != long(node['prev']):
+                print ("broken prev link %x -next-> %x -prev-> %x" %
+                        (prev.address, node.address, long(node['prev'])))
+            nxt = node['next']
+            prev = node
+            node = nxt.dereference()
+        except gdb.error, e:
+            print ("Failed to read list_head %x" % node.address)
+            return
 
 def list_for_each_entry(list_head, gdbtype, member):
     for node in list_for_each(list_head):
