@@ -3,6 +3,7 @@
 
 import gdb
 from crash.commands import CrashCommand
+from crash.types.util import safe_get_symbol_value as get_value
 import argparse
 import re
 
@@ -14,9 +15,6 @@ class LogTypeException(Exception):
 
 class LogInvalidOption(Exception):
     pass
-
-def get_value(name):
-    return gdb.lookup_symbol(name, None)[0].value()
 
 class LogCommand(CrashCommand):
     """dump system message buffer
