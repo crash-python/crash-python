@@ -156,7 +156,7 @@ class Slab:
             if c[0]:
                 yield obj
 
-    def check(self, slabtype):
+    def check(self, slabtype, nid):
         self.__populate_free()
         num_free = len(self.free)
         max_free = self.kmem_cache.objs_per_slab
@@ -175,7 +175,15 @@ class Slab:
             if num_free > 0:
                 self.__free_error("slab_full")
 
+        if page_slab:
+            slab_nid = self.page.get_nid()
+            if nid != slab_nid:
+                self.__error(": slab is on nid %d instead of %d" % 
+                                                        (slab_nid, nid))
+                print "free objects %d" % num_free
+
         ac = self.kmem_cache.get_array_caches()
+        last_page_addr = 0
         for obj in self.get_objects():
             if obj in self.free and obj in ac:
                 self.__error(": obj %x is marked as free but in array cache:" % obj)
@@ -185,6 +193,15 @@ class Slab:
             except:
                 self.__error(": failed to get page for object %x" % obj)
                 continue
+
+            if long(page.gdb_obj.address) == last_page_addr:
+                continue
+
+            last_page_addr = long(page.gdb_obj.address)
+
+            if page.get_nid() != nid:
+                self.__error(": obj %x is on nid %d instead of %d" % 
+                                               (obj, page.get_nid(), nid))
             if not page.is_slab():
                 self.__error(": obj %x is not on PageSlab page" % obj)
             kmem_cache_addr = long(page.get_slab_cache())
@@ -208,6 +225,7 @@ class Slab:
 
         if page_slab:
             self.inuse = int(gdb_obj["active"])
+            self.page = Page.from_obj(gdb_obj)
         else:
             self.inuse = int(gdb_obj["inuse"])
         self.s_mem = long(gdb_obj["s_mem"])
@@ -368,21 +386,21 @@ class KmemCache:
             for obj in self.__get_allocated_objects(node["slabs_full"]):
                 yield obj
 
-    def __check_slabs(self, slab_list, slabtype):
+    def __check_slabs(self, slab_list, slabtype, nid):
         free = 0
         for gdb_slab in list_for_each_entry(slab_list, slab_type, slab_list_head):
             slab = Slab(gdb_slab, self)
-            free += slab.check(slabtype)
+            free += slab.check(slabtype, nid)
         #TODO: check if array cache contains bogus pointers or free objects
         return free
 
     def check_all(self):
         for (nid, node) in self.__get_nodelists():
             free_declared = long(node["free_objects"])
-            free_counted = self.__check_slabs(node["slabs_partial"], slab_partial)
-            free_counted += self.__check_slabs(node["slabs_full"], slab_full)
-            free_counted += self.__check_slabs(node["slabs_free"], slab_free)
+            free_counted = self.__check_slabs(node["slabs_partial"],slab_partial, nid)
+            free_counted += self.__check_slabs(node["slabs_full"], slab_full, nid)
+            free_counted += self.__check_slabs(node["slabs_free"], slab_free, nid)
             if free_declared != free_counted:
-                print ("free objects mismatch: declared=%d counted=%d" %
-                                                (free_declared, free_counted))
+                print ("free objects mismatch on node %d: declared=%d counted=%d" %
+                                                (nid, free_declared, free_counted))
 

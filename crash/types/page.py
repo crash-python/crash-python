@@ -8,6 +8,7 @@ from util import container_of, find_member_variant
 VMEMMAP_START   = 0xffffea0000000000
 DIRECTMAP_START = 0xffff880000000000
 PAGE_SIZE       = 4096L
+NODES_SHIFT     = 10
 
 struct_page_type = gdb.lookup_type('struct page')
 
@@ -47,6 +48,11 @@ class Page:
         return Page(page_ptr.dereference(), pfn)
 
     @staticmethod
+    def from_obj(gdb_obj):
+        pfn = (long(gdb_obj.address) - VMEMMAP_START) / struct_page_type.sizeof
+        return Page(gdb_obj, pfn)
+
+    @staticmethod
     def for_each():
         # TODO works only on x86?
         max_pfn = long(gdb.lookup_global_symbol("max_pfn").value())
@@ -79,6 +85,10 @@ class Page:
         if Page.slab_page_name == "lru":
             return self.gdb_obj["lru"]["prev"]
         return self.gdb_obj[Page.slab_page_name]
+
+    def get_nid(self):
+        # TODO unhardcode
+        return self.flags >> (64 - NODES_SHIFT)
 
     def compound_head(self):
         if not self.is_tail():
