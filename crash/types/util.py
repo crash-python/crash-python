@@ -30,6 +30,8 @@ def offsetof(val, member, error=True):
 
     try:
         for field in gdbtype.values():
+            if field.type.code == gdb.TYPE_CODE_ENUM:
+                continue
             off = field.bitpos >> 3
             if field.name == member:
                 return off
