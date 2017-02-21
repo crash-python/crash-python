@@ -16,9 +16,9 @@ def safe_get_symbol_value(symname):
 
 def resolve_type(val):
     if isinstance(val, str):
-        gdbtype = gdb.lookup_gdbtype(val)
+        gdbtype = gdb.lookup_type(val)
     elif isinstance(val, gdb.Value):
-        gdbtype = val.gdbtype
+        gdbtype = val.type
     else:
         gdbtype = val
     return gdbtype
