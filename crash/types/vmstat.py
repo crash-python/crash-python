@@ -2,15 +2,15 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from util import container_of, find_member_variant
+from .util import container_of, find_member_variant
 import crash.types.node
 from crash.types.percpu import get_percpu_var, get_percpu_var_nocheck
-from cpu import for_each_online_cpu
+from .cpu import for_each_online_cpu
 
 # TODO: un-hardcode this
 VMEMMAP_START   = 0xffffea0000000000
 DIRECTMAP_START = 0xffff880000000000
-PAGE_SIZE       = 4096L
+PAGE_SIZE       = 4096
 
 def getValue(sym):
     return gdb.lookup_symbol(sym, None)[0].value()
@@ -52,12 +52,12 @@ class VmStat:
     def get_events():
         states_sym = gdb.lookup_global_symbol("vm_event_states")
         nr = VmStat.nr_event_items
-        events = [0L] * nr
+        events = [0] * nr
 
         for cpu in for_each_online_cpu():
             states = get_percpu_var_nocheck(states_sym, cpu)
             for item in range(0, nr):
-                events[item] += long(states["event"][item])
+                events[item] += int(states["event"][item])
 
         return events
 

@@ -2,12 +2,12 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from util import container_of, find_member_variant
+from .util import container_of, find_member_variant
 
 # TODO: un-hardcode this
 VMEMMAP_START   = 0xffffea0000000000
 DIRECTMAP_START = 0xffff880000000000
-PAGE_SIZE       = 4096L
+PAGE_SIZE       = 4096
 
 struct_page_type = gdb.lookup_type('struct page')
 
@@ -16,7 +16,7 @@ vmemmap = gdb.Value(VMEMMAP_START).cast(struct_page_type.pointer())
 def get_flag(flagname):
     sym = gdb.lookup_symbol("PG_" + flagname, None)[0]
     if sym is not None:
-        return 1L << long(sym.value())
+        return 1 << int(sym.value())
     else:
         return None
 
@@ -49,11 +49,11 @@ class Page:
     @staticmethod
     def for_each():
         # TODO works only on x86?
-        max_pfn = long(gdb.lookup_global_symbol("max_pfn").value())
+        max_pfn = int(gdb.lookup_global_symbol("max_pfn").value())
         for pfn in range(max_pfn):
             try:
                 yield Page.from_pfn(pfn)
-            except gdb.error, e:
+            except gdb.error as e:
                 # TODO: distinguish pfn_valid() and report failures for those?
                 pass
 
@@ -67,7 +67,7 @@ class Page:
         return bool(self.flags & PG_slab)
 
     def is_anon(self):
-        mapping = long(self.gdb_obj["mapping"])
+        mapping = int(self.gdb_obj["mapping"])
         return (mapping & PAGE_MAPPING_ANON) != 0
 
     def get_slab_cache(self):
@@ -85,12 +85,12 @@ class Page:
             return self
 
         if PG_tail is not None:
-            first_page = long(self.gdb_obj["first_page"])
+            first_page = int(self.gdb_obj["first_page"])
         else:
-            first_page = long(self.gdb_obj["compound_head"]) - 1
+            first_page = int(self.gdb_obj["compound_head"]) - 1
         return Page.from_page_addr(first_page)
         
     def __init__(self, obj, pfn):
         self.gdb_obj = obj
         self.pfn = pfn
-        self.flags = long(obj["flags"])
+        self.flags = int(obj["flags"])

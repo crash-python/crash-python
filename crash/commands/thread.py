@@ -34,8 +34,8 @@ EXAMPLES
         try:
             thread = crash.cache.tasks.get_task(args.pid[0]).thread
             gdb.execute("thread {}".format(thread.num))
-        except KeyError, e:
-            print "No such task with pid {}".format(args.pid[0])
+        except KeyError as e:
+            print("No such task with pid {}".format(args.pid[0]))
 #        for thread in gdb.selected_inferior().threads():
 #            if thread.info.task_struct['pid'] == args.pid[0]:
 #                gdb.execute("thread {}".format(thread.num))

@@ -33,8 +33,8 @@ class CrashCacheSys(CrashCache):
         try:
             init_uts_ns = gdb.lookup_global_symbol('init_uts_ns').value()
             utsname = init_uts_ns['name']
-        except Exception, e:
-            print "Error: Unable to locate utsname: %s" % (e)
+        except Exception as e:
+            print("Error: Unable to locate utsname: %s" % (e))
             raise GetSymbolException(e)
 
         try:
@@ -43,8 +43,8 @@ class CrashCacheSys(CrashCache):
             self.utsname_cache['release'] = utsname['release'].string()
             self.utsname_cache['version'] = utsname['version'].string()
             self.utsname_cache['machine'] = utsname['machine'].string()
-        except Exception, e:
-            print "Error: Unable to locate utsname string: %s" % (e)
+        except Exception as e:
+            print("Error: Unable to locate utsname string: %s" % (e))
             raise GetValueException(e)
 
 
@@ -107,7 +107,7 @@ class CrashCacheSys(CrashCache):
             if len(items) == 2:
                 self.ikconfig_cache[items[0]] = items[1]
             else:
-                print "Warning: did not parse kernel config line: %s" % (line)
+                print("Warning: did not parse kernel config line: %s" % (line))
 
 
     def convert_time(self, jiffies):
@@ -136,7 +136,7 @@ class CrashCacheSys(CrashCache):
         if jiffies:
             # FIXME: Only kernel above 2.6.0 initializes 64-bit jiffies
             #        value by 2^32 + 5 minutes
-            jiffies -= long(0x100000000) - 300 * self.machdep_cache['hz']
+            jiffies -= int(0x100000000) - 300 * self.machdep_cache['hz']
         else:
             jiffies = gdb.lookup_global_symbol('jiffies').value()
 
@@ -151,7 +151,7 @@ class CrashCacheSys(CrashCache):
             self.init_ikconfig_cache()
 
         self.machdep_cache = dict()
-        self.machdep_cache["hz"] = long(self.ikconfig_cache["CONFIG_HZ"])
+        self.machdep_cache["hz"] = int(self.ikconfig_cache["CONFIG_HZ"])
 
 
     def init_kernel_cache(self):

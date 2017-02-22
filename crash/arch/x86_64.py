@@ -68,6 +68,6 @@ class x86_64Architecture(CrashArchitecture):
         thread.info.valid_stack = True
 
     def get_stack_pointer(self, thread):
-        return long(thread.registers['rsp'].value)
+        return int(thread.registers['rsp'].value)
 
 register(x86_64Architecture)

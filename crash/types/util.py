@@ -29,14 +29,14 @@ def offsetof(val, member, error=True):
         raise TypeError("offsetof requires gdb.Type or a string/value that can be used to lookup a gdb.Type")
 
     try:
-        for field in gdbtype.values():
+        for field in list(gdbtype.values()):
             off = field.bitpos >> 3
             if field.name == member:
                 return off
             res = offsetof(field.type, member, False)
             if res is not None:
                 return res + off
-    except TypeError, e:
+    except TypeError as e:
         # not iterable, skip
         pass
 

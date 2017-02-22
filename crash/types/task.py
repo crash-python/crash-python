@@ -8,7 +8,7 @@ def get_value(symname):
     return sym[0].value()
 
 
-PF_EXITING = 0x4L
+PF_EXITING = 0x4
 class LinuxTask:
     task_struct_type = None
     mm_struct_fields = None
@@ -116,14 +116,14 @@ class LinuxTask:
            self.TASK_UNINTERRUPTIBLE is None or \
            self.TASK_ZOMBIE is None or \
            self.TASK_STOPPED is None:
-            print self.TASK_RUNNING
-            print self.TASK_INTERRUPTIBLE
-            print self.TASK_UNINTERRUPTIBLE
-            print self.TASK_ZOMBIE
-            print self.TASK_STOPPED
+            print((self.TASK_RUNNING))
+            print((self.TASK_INTERRUPTIBLE))
+            print((self.TASK_UNINTERRUPTIBLE))
+            print((self.TASK_ZOMBIE))
+            print((self.TASK_STOPPED))
             raise RuntimeError("Missing required task states.")
 
-        self.__class__.mm_struct_fields = gdb.lookup_type('struct mm_struct').keys()
+        self.__class__.mm_struct_fields = list(gdb.lookup_type('struct mm_struct').keys())
         self.__class__.get_rss = self.which_get_rss()
         self.__class__.last_run = self.which_last_run()
         self.__class__.init_mm = get_value('init_mm')
@@ -141,9 +141,9 @@ class LinuxTask:
         return self.thread_info
 
     def task_state(self):
-        state = long(self.task_struct['state'])
+        state = int(self.task_struct['state'])
         if self.task_state_has_exit_state:
-            state |= long(self.task_struct['exit_state'])
+            state |= int(self.task_struct['exit_state'])
         return state
 
     def maybe_dead(self):
@@ -159,7 +159,7 @@ class LinuxTask:
         return (state & known) == 0
 
     def task_flags(self):
-        return long(self.task_struct['flags'])
+        return int(self.task_struct['flags'])
 
     def is_exiting(self):
         return self.task_flags() & PF_EXITING
@@ -184,8 +184,8 @@ class LinuxTask:
             return
 
         self.rss = self.get_rss()
-        self.total_vm = long(mm['total_vm'])
-        self.pgd = long(mm['pgd'])
+        self.total_vm = int(mm['total_vm'])
+        self.pgd = int(mm['pgd'])
         self.mem_valid = True
 
     def is_kernel_task(self):
@@ -216,17 +216,17 @@ class LinuxTask:
         return fn(self.thread)
 
     def get_rss_field(self):
-        return long(self.task_struct['mm']['rss'].value())
+        return int(self.task_struct['mm']['rss'].value())
 
     def get__rss_field(self):
-        return long(self.task_struct['mm']['_rss'].value())
+        return int(self.task_struct['mm']['_rss'].value())
 
     def get_rss_stat_field(self):
         stat = self.task_struct['mm']['rss_stat']['count']
         stat0 = self.task_struct['mm']['rss_stat']['count'][0]
         rss = 0
         for i in range(stat.type.sizeof / stat[0].type.sizeof):
-            rss += long(stat[i]['counter'])
+            rss += int(stat[i]['counter'])
         return rss
 
     def get_anon_file_rss_fields(self):
@@ -235,9 +235,9 @@ class LinuxTask:
         for name in ['_anon_rss', '_file_rss']:
             if name in mm_struct_fields:
                 if mm[name].type == self.atomic_long_type:
-                    rss += long(mm[name]['counter'])
+                    rss += int(mm[name]['counter'])
                 else:
-                    rss += long(mm[name])
+                    rss += int(mm[name])
         return rss
 
     # The Pythonic way to do this is by generating the LinuxTask class
@@ -260,18 +260,18 @@ class LinuxTask:
             raise RuntimeError("No method to retrieve RSS from task found.")
 
     def last_run__last_run(self):
-        return long(self.task_struct['last_run'])
+        return int(self.task_struct['last_run'])
 
     def last_run__last_run(self):
-        return long(self.task_struct['timestamp'])
+        return int(self.task_struct['timestamp'])
 
     def last_run__last_arrival(self):
-        return long(self.task_struct['sched_info']['last_arrival'])
+        return int(self.task_struct['sched_info']['last_arrival'])
 
     def which_last_run(self):
-        fields = self.task_struct_type.keys()
+        fields = list(self.task_struct_type.keys())
         if 'sched_info' in fields and \
-           'last_arrival' in self.task_struct_type['sched_info'].type.keys():
+           'last_arrival' in list(self.task_struct_type['sched_info'].type.keys()):
            return self.__class__.last_run__last_arrival
 
         if 'last_run' in fields:
