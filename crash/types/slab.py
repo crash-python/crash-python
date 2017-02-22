@@ -3,9 +3,9 @@
 
 import gdb
 import crash
-from util import container_of, find_member_variant, safe_lookup_type, get_symbol_value
-from util import safe_get_symbol_value
-from percpu import get_percpu_var
+from .util import container_of, find_member_variant, safe_lookup_type, get_symbol_value
+from .util import safe_get_symbol_value
+from .percpu import get_percpu_var
 from crash.types.list import list_for_each_entry
 from crash.types.page import Page
 from crash.types.node import Node
@@ -46,12 +46,12 @@ class Slab:
 
     @staticmethod
     def from_page(page):
-        kmem_cache_addr = long(page.get_slab_cache())
+        kmem_cache_addr = int(page.get_slab_cache())
         kmem_cache = KmemCache.from_addr(kmem_cache_addr)
         if page_slab:
             return Slab(page.gdb_obj, kmem_cache)
         else:
-            slab_addr = long(page.get_slab_page())
+            slab_addr = int(page.get_slab_page())
             return Slab.from_addr(slab_addr, kmem_cache)
 
     @staticmethod
@@ -109,10 +109,10 @@ class Slab:
         bufsize = self.kmem_cache.buffer_size
         objs_per_slab = self.kmem_cache.objs_per_slab
         
-        if long(addr) < self.s_mem:
+        if int(addr) < self.s_mem:
             return None
 
-        idx = (long(addr) - self.s_mem) / bufsize
+        idx = (int(addr) - self.s_mem) / bufsize
         if idx >= objs_per_slab:
             return None
 
@@ -122,7 +122,7 @@ class Slab:
         obj_addr = self.find_obj(addr)
 
         if not obj_addr:
-            return (False, 0L, None)
+            return (False, 0, None)
 
         self.__populate_free()
         if obj_addr in self.free:
@@ -136,8 +136,8 @@ class Slab:
         return (True, obj_addr, None)
     
     def __error(self, msg):
-        print ("cache %s slab %x%s" % (self.kmem_cache.name,
-                    long(self.gdb_obj.address), msg))
+        print(("cache %s slab %x%s" % (self.kmem_cache.name,
+                    int(self.gdb_obj.address), msg)))
  
     def __free_error(self, list_name):
         self.__error(": is on list %s, but has %d of %d objects allocated" %
@@ -179,7 +179,7 @@ class Slab:
         for obj in self.get_objects():
             if obj in self.free and obj in ac:
                 self.__error(": obj %x is marked as free but in array cache:" % obj)
-                print(ac[obj])
+                print((ac[obj]))
             try:
                 page = Page.from_addr(obj).compound_head()
             except:
@@ -187,15 +187,15 @@ class Slab:
                 continue
             if not page.is_slab():
                 self.__error(": obj %x is not on PageSlab page" % obj)
-            kmem_cache_addr = long(page.get_slab_cache())
-            if kmem_cache_addr != long(self.kmem_cache.gdb_obj.address):
+            kmem_cache_addr = int(page.get_slab_cache())
+            if kmem_cache_addr != int(self.kmem_cache.gdb_obj.address):
                 self.__error(": obj %x is on page where pointer to kmem_cache points to %x instead of %x" %
-                                            (obj, kmem_cache_addr, long(self.kmem_cache.gdb_obj.address)))
+                                            (obj, kmem_cache_addr, int(self.kmem_cache.gdb_obj.address)))
 
             if page_slab:
                 continue
 
-            slab_addr = long(page.get_slab_page())
+            slab_addr = int(page.get_slab_page())
             if slab_addr != self.gdb_obj.address:
                 self.__error(": obj %x is on page where pointer to slab wrongly points to %x" %
                                                                         (obj, slab_addr))
@@ -210,7 +210,7 @@ class Slab:
             self.inuse = int(gdb_obj["active"])
         else:
             self.inuse = int(gdb_obj["inuse"])
-        self.s_mem = long(gdb_obj["s_mem"])
+        self.s_mem = int(gdb_obj["s_mem"])
 
 class KmemCache:
 
@@ -232,7 +232,7 @@ class KmemCache:
     def __get_nodelists(self):
         for nid in Node.for_each_nid():
             node = self.__get_nodelist(nid)
-            if long(node) == 0L:
+            if int(node) == 0:
                 continue
             yield (nid, node.dereference())
 
@@ -254,7 +254,7 @@ class KmemCache:
             kmem_cache = KmemCache(name, cache)
  
             caches_cache.kmem_caches[name] = kmem_cache
-            caches_cache.kmem_caches_by_addr[long(cache.address)] = kmem_cache
+            caches_cache.kmem_caches_by_addr[int(cache.address)] = kmem_cache
 
         caches_cache.populated = True
 
@@ -273,7 +273,7 @@ class KmemCache:
     @staticmethod
     def get_all_caches():
         KmemCache.__init_kmem_caches()
-        return caches_cache.kmem_caches.values()
+        return list(caches_cache.kmem_caches.values())
 
     def __init__(self, name, gdb_obj):
         self.name = name
@@ -295,7 +295,7 @@ class KmemCache:
                         "nid_tgt" : nid_tgt}
 
         for i in range(avail):
-            ptr = long(acache["entry"][i])
+            ptr = int(acache["entry"][i])
             if ptr in self.array_caches:
                 print ("WARNING: array cache duplicity detected!")
             else:
@@ -305,7 +305,7 @@ class KmemCache:
         alien_cache = node["alien"]
 
         # TODO check that this only happens for single-node systems?
-        if long(alien_cache) == 0L:
+        if int(alien_cache) == 0:
             return
 
         for nid in Node.for_each_nid():
@@ -344,7 +344,7 @@ class KmemCache:
         # TODO check and report collisions
         for (nid, node) in self.__get_nodelists():
             shared_cache = node["shared"]
-            if long(shared_cache) != 0:
+            if int(shared_cache) != 0:
                 self.__fill_array_cache(shared_cache.dereference(), AC_SHARED, nid, nid)
             
             self.__fill_alien_caches(node, nid)
@@ -378,11 +378,11 @@ class KmemCache:
 
     def check_all(self):
         for (nid, node) in self.__get_nodelists():
-            free_declared = long(node["free_objects"])
+            free_declared = int(node["free_objects"])
             free_counted = self.__check_slabs(node["slabs_partial"], slab_partial)
             free_counted += self.__check_slabs(node["slabs_full"], slab_full)
             free_counted += self.__check_slabs(node["slabs_free"], slab_free)
             if free_declared != free_counted:
-                print ("free objects mismatch: declared=%d counted=%d" %
-                                                (free_declared, free_counted))
+                print(("free objects mismatch: declared=%d counted=%d" %
+                                                (free_declared, free_counted)))
 

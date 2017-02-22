@@ -2,14 +2,14 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from util import container_of, find_member_variant, get_symbol_value
-from bitmap import for_each_set_bit
+from .util import container_of, find_member_variant, get_symbol_value
+from .bitmap import for_each_set_bit
 import crash.types.zone
 
 # TODO: un-hardcode this
 VMEMMAP_START   = 0xffffea0000000000
 DIRECTMAP_START = 0xffff880000000000
-PAGE_SIZE       = 4096L
+PAGE_SIZE       = 4096
 
 pgdat_type = gdb.lookup_type('pg_data_t')
 

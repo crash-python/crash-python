@@ -16,16 +16,16 @@ LINUX_KERNEL_PID = 1
 def symbol_func(symname):
     ms = gdb.lookup_minimal_symbol(symname)
     if not ms:
-        print ("Cannot lookup symbol %s" % symname)
+        print(("Cannot lookup symbol %s" % symname))
         raise RuntimeError("Cannot lookup symbol %s" % symname)
-    return long(ms.value())
+    return int(ms.value())
 
 class Target(gdb.Target):
     def __init__(self, fil):
         if isinstance(fil, str):
             fil = file(fil)
         self.fil = fil
-        print "kdump (%s)" % fil
+        print("kdump (%s)" % fil)
         self.kdump = kdumpfile(fil)
         self.setup_arch()
         self.kdump.symbol_func = symbol_func
@@ -55,7 +55,7 @@ class Target(gdb.Target):
         runqueues = gdb.lookup_global_symbol('runqueues')
 
         rqs = get_percpu_var(runqueues)
-        rqscurrs = { long(x["curr"]) : k for (k, x) in rqs.items() }
+        rqscurrs = { int(x["curr"]) : k for (k, x) in list(rqs.items()) }
 
         self.pid_to_task_struct = {}
 
@@ -68,9 +68,9 @@ class Target(gdb.Target):
         for task in tasks:
             cpu = None
             regs = None
-            active = long(task.address) in rqscurrs
+            active = int(task.address) in rqscurrs
             if active:
-                cpu = rqscurrs[long(task.address)]
+                cpu = rqscurrs[int(task.address)]
                 regs = self.kdump.attr.cpu[cpu].reg
 
             ltask = LinuxTask(task, active, cpu, regs)
@@ -93,11 +93,11 @@ class Target(gdb.Target):
                 r = self.kdump.read (KDUMP_KVADDR, offset, ln)
                 readbuf[:] = r
                 ret = ln
-            except EOFException, e:
+            except EOFException as e:
                 raise gdb.TargetXferEof(str(e))
-            except NoDataException, e:
+            except NoDataException as e:
                 raise gdb.TargetXferUnavailable(str(e))
-            except AddressTranslationException, e:
+            except AddressTranslationException as e:
                 raise gdb.TargetXferUnavailable(str(e))
         else:
             raise IOError("Unknown obj type")

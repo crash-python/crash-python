@@ -7,7 +7,7 @@ ulong = gdb.lookup_type('unsigned long')
 charp = gdb.lookup_type('char').pointer()
 
 per_cpu_offset_sym = gdb.lookup_global_symbol('__per_cpu_offset')
-per_cpu_offset = long(per_cpu_offset_sym.value().address)
+per_cpu_offset = int(per_cpu_offset_sym.value().address)
 offset_type = per_cpu_offset_sym.value()[0].type
 nr_cpus = per_cpu_offset_sym.type.sizeof / offset_type.sizeof
 

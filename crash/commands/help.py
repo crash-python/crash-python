@@ -27,26 +27,26 @@ DESCRIPTION
 
     def execute(self, argv):
         if not argv.args:
-            print "Available commands:"
+            print("Available commands:")
             for cmd in self.commands:
                 text = self.commands[cmd].__doc__
                 if text:
                     summary = text.split('\n')[0].strip()
                 else:
                     summary = "no help text provided"
-                print "{:<15} - {}".format(cmd, summary)
+                print("{:<15} - {}".format(cmd, summary))
         else:
             for cmd in argv.args:
                 try:
                     text = self.commands[cmd].__doc__
                     if text is None:
-                        print "No help text available."
+                        print("No help text available.")
                     f = text.find("")
                     if f == -1:
-                        print text
+                        print(text)
                     else:
-                        print text[f+1:]
-                except KeyError, e:
-                    print "No such command `{}'".format(cmd)
+                        print(text[f+1:])
+                except KeyError as e:
+                    print("No such command `{}'".format(cmd))
 
 HelpCommand()

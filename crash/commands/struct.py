@@ -8,9 +8,9 @@ from crash.commands import CrashCommand
 
 def to_number(num):
     try:
-        return long(num)
-    except ValueError, e:
-        return long(num, 16)
+        return int(num)
+    except ValueError as e:
+        return int(num, 16)
 
 class StructCommand(CrashCommand):
     """struct
@@ -66,15 +66,15 @@ Options:
                 v = value
                 for component in member.split('.'):
                     v = v[component]
-                print "  {} = {}".format(member, v)
+                print("  {} = {}".format(member, v))
         else:
             # gdb's output isn't utf-8 safe.
-            print value
+            print(value)
 
     def print_struct_layout(self, gdbtype, address):
-        print gdbtype
+        print(gdbtype)
         gdb.execute("ptype {}".format(str(gdbtype)))
-        print gdbtype
+        print(gdbtype)
 
     def execute(self, argv):
         count = None
@@ -110,11 +110,11 @@ Options:
             if not name.startswith("struct "):
                 name = "struct {}".format(name)
             objtype = gdb.lookup_type(name)
-            print objtype
+            print(objtype)
 
         if argv.count:
             if argv.c:
-                print "Count already specified using -c {}.".format(argv.c)
+                print("Count already specified using -c {}.".format(argv.c))
                 return
             count = argv.count
 
@@ -126,14 +126,14 @@ Options:
         if argv.l:
             try:
                 try:
-                    offset = long(argv.l)
-                except ValueError, e:
-                    offset = long(argv.l, 16)
-            except ValueError, e:
+                    offset = int(argv.l)
+                except ValueError as e:
+                    offset = int(argv.l, 16)
+            except ValueError as e:
                 dot = argv.l.find('.')
                 member = None
                 if dot == -1:
-                    print "Specifying a structure with no member means offset=0"
+                    print("Specifying a structure with no member means offset=0")
                     offset = 0
                 else:
                     components = argv.l.split('.')
@@ -153,14 +153,14 @@ Options:
 
                             try:
                                 f = offtype[memb]
-                            except KeyError, e:
-                                print "Type `{}' has no member `{}'.".format(typename, memb)
+                            except KeyError as e:
+                                print("Type `{}' has no member `{}'.".format(typename, memb))
                                 return
 
                             offtype = f.type
                             offset += f.bitpos >> 3
                     else:
-                        print "No such type `{}'".format(typename)
+                        print("No such type `{}'".format(typename))
                         return
 
         if argv.location:
@@ -170,7 +170,7 @@ Options:
                     address = n
                 else:
                     count = n
-            except ValueError, e:
+            except ValueError as e:
                 mkpointer = False
                 location = argv.location
                 if location[0] == '&':
@@ -188,23 +188,23 @@ Options:
                         v = v.address
 
                     if v.type.code != gdb.TYPE_CODE_PTR:
-                        address = long(v.address)
+                        address = int(v.address)
                     else:
-                        address = long(v)
+                        address = int(v)
 
                     if str(offtype.pointer()) != str(v.type):
-                        print "`{}' ({}) is not `{} *'".format(argv.location, v.type, offtype)
+                        print("`{}' ({}) is not `{} *'".format(argv.location, v.type, offtype))
                         return
         if address:
             address -= offset
         elif offset:
-            print "Offset provided without a location."
+            print("Offset provided without a location.")
             return
 
         # Offset output
         if argv.o:
             for field in objtype:
-                print field
+                print(field)
             return
 
 
@@ -215,8 +215,8 @@ Options:
             size = objtype.sizeof
             for addr in range(address, address + size * count, size):
                 value = gdb.Value(addr).cast(line.pointer()).dereference()
-                print value.cast(charp).string('ascii')
-                print "{:>16x}:  {:>016x} {:>016x}".format(addr, long(value[0]), long(value[1]))
+                print(value.cast(charp).string('ascii'))
+                print("{:>16x}:  {:>016x} {:>016x}".format(addr, int(value[0]), int(value[1])))
 
             return
 
