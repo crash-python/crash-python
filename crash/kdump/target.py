@@ -22,8 +22,6 @@ def symbol_func(symname):
 
 class Target(gdb.Target):
     def __init__(self, fil):
-        if isinstance(fil, str):
-            fil = file(fil)
         self.fil = fil
         print "kdump (%s)" % fil
         self.kdump = kdumpfile(fil)
