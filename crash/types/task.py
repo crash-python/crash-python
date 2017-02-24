@@ -80,7 +80,7 @@ class LinuxTask:
         if not task_state:
             self.set_default_task_states()
         else:
-            count = task_state.type.sizeof / charp.sizeof
+            count = task_state.type.sizeof // charp.sizeof
             self.__class__.TASK_DEAD = 0
             self.__class__.TASK_TRACING_STOPPED = 0
 
@@ -225,8 +225,8 @@ class LinuxTask:
         stat = self.task_struct['mm']['rss_stat']['count']
         stat0 = self.task_struct['mm']['rss_stat']['count'][0]
         rss = 0
-        for i in range(stat.type.sizeof / stat[0].type.sizeof):
-            rss += long(stat[i]['counter'])
+        for i in range(stat.type.sizeof // stat[0].type.sizeof):
+            rss += int(stat[i]['counter'])
         return rss
 
     def get_anon_file_rss_fields(self):

@@ -28,16 +28,16 @@ DESCRIPTION
             If the command string is enclosed within "'" characters, then
             the encompassed string must be a POSIX extended regular expression
             that will be used to match task names.
- 
+
   The process list may be further restricted by the following options:
 
         -k  restrict the output to only kernel threads.
         -u  restrict the output to only user tasks.
         -G  display only the thread group leader in a thread group.
- 
+
   The process identifier types may be mixed.  For each task, the following
   items are displayed:
- 
+
     1. the process PID.
     2. the parent process PID.
     3. the CPU number that the task ran on last.
@@ -48,20 +48,20 @@ DESCRIPTION
     7. the virtual address size of this task in kilobytes.
     8. the resident set size of this task in kilobytes.
     9. the command name.
- 
+
   The default output shows the task_struct address of each process under a
-  column titled "TASK".  This can be changed to show the kernel stack 
+  column titled "TASK".  This can be changed to show the kernel stack
   pointer under a column titled "KSTACKP".
- 
+
        -s  replace the TASK column with the KSTACKP column.
- 
+
   On SMP machines, the active task on each CPU will be highlighted by an
   angle bracket (">") preceding its information.
- 
+
   Alternatively, information regarding parent-child relationships,
   per-task time usage data, argument/environment data, thread groups,
   or resource limits may be displayed:
- 
+
        -p  display the parental hierarchy of selected, or all, tasks.
        -c  display the children of selected, or all, tasks.
        -t  display the task run time, start time, and cumulative user
@@ -141,7 +141,7 @@ EXAMPLES
         687    686   2  f9e52000  IN   0.1  2136  1000  login
         688    687   0  f9dec000  IN   0.1  1732   976  bash
     >   700    688   1  f9d62000  RU   0.0  1048   256  gen12
- 
+
   Display the parental hierarchy of the "crash" process on a live system:
 
     crash> ps -p 4249
@@ -154,7 +154,7 @@ EXAMPLES
           PID: 1186   TASK: c165a000  CPU: 0   COMMAND: "xterm"
            PID: 1188   TASK: c705e000  CPU: 1   COMMAND: "bash"
             PID: 4249   TASK: c6b9a000  CPU: 0   COMMAND: "crash"
- 
+
   Display all children of the "kwm" window manager:
 
     crash> ps -c kwm
@@ -164,7 +164,7 @@ EXAMPLES
       PID: 685    TASK: c053c000  CPU: 0   COMMAND: "krootwm"
       PID: 686    TASK: c13fa000  CPU: 0   COMMAND: "kpanel"
       PID: 687    TASK: c13f0000  CPU: 1   COMMAND: "kbgndwm"
- 
+
   Display all threads in a firefox session:
 
     crash> ps firefox
@@ -179,13 +179,13 @@ EXAMPLES
       26977  21256   4  ffff810021a11820  IN  46.3 1138276 484364  firefox
       26978  21256   5  ffff810003159040  IN  46.3 1138276 484364  firefox
       26979  21256   5  ffff81003a058820  IN  46.3 1138276 484364  firefox
- 
+
   Display only the thread group leader in the firefox session:
 
     crash> ps -G firefox
        PID    PPID  CPU       TASK        ST  %MEM     VSZ    RSS  COMM
       21273  21256   0  ffff81003ec15080  IN  46.3 1138276 484364  firefox
- 
+
   Show the time usage data for pid 10318:
 
     crash> ps -t 10318
@@ -194,7 +194,7 @@ EXAMPLES
       START TIME: 5209
            UTIME: 95
            STIME: 57
- 
+
   Show the process status of PID 1, task f9dec000, and all nfsd tasks:
 
     crash> ps 1 f9dec000 nfsd
@@ -209,7 +209,7 @@ EXAMPLES
         465      1   2  fba6e000  IN   0.0     0     0  [nfsd]
         466      1   1  fba6c000  IN   0.0     0     0  [nfsd]
         467      1   2  fac04000  IN   0.0     0     0  [nfsd]
- 
+
   Show all kernel threads:
 
     crash> ps -k
@@ -230,7 +230,7 @@ EXAMPLES
         492      1   1  c0254000  IN   0.0     0     0  [nfsd]
         493      1   0  c0a86000  IN   0.0     0     0  [nfsd]
         494      1   0  c0968000  IN   0.0     0     0  [nfsd]
- 
+
   Show all tasks sorted by their task_struct's last_run or timestamp value,
   whichever applies:
 
@@ -290,7 +290,7 @@ EXAMPLES
     [  1184] [IN]  PID: 71     TASK: c65b6000  CPU: 0   COMMAND: "khubd"
     [   434] [IN]  PID: 9      TASK: c11de000  CPU: 0   COMMAND: "mdrecoveryd"
     [    48] [IN]  PID: 7      TASK: c7ff4000  CPU: 0   COMMAND: "bdflush"
- 
+
   Show the kernel stack pointer of each user task:
 
     crash> ps -us
@@ -304,7 +304,7 @@ EXAMPLES
         381      1   0  c34ddf28  IN   0.2  1316   224  automount
         391      1   1  c2777f28  IN   0.2  1316   224  automount
     ...
- 
+
   Display the argument and environment data for the automount task:
 
     crash> ps -a automount
@@ -325,7 +325,7 @@ EXAMPLES
          HOME=/
          SHLVL=2
          _=/usr/sbin/automount
- 
+
   Display the tasks in the thread group containing task c20ab0b0:
 
     crash> ps -g c20ab0b0
@@ -335,7 +335,7 @@ EXAMPLES
       PID: 6520   TASK: c20aa030  CPU: 0   COMMAND: "firefox-bin"
       PID: 6523   TASK: c20ab0b0  CPU: 0   COMMAND: "firefox-bin"
       PID: 6614   TASK: f1f181b0  CPU: 0   COMMAND: "firefox-bin"
- 
+
   Display the tasks in the thread group for each instance of the
   program named "multi-thread":
 
@@ -344,14 +344,14 @@ EXAMPLES
       PID: 2523   TASK: 10037b13030       CPU: 1   COMMAND: "multi-thread"
       PID: 2524   TASK: 1003e064030       CPU: 1   COMMAND: "multi-thread"
       PID: 2525   TASK: 1003e13a7f0       CPU: 1   COMMAND: "multi-thread"
-    
+
     PID: 2526   TASK: 1002f82b7f0       CPU: 1   COMMAND: "multi-thread"
       PID: 2527   TASK: 1003e1737f0       CPU: 1   COMMAND: "multi-thread"
       PID: 2528   TASK: 10035b4b7f0       CPU: 1   COMMAND: "multi-thread"
       PID: 2529   TASK: 1003f0c37f0       CPU: 1   COMMAND: "multi-thread"
       PID: 2530   TASK: 10035597030       CPU: 1   COMMAND: "multi-thread"
       PID: 2531   TASK: 100184be7f0       CPU: 1   COMMAND: "multi-thread"
- 
+
   Display the resource limits of "bash" task 13896:
 
     crash> ps -r 13896
@@ -368,7 +368,7 @@ EXAMPLES
       MEMLOCK      4096          4096
            AS   (unlimited)   (unlimited)
         LOCKS   (unlimited)   (unlimited)
- 
+
   Search for task names matching a POSIX regular expression:
 
      crash> ps 'migration*'
@@ -515,7 +515,7 @@ EXAMPLES
         print line.format(active, task_struct['pid'], parent_pid,
                           task.get_thread_info()['cpu'], long(pointer), width,
                           self.task_state_string(task), 0,
-                          task.total_vm * 4096 / 1024, task.rss * 4096 / 1024,
+                          task.total_vm * 4096 // 1024, task.rss * 4096 // 1024,
                           "[", int(task.is_kernel_task()),
                           task_struct['comm'].string(),
                           "]", int(task.is_kernel_task()))
