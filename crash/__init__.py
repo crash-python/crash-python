@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import kdump.target
+import crash.kdump.target
+from crash import kdump
 
 class Session:
     def __init__(self, filename):
