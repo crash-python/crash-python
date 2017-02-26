@@ -2,9 +2,14 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from __future__ import absolute_import
 import gdb
 import argparse
 from crash.commands import CrashCommand
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
 
 def to_number(num):
     try:

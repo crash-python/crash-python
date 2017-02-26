@@ -3,6 +3,10 @@
 
 import gdb
 from .util import container_of, find_member_variant
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
 
 # TODO: un-hardcode this
 VMEMMAP_START   = 0xffffea0000000000

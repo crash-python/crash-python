@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from __future__ import absolute_import
 import gdb
 import argparse
 from crash.commands import CrashCommand
 from crash.types.task import LinuxTask
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
 
 class PSCommand(CrashCommand):
     """display process status information

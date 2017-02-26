@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from __future__ import absolute_import
 import gdb
 import crash
 from crash.commands import CrashCommand
@@ -9,6 +10,11 @@ from crash.types.zone import Zone
 from crash.types.vmstat import VmStat
 import argparse
 import re
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
+
 
 def getValue(sym):
     return gdb.lookup_symbol(sym, None)[0].value()

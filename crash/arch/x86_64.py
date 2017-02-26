@@ -3,6 +3,11 @@
 
 import gdb
 from crash.arch import CrashArchitecture, register
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
+
 
 class x86_64Architecture(CrashArchitecture):
     ident = "i386:x86-64"

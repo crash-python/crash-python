@@ -10,6 +10,10 @@ from crash.types.percpu import get_percpu_var
 from crash.types.task import LinuxTask
 import crash.cache.tasks
 import crash.arch
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
 
 LINUX_KERNEL_PID = 1
 

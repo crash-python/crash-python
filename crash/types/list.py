@@ -3,6 +3,10 @@
 
 import gdb
 from .util import container_of
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
 
 list_head_type = gdb.lookup_type("struct list_head")
 def list_for_each(list_head):

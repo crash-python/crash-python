@@ -11,6 +11,11 @@ from crash.types.page import Page
 from crash.types.node import Node
 from crash.types.cpu import for_each_online_cpu
 from crash.cache.slab import cache as caches_cache
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
+
 
 kmem_cache_type = gdb.lookup_type("struct kmem_cache")
 

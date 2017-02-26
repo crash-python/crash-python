@@ -7,6 +7,11 @@ import crash.types.node
 from crash.types.percpu import get_percpu_var
 from crash.types.vmstat import VmStat
 from .cpu import for_each_online_cpu
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
+
 
 # TODO: un-hardcode this
 VMEMMAP_START   = 0xffffea0000000000

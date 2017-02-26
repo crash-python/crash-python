@@ -2,6 +2,10 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
 
 def get_value(symname):
     sym = gdb.lookup_symbol(symname, block=None, domain=gdb.SYMBOL_VAR_DOMAIN)
