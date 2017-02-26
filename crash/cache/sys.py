@@ -24,7 +24,11 @@ class CrashCacheSys(CrashCache):
     kernel_cache = None
 
     def read_buf(self, address, size):
-        return str(gdb.selected_inferior().read_memory(address, size))
+        buf_raw = gdb.selected_inferior().read_memory(address, size)
+        if isinstance(buf_raw, memoryview):
+            return buf_raw.tobytes()
+        else:
+            return str(buf_raw)
 
     def init_utsname_cache(self):
         if self.utsname_cache:
@@ -52,8 +56,8 @@ class CrashCacheSys(CrashCache):
         if self.ikconfig_raw_cache:
             return
 
-        MAGIC_START = 'IKCFG_ST'
-        MAGIC_END = 'IKCFG_ED'
+        MAGIC_START = b'IKCFG_ST'
+        MAGIC_END = b'IKCFG_ED'
         GZIP_HEADER_LEN = 10
 
         kernel_config_data_sym = gdb.lookup_symbol('kernel_config_data', block=None, domain=gdb.SYMBOL_VAR_DOMAIN)[0]
@@ -81,7 +85,7 @@ class CrashCacheSys(CrashCache):
         buf_len = data_len - len(MAGIC_START) - len(MAGIC_END) - GZIP_HEADER_LEN
         buf = self.read_buf(data_addr + len(MAGIC_START) + GZIP_HEADER_LEN, buf_len)
 
-        self.ikconfig_raw_cache = zlib.decompress(buf, -15, buf_len)
+        self.ikconfig_raw_cache = zlib.decompress(buf, -15, buf_len).decode('ascii')
 
 
     def init_ikconfig_cache(self):
