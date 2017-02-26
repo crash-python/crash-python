@@ -512,13 +512,13 @@ EXAMPLES
         if argv.n:
             line = self.num_line_template
             width = 7
-        print line.format(active, task_struct['pid'], parent_pid,
-                          task.get_thread_info()['cpu'], long(pointer), width,
+        print(line.format(active, int(task_struct['pid']), int(parent_pid),
+                          int(task.get_thread_info()['cpu']), long(pointer), width,
                           self.task_state_string(task), 0,
                           task.total_vm * 4096 // 1024, task.rss * 4096 // 1024,
                           "[", int(task.is_kernel_task()),
                           task_struct['comm'].string(),
-                          "]", int(task.is_kernel_task()))
+                          "]", int(task.is_kernel_task())))
 
     def execute(self, argv):
         sort_by_pid = lambda x: x.info.task_struct['pid']
