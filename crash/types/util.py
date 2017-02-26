@@ -36,7 +36,7 @@ def offsetof(val, member, error=True):
             res = offsetof(field.type, member, False)
             if res is not None:
                 return res + off
-    except TypeError, e:
+    except TypeError as e:
         # not iterable, skip
         pass
 

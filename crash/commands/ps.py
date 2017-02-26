@@ -446,7 +446,7 @@ EXAMPLES
 
         try:
             buf = self.task_states[state & ~task.TASK_DEAD]
-        except KeyError, e:
+        except KeyError as e:
             buf = "??"
 
         if state & task.TASK_DEAD and self.maybe_dead():
@@ -474,9 +474,9 @@ EXAMPLES
         else:
             radix_string = "x"
         template = "[{0:{1}}] [{2}]  {3}"
-        print template.format(task.last_run(), radix_string,
+        print(template.format(task.last_run(), radix_string,
                               self.task_state_string(task),
-                              self.task_header(task))
+                              self.task_header(task)))
 
     def print_one(self, argv, thread):
         task = thread.info
@@ -496,11 +496,11 @@ EXAMPLES
 
         try:
             parent_pid = task_struct['parent']['pid']
-        except KeyError, ke:
+        except KeyError as ke:
             # This can happen on live systems where pids have gone
             # away
-            print "Couldn't locate task at address %x" % \
-                        task_struct.parent.address
+            print("Couldn't locate task at address %x" % \
+                        task_struct.parent.address)
             return
 
         if task.active:
@@ -512,13 +512,13 @@ EXAMPLES
         if argv.n:
             line = self.num_line_template
             width = 7
-        print(line.format(active, int(task_struct['pid']), int(parent_pid),
+        print((line.format(active, int(task_struct['pid']), int(parent_pid),
                           int(task.get_thread_info()['cpu']), long(pointer), width,
                           self.task_state_string(task), 0,
                           task.total_vm * 4096 // 1024, task.rss * 4096 // 1024,
                           "[", int(task.is_kernel_task()),
                           task_struct['comm'].string(),
-                          "]", int(task.is_kernel_task())))
+                          "]", int(task.is_kernel_task()))))
 
     def execute(self, argv):
         sort_by_pid = lambda x: x.info.task_struct['pid']
@@ -537,7 +537,7 @@ EXAMPLES
             else:
                 col4name = "TASK"
                 width = 16
-            print self.header_template.format(width, col4name)
+            print(self.header_template.format(width, col4name))
 
         if not argv.args:
             for thread in sorted(gdb.selected_inferior().threads(), key=sort_by):

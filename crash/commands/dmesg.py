@@ -155,7 +155,7 @@ EXAMPLES
             printk_log = gdb.lookup_type('struct printk_log')
             if printk_log:
                 self.printk_log_type = printk_log.pointer()
-        except gdb.error, e:
+        except gdb.error as e:
             pass
 
     def filter_unstructured_log(self, log, args):
@@ -179,8 +179,8 @@ EXAMPLES
         try:
             textval = msg.cast(charp) + self.printk_log_type.target().sizeof
             text = textval.string(length=msg['text_len'])
-        except UnicodeDecodeError, e:
-            print e
+        except UnicodeDecodeError as e:
+            print(e)
 
         msglen = int(msg['len'])
 
@@ -252,10 +252,10 @@ EXAMPLES
                 level = "<%d>" % msg['level']
 
             for line in msg['text'].split('\n'):
-                print "%s%s%s" % (level, timestamp, line)
+                print("%s%s%s" % (level, timestamp, line))
 
             for d in msg['dict']:
-                print "%15s%s" % ("", d.encode('string_escape'))
+                print("%15s%s" % ("", d.encode('string_escape')))
 
     def handle_logbuf(self, args):
 
@@ -265,26 +265,26 @@ EXAMPLES
         if log_buf_len and log_buf:
             if (args.d):
                 raise LogInvalidOption("Unstructured logs don't offer key/value pair support")
-            print self.filter_unstructured_log(log_buf.string(), args)
+            print(self.filter_unstructured_log(log_buf.string(), args))
 
     def execute(self, args):
         try:
             self.handle_structured_log(args)
             return
-        except LogTypeException, lte:
+        except LogTypeException as lte:
             pass
 
         try:
             self.handle_logbuf(args)
             return
-        except LogTypeException, lte:
+        except LogTypeException as lte:
             pass
-        except LogInvalidOption, lio:
+        except LogInvalidOption as lio:
             raise gdb.GdbError(str(lio))
 
-        print "Can't find valid log"
+        print("Can't find valid log")
 
-        print args
+        print(args)
 
 LogCommand("log")
 LogCommand("dmesg")

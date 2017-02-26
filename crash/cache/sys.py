@@ -37,8 +37,8 @@ class CrashCacheSys(CrashCache):
         try:
             init_uts_ns = gdb.lookup_global_symbol('init_uts_ns').value()
             utsname = init_uts_ns['name']
-        except Exception, e:
-            print "Error: Unable to locate utsname: %s" % (e)
+        except Exception as e:
+            print("Error: Unable to locate utsname: %s" % (e))
             raise GetSymbolException(e)
 
         try:
@@ -47,8 +47,8 @@ class CrashCacheSys(CrashCache):
             self.utsname_cache['release'] = utsname['release'].string()
             self.utsname_cache['version'] = utsname['version'].string()
             self.utsname_cache['machine'] = utsname['machine'].string()
-        except Exception, e:
-            print "Error: Unable to locate utsname string: %s" % (e)
+        except Exception as e:
+            print("Error: Unable to locate utsname string: %s" % (e))
             raise GetValueException(e)
 
 
@@ -111,7 +111,7 @@ class CrashCacheSys(CrashCache):
             if len(items) == 2:
                 self.ikconfig_cache[items[0]] = items[1]
             else:
-                print "Warning: did not parse kernel config line: %s" % (line)
+                print("Warning: did not parse kernel config line: %s" % (line))
 
 
     def convert_time(self, jiffies):

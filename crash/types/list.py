@@ -2,7 +2,7 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from util import container_of
+from .util import container_of
 
 list_head_type = gdb.lookup_type("struct list_head")
 def list_for_each(list_head):
@@ -15,8 +15,8 @@ def list_for_each(list_head):
         nxt = list_head['next']
         prev = list_head
         node = nxt.dereference()
-    except gdb.error, e:
-        print ("Failed to read list_head %x" % list_head.address, (nxt))
+    except gdb.error as e:
+        print(("Failed to read list_head %x" % list_head.address, (nxt)))
         return
 
     while node.address != list_head.address:
@@ -24,13 +24,13 @@ def list_for_each(list_head):
 
         try:
             if long(prev.address) != long(node['prev']):
-                print ("broken prev link %x -next-> %x -prev-> %x" %
-                        (prev.address, node.address, long(node['prev'])))
+                print(("broken prev link %x -next-> %x -prev-> %x" %
+                        (prev.address, node.address, long(node['prev']))))
             nxt = node['next']
             prev = node
             node = nxt.dereference()
-        except gdb.error, e:
-            print ("Failed to read list_head %x" % node.address)
+        except gdb.error as e:
+            print(("Failed to read list_head %x" % node.address))
             return
 
 def list_for_each_entry(list_head, gdbtype, member):

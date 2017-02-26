@@ -8,7 +8,7 @@ def get_value(symname):
     return sym[0].value()
 
 
-PF_EXITING = 0x4L
+PF_EXITING = 0x4
 class LinuxTask:
     task_struct_type = None
     mm_struct_fields = None
@@ -116,11 +116,11 @@ class LinuxTask:
            self.TASK_UNINTERRUPTIBLE is None or \
            self.TASK_ZOMBIE is None or \
            self.TASK_STOPPED is None:
-            print self.TASK_RUNNING
-            print self.TASK_INTERRUPTIBLE
-            print self.TASK_UNINTERRUPTIBLE
-            print self.TASK_ZOMBIE
-            print self.TASK_STOPPED
+            print(self.TASK_RUNNING)
+            print(self.TASK_INTERRUPTIBLE)
+            print(self.TASK_UNINTERRUPTIBLE)
+            print(self.TASK_ZOMBIE)
+            print(self.TASK_STOPPED)
             raise RuntimeError("Missing required task states.")
 
         self.__class__.mm_struct_fields = gdb.lookup_type('struct mm_struct').keys()
