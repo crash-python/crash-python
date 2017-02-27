@@ -213,6 +213,9 @@ Options:
 
         # Raw output
         if argv.r:
+            if address is None:
+                print("Raw dump request without address being provided")
+                return
             line = gdb.lookup_type('unsigned long').array(1)
             charp = gdb.lookup_type('char').pointer()
             size = objtype.sizeof
