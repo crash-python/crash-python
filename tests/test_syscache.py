@@ -9,6 +9,7 @@ import unittest
 import gdb
 
 from crash.exceptions import MissingSymbolError
+from crash.cache.syscache import utsname, config, kernel
 from crash.cache.syscache import CrashUtsnameCache
 from crash.cache.syscache import CrashConfigCache
 from crash.cache.syscache import CrashKernelCache
@@ -124,3 +125,53 @@ class TestSysCache(unittest.TestCase):
         from crash.cache.syscache import kernel
         with self.assertRaises(MissingSymbolError):
             x = kernel.uptime
+
+    def test_calculate_loadavg(self):
+        config = CrashConfigCache()
+        kernel = CrashKernelCache(config)
+        self.assertTrue(kernel.calculate_loadavg(344) == 0.17)
+        self.assertTrue(kernel.calculate_loadavg(105) == 0.05)
+        self.assertTrue(kernel.calculate_loadavg(28) == 0.01)
+
+        self.assertTrue(kernel.calculate_loadavg(458524) == 223.89)
+        self.assertTrue(kernel.calculate_loadavg(455057) == 222.20)
+        self.assertTrue(kernel.calculate_loadavg(446962) == 218.24)
+
+    def test_loadavg_values(self):
+        config = CrashConfigCache()
+        kernel = CrashKernelCache(config)
+        metrics = kernel.get_loadavg_values()
+        self.assertTrue(metrics[0] == 0.17)
+        self.assertTrue(metrics[1] == 0.05)
+        self.assertTrue(metrics[2] == 0.01)
+
+    def test_loadavg(self):
+        config = CrashConfigCache()
+        kernel = CrashKernelCache(config)
+        x = kernel.loadavg
+        self.assertTrue(x == "0.17 0.05 0.01")
+
+    def test_loadavg_values_missing_symbol(self):
+        self.clear_namespace()
+        config = CrashConfigCache()
+        kernel = CrashKernelCache(config)
+        with self.assertRaises(MissingSymbolError):
+           metrics = kernel.get_loadavg_values()
+
+    def test_loadavg_missing_symbol(self):
+        self.clear_namespace()
+        config = CrashConfigCache()
+        kernel = CrashKernelCache(config)
+        self.assertTrue(kernel.loadavg == "Unknown")
+
+    def test_kernel_loadavg_namespace(self):
+        self.cycle_namespace()
+        from crash.cache.syscache import kernel
+        x = kernel.loadavg
+        self.assertTrue(x == "0.17 0.05 0.01")
+
+    def test_kernel_loadavg_namespace_nofile(self):
+        self.clear_namespace()
+        from crash.cache.syscache import kernel
+        self.assertTrue(kernel.loadavg == "Unknown")
+

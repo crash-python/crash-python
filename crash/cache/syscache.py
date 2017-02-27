@@ -17,6 +17,7 @@ if sys.version_info.major >= 3:
 from crash.exceptions import MissingSymbolError
 from crash.cache import CrashCache
 from crash.infra import delayed_init
+from crash.util import array_size
 
 class CrashUtsnameCache(CrashCache):
     def load_utsname(self):
@@ -132,10 +133,45 @@ class CrashKernelCache(CrashCache):
             self.uptime = self.get_uptime()
         elif name == 'jiffies':
             self.load_jiffies()
+        elif name == 'loadavg':
+            self.loadavg = self.get_loadavg()
         else:
             raise AttributeError
 
         return getattr(self, name)
+
+    @staticmethod
+    def calculate_loadavg(metric):
+        # The kernel needs to do fixed point trickery to calculate
+        # a floating point average.  We can just return a float.
+        return round(long(metric) / (1 << 11), 2)
+
+    @staticmethod
+    def format_loadavg(metrics):
+        out = []
+        for metric in metrics:
+            out.append(str(metric))
+
+        return " ".join(out)
+
+    def get_loadavg_values(self):
+        sym = gdb.lookup_global_symbol('avenrun')
+        if not sym:
+            raise MissingSymbolError("loadavg values require 'avenrun'")
+
+        avenrun = sym.value()
+        metrics = []
+        for index in range(0, array_size(avenrun)):
+            metrics.append(self.calculate_loadavg(avenrun[index]))
+
+        return metrics
+
+    def get_loadavg(self):
+        try:
+            metrics = self.get_loadavg_values()
+            return self.format_loadavg(metrics)
+        except MissingSymbolError:
+            return "Unknown"
 
     def load_jiffies(self):
         jiffies_sym = gdb.lookup_global_symbol('jiffies_64')

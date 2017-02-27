@@ -24,6 +24,8 @@ struct utsname_test_struct init_uts_ns = {
 /* 0:02:34 */
 uint64_t jiffies_64 = (uint64_t)((unsigned int)(-300*250)) + (154 * 250);
 
+unsigned long avenrun[] = { 344, 105, 28 };
+
 int
 main(void)
 {

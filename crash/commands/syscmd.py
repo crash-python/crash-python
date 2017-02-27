@@ -57,6 +57,7 @@ EXAMPLES
     @staticmethod
     def show_default():
         print("      UPTIME: {}".format(kernel.uptime))
+        print("LOAD AVERAGE: {}".format(kernel.loadavg))
         print("    NODENAME: {}".format(utsname.nodename))
         print("     RELEASE: {}".format(utsname.release))
         print("     VERSION: {}".format(utsname.version))
