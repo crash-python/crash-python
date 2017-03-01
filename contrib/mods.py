@@ -15,7 +15,9 @@ def find(name, path):
             return os.path.join(root, name)
 
 sys.cache.init_sys_caches()
-path = "/lib/modules/{}".format(sys.cache.utsname_cache['release'])
+#path = "./modules/{}".format(sys.cache.utsname_cache['release'])
+path = "./modules/"
+path_debug = "./modules.debug/"
 
 modules = gdb.lookup_symbol('modules', None)[0].value()
 module_type = gdb.lookup_type('struct module')
@@ -29,3 +31,20 @@ for module in list_for_each_entry(modules, module_type, 'list'):
         print("Couldn't find {} under {}.".format(module['name'], path));
         continue
     gdb.execute("add-symbol-file {} {}".format(modpath, module['module_core']))
+
+for mod in gdb.objfiles():
+    modfile = mod.filename
+    if modfile == "vmlinux":
+        continue
+    # we could also just s/modules/modules.debug/
+    modname = modfile.split('/')[-1] + ".debug"
+    modpath = find(modname, path_debug)
+    if not modpath and modname.find('_') != -1:
+        modname = modname.replace('_', '-')
+        modpath = find(modname, path_debug)
+    if not modpath:
+        print "Couldn't find {} under {}.".format(modname, path_debug)
+        continue
+    mod.add_separate_debug_file(modpath)
+
+    
