@@ -2,6 +2,10 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
 
 ulong = gdb.lookup_type('unsigned long')
 charp = gdb.lookup_type('char').pointer()
@@ -9,7 +13,7 @@ charp = gdb.lookup_type('char').pointer()
 per_cpu_offset_sym = gdb.lookup_global_symbol('__per_cpu_offset')
 per_cpu_offset = long(per_cpu_offset_sym.value().address)
 offset_type = per_cpu_offset_sym.value()[0].type
-nr_cpus = per_cpu_offset_sym.type.sizeof / offset_type.sizeof
+nr_cpus = per_cpu_offset_sym.type.sizeof // offset_type.sizeof
 
 def is_percpu_symbol(sym):
     return sym.section is not None and 'percpu' in sym.section

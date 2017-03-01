@@ -2,15 +2,20 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from util import container_of, find_member_variant
+from .util import container_of, find_member_variant
 import crash.types.node
 from crash.types.percpu import get_percpu_var, get_percpu_var_nocheck
-from cpu import for_each_online_cpu
+from .cpu import for_each_online_cpu
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
+
 
 # TODO: un-hardcode this
 VMEMMAP_START   = 0xffffea0000000000
 DIRECTMAP_START = 0xffff880000000000
-PAGE_SIZE       = 4096L
+PAGE_SIZE       = 4096
 
 def getValue(sym):
     return gdb.lookup_symbol(sym, None)[0].value()
@@ -19,7 +24,7 @@ class VmStat:
 
     nr_stat_items = int(getValue("NR_VM_ZONE_STAT_ITEMS"))
     nr_event_items = int(getValue("NR_VM_EVENT_ITEMS"))
-    
+
     vm_stat_names = None
     vm_event_names = None
 
@@ -30,8 +35,8 @@ class VmStat:
             enum = gdb.lookup_type(enum_name)
             for field in enum.fields():
                 if field.enumval < nr_items:
-                    names[field.enumval] = field.name 
-            
+                    names[field.enumval] = field.name
+
             return names
 
     @staticmethod
@@ -52,7 +57,7 @@ class VmStat:
     def get_events():
         states_sym = gdb.lookup_global_symbol("vm_event_states")
         nr = VmStat.nr_event_items
-        events = [0L] * nr
+        events = [0] * nr
 
         for cpu in for_each_online_cpu():
             states = get_percpu_var_nocheck(states_sym, cpu)

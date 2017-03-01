@@ -2,7 +2,11 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from util import container_of
+from .util import container_of
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
 
 list_head_type = gdb.lookup_type("struct list_head")
 def list_for_each(list_head):
@@ -17,8 +21,8 @@ def list_for_each(list_head):
         nxt = list_head['next']
         prev = list_head
         node = nxt.dereference()
-    except gdb.error, e:
-        print ("Failed to read list_head %x" % list_head.address, (nxt))
+    except gdb.error as e:
+        print(("Failed to read list_head %x" % list_head.address, (nxt)))
         return
 
     while node.address != list_head.address:
@@ -26,8 +30,8 @@ def list_for_each(list_head):
 
         try:
             if long(prev.address) != long(node['prev']):
-                print ("broken prev link %x -next-> %x -prev-> %x" %
-                        (prev.address, node.address, long(node['prev'])))
+                print(("broken prev link %x -next-> %x -prev-> %x" %
+                        (prev.address, node.address, long(node['prev']))))
                 # broken prev link means there might be a cycle that does not
                 # include the initial head, so start detecting cycles
                 fast = node
@@ -45,8 +49,8 @@ def list_for_each(list_head):
 
             prev = node
             node = nxt.dereference()
-        except gdb.error, e:
-            print ("Failed to read list_head %x" % node.address)
+        except gdb.error as e:
+            print(("Failed to read list_head %x" % node.address))
             return
 
 def list_for_each_entry(list_head, gdbtype, member):

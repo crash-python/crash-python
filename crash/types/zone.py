@@ -2,16 +2,21 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from util import container_of, find_member_variant
+from .util import container_of, find_member_variant
 import crash.types.node
 from crash.types.percpu import get_percpu_var
 from crash.types.vmstat import VmStat
-from cpu import for_each_online_cpu
+from .cpu import for_each_online_cpu
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
+
 
 # TODO: un-hardcode this
 VMEMMAP_START   = 0xffffea0000000000
 DIRECTMAP_START = 0xffff880000000000
-PAGE_SIZE       = 4096L
+PAGE_SIZE       = 4096
 
 zone_type = gdb.lookup_type('struct zone')
 
@@ -44,7 +49,7 @@ class Zone:
             return False
 
     def get_vmstat(self):
-        stats = [0L] * VmStat.nr_stat_items
+        stats = [0] * VmStat.nr_stat_items
         vm_stat = self.gdb_obj["vm_stat"]
 
         for item in range (0, VmStat.nr_stat_items):
@@ -60,7 +65,7 @@ class Zone:
                 diffs[item] += int(vmdiff[item])
 
     def get_vmstat_diffs(self):
-        diffs = [0L] * VmStat.nr_stat_items
+        diffs = [0] * VmStat.nr_stat_items
         self.add_vmstat_diffs(diffs)
         return diffs
 

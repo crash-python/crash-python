@@ -2,13 +2,17 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
 
 def get_value(symname):
     sym = gdb.lookup_symbol(symname, block=None, domain=gdb.SYMBOL_VAR_DOMAIN)
     return sym[0].value()
 
 
-PF_EXITING = 0x4L
+PF_EXITING = 0x4
 class LinuxTask:
     task_struct_type = None
     mm_struct_fields = None
@@ -80,7 +84,7 @@ class LinuxTask:
         if not task_state:
             self.set_default_task_states()
         else:
-            count = task_state.type.sizeof / charp.sizeof
+            count = task_state.type.sizeof // charp.sizeof
             self.__class__.TASK_DEAD = 0
             self.__class__.TASK_TRACING_STOPPED = 0
 
@@ -116,11 +120,11 @@ class LinuxTask:
            self.TASK_UNINTERRUPTIBLE is None or \
            self.TASK_ZOMBIE is None or \
            self.TASK_STOPPED is None:
-            print self.TASK_RUNNING
-            print self.TASK_INTERRUPTIBLE
-            print self.TASK_UNINTERRUPTIBLE
-            print self.TASK_ZOMBIE
-            print self.TASK_STOPPED
+            print(self.TASK_RUNNING)
+            print(self.TASK_INTERRUPTIBLE)
+            print(self.TASK_UNINTERRUPTIBLE)
+            print(self.TASK_ZOMBIE)
+            print(self.TASK_STOPPED)
             raise RuntimeError("Missing required task states.")
 
         self.__class__.mm_struct_fields = gdb.lookup_type('struct mm_struct').keys()
@@ -225,8 +229,8 @@ class LinuxTask:
         stat = self.task_struct['mm']['rss_stat']['count']
         stat0 = self.task_struct['mm']['rss_stat']['count'][0]
         rss = 0
-        for i in range(stat.type.sizeof / stat[0].type.sizeof):
-            rss += long(stat[i]['counter'])
+        for i in range(stat.type.sizeof // stat[0].type.sizeof):
+            rss += int(stat[i]['counter'])
         return rss
 
     def get_anon_file_rss_fields(self):

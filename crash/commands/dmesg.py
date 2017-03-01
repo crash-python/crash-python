@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from __future__ import absolute_import
 import gdb
 from crash.commands import CrashCommand
 from crash.types.util import safe_get_symbol_value as get_value
 import argparse
 import re
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
 
 char = gdb.lookup_type('char')
 charp = char.pointer()
@@ -30,16 +35,16 @@ DESCRIPTION
   command supports the older log_buf formats, which may or may not contain a
   timestamp inserted prior to each message, as well as the newer variable-length
   record format, where the timestamp is contained in each log entry's header.
-  
+
     -t  Display the message text without the timestamp.
     -d  Display the dictionary of key/value pair properties that are optionally
         appended to a message by the kernel's dev_printk() function; only
         applicable to the variable-length record format.
     -m  Display the message log level in brackets preceding each message.  For
-        the variable-length record format, the level will be displayed in 
+        the variable-length record format, the level will be displayed in
         hexadecimal, and depending upon the kernel version, also contains the
         facility or flags bits.
- 
+
 
 EXAMPLES
   Dump the kernel message buffer:
@@ -66,7 +71,7 @@ EXAMPLES
     Installing knfsd (copyright (C) 1996 okir@monad.swb.de).
     nfsd_init: initialized fhcache, entries=256
     ...
- 
+
   Do the same thing, but also show the log level preceding each message:
 
     crash> log -m
@@ -90,8 +95,8 @@ EXAMPLES
     <6>  Enabling bus-master transmits and whole-frame receives.
     <6>Installing knfsd (copyright (C) 1996 okir@monad.swb.de).
     <7>nfsd_init: initialized fhcache, entries=256
-    ... 
- 
+    ...
+
   On a system with the variable-length record format, and whose log_buf has been
   filled and wrapped around, display the log with timestamp data:
 
@@ -103,7 +108,7 @@ EXAMPLES
     [    0.467809] pci 0000:ff:03.0: [8086:2c18] type 00 class 0x060000
     [    0.467828] pci 0000:ff:03.1: [8086:2c19] type 00 class 0x060000
     ...
- 
+
   Display the same message text as above, without the timestamp data:
 
     crash> log -t
@@ -114,7 +119,7 @@ EXAMPLES
     pci 0000:ff:03.0: [8086:2c18] type 00 class 0x060000
     pci 0000:ff:03.1: [8086:2c19] type 00 class 0x060000
     ...
- 
+
   Display the same message text as above, with appended dictionary data:
 
     crash> log -td
@@ -155,7 +160,7 @@ EXAMPLES
             printk_log = gdb.lookup_type('struct printk_log')
             if printk_log:
                 self.printk_log_type = printk_log.pointer()
-        except gdb.error, e:
+        except gdb.error as e:
             pass
 
     def filter_unstructured_log(self, log, args):
@@ -179,8 +184,8 @@ EXAMPLES
         try:
             textval = msg.cast(charp) + self.printk_log_type.target().sizeof
             text = textval.string(length=msg['text_len'])
-        except UnicodeDecodeError, e:
-            print e
+        except UnicodeDecodeError as e:
+            print(e)
 
         msglen = int(msg['len'])
 
@@ -252,10 +257,10 @@ EXAMPLES
                 level = "<%d>" % msg['level']
 
             for line in msg['text'].split('\n'):
-                print "%s%s%s" % (level, timestamp, line)
+                print("%s%s%s" % (level, timestamp, line))
 
             for d in msg['dict']:
-                print "%15s%s" % ("", d.encode('string_escape'))
+                print("%15s%s" % ("", d.encode('string_escape')))
 
     def handle_logbuf(self, args):
 
@@ -265,26 +270,26 @@ EXAMPLES
         if log_buf_len and log_buf:
             if (args.d):
                 raise LogInvalidOption("Unstructured logs don't offer key/value pair support")
-            print self.filter_unstructured_log(log_buf.string(), args)
+            print(self.filter_unstructured_log(log_buf.string(), args))
 
     def execute(self, args):
         try:
             self.handle_structured_log(args)
             return
-        except LogTypeException, lte:
+        except LogTypeException as lte:
             pass
 
         try:
             self.handle_logbuf(args)
             return
-        except LogTypeException, lte:
+        except LogTypeException as lte:
             pass
-        except LogInvalidOption, lio:
+        except LogInvalidOption as lio:
             raise gdb.GdbError(str(lio))
 
-        print "Can't find valid log"
+        print("Can't find valid log")
 
-        print args
+        print(args)
 
 LogCommand("log")
 LogCommand("dmesg")

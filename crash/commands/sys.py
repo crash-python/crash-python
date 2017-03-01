@@ -58,15 +58,15 @@ EXAMPLES
 
 
     def show_default(self):
-        print "      UPTIME: %s" % (sys.cache.kernel_cache['uptime'])
-        print "LOAD AVERAGE: %s" % (sys.cache.kernel_cache['loadavg'])
-        print "    NODENAME: %s" % (sys.cache.utsname_cache['nodename'])
-        print "     RELEASE: %s" % (sys.cache.utsname_cache['release'])
-        print "     VERSION: %s" % (sys.cache.utsname_cache['version'])
-        print "     MACHINE: %s" % (sys.cache.utsname_cache['machine'])
+        print("      UPTIME: %s" % (sys.cache.kernel_cache['uptime']))
+        print("LOAD AVERAGE: %s" % (sys.cache.kernel_cache['loadavg']))
+        print("    NODENAME: %s" % (sys.cache.utsname_cache['nodename']))
+        print("     RELEASE: %s" % (sys.cache.utsname_cache['release']))
+        print("     VERSION: %s" % (sys.cache.utsname_cache['version']))
+        print("     MACHINE: %s" % (sys.cache.utsname_cache['machine']))
 
     def show_raw_ikconfig(self):
-        print sys.cache.ikconfig_raw_cache
+        print(sys.cache.ikconfig_raw_cache)
 
     def execute(self, args):
         sys.cache.init_sys_caches()
@@ -75,7 +75,7 @@ EXAMPLES
             if args.config == "config":
                 self.show_raw_ikconfig()
             else:
-                print "Error: unknown option: %s" % (args.config)
+                print("Error: unknown option: %s" % (args.config))
         else:
             self.show_default()
 
