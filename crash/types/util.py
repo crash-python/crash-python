@@ -67,3 +67,6 @@ def safe_lookup_type(name):
     except gdb.error:
         return None
 
+def addr_cast(addr, type_):
+    return gdb.Value(addr).cast(type_.pointer()).dereference()
+
