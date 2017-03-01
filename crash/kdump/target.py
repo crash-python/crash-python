@@ -75,7 +75,11 @@ class Target(gdb.Target):
 
             ltask = LinuxTask(task, active, cpu, regs)
             ptid = (LINUX_KERNEL_PID, task['pid'], 0)
-            thread = gdb.selected_inferior().new_thread(ptid, ltask)
+            try:
+                thread = gdb.selected_inferior().new_thread(ptid, ltask)
+            except gdb.error:
+                print "Failed to setup task %x" % task.address
+                continue
             thread.name = task['comm'].string()
 
             self.arch.setup_thread_info(thread)
