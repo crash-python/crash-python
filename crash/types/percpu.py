@@ -37,11 +37,11 @@ def get_percpu_var_nocheck(sym, cpu=None):
     return addr.cast(symtype).dereference()
 
 def get_percpu_var(sym, cpu=None):
-    if isinstance(sym, gdb.Symbol):
-        if not is_percpu_symbol(sym):
-            raise TypeError("symbol not in percpu section")
-    else:
-        if sym.type.code != gdb.TYPE_CODE_PTR:
-            raise TypeError("value is not of pointer type")
+#    if isinstance(sym, gdb.Symbol):
+#        if not is_percpu_symbol(sym):
+#            raise TypeError("symbol not in percpu section")
+#    else:
+#        if sym.type.code != gdb.TYPE_CODE_PTR:
+#            raise TypeError("value is not of pointer type")
 
     return get_percpu_var_nocheck(sym, cpu)
