@@ -80,7 +80,7 @@ class Target(gdb.Target):
             try:
                 thread = gdb.selected_inferior().new_thread(ptid, ltask)
             except gdb.error:
-                print "Failed to setup task %x" % task.address
+                print("Failed to setup task %x" % task.address)
                 continue
             thread.name = task['comm'].string()
 

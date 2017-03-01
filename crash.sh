@@ -81,6 +81,7 @@ cat << EOF >> $GDBINIT
 set python print-stack full
 set prompt py-crash> 
 set height 0
+set print pretty on
 $DEBUGINFO
 file $KERNEL
 python import crash

@@ -7,6 +7,7 @@ import gdb
 import argparse
 from crash.commands import CrashCommand
 import sys
+import re
 
 if sys.version_info.major >= 3:
     long = int
@@ -20,17 +21,20 @@ def to_number(num):
 class StructCommand(CrashCommand):
     """struct
 Usage:
-   struct <specifier> [-l <offset>] [-o] [-r] [-p] [-f|-u] [-x|-d]
+   struct <specifier> [-l <offset>] [-o|-r] [-p] [-f|-u] [-x|-d]
    [location] [-c <count> | <count>)
 
 Options:
 -l offset  structure.member or numeric offset
+-o         show member offsets when displaying structure definitions. If used with
+           an address or symbol argument, each member will be preceded by its
+           virtual address.
 """
     def __init__(self):
         parser = argparse.ArgumentParser(prog="struct")
         parser.add_argument('-l', type=str, help="offset within struct either as a number of bytes or in \"structure.member\" format", metavar="offset/struct.member")
         group = parser.add_mutually_exclusive_group()
-        group.add_argument('-o', action='store_true', default=False)
+        group.add_argument('-o', action='store_true', help="show member offsets when displaying structure definitions.If used with an address or symbol argument, each member will be preceded by its virtual address", default=False)
         group.add_argument('-r', action='store_true', default=False)
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-f', action='store_true', default=False)
@@ -208,13 +212,37 @@ Options:
 
         # Offset output
         if argv.o:
-            for field in objtype:
-                print(field)
+            print("{0} {{".format(objtype))
+            for field in objtype.fields():
+                field_offset = field.bitpos // 8
+                if address:
+                    field_offset += address
+                    output = "  [{0:x}] ".format(field_offset)
+                else:
+                    output = "  [{0}] ".format(field_offset)
+
+                if members and "{0}".format(field.name) not in members:
+                    continue
+
+                tmp = "{0} {1}".format(field.type, field.name)
+                if field.bitsize > 0:
+                    output += "{0} : {1};".format(tmp, field.bitsize)
+                elif self.is_func_ptr(tmp):
+                    output += "{0};".format(self.parse_func_ptr(tmp))
+                else:
+                    output += "{0};".format(tmp)
+
+                print(output)
+            print("}")
+            print("SIZE: {0}".format(objtype.sizeof))
             return
 
 
         # Raw output
         if argv.r:
+            if address is None:
+                print("Raw dump request without address being provided")
+                return
             line = gdb.lookup_type('unsigned long').array(1)
             charp = gdb.lookup_type('char').pointer()
             size = objtype.sizeof
@@ -225,7 +253,7 @@ Options:
 
             return
 
-        if address is None or argv.o:
+        if address is None:
             self.print_struct_layout(objtype, address)
             return
 
@@ -234,5 +262,14 @@ Options:
             value = gdb.Value(address).cast(objtype.pointer()).dereference()
             self.print_struct(value, members)
             address += objtype.sizeof
+
+    def is_func_ptr(self, line):
+        return re.match("^\w+[\w *]+\(\*\)\([\w *,]+\)", line) is not None
+
+    def parse_func_ptr(self, string):
+        func_type = re.match("^\w+[\w *]+", string).group(0)
+        func_args = re.search("(?<=\))\([^\)]+\)", string).group(0)
+        func_name = re.search("(?<=\)) (\w+)", string).group(1)
+        return "{0} (*{1}){2};".format(func_type, func_name, func_args)
 
 StructCommand()
