@@ -157,7 +157,8 @@ class CrashCacheSys(CrashCache):
     def get_loadavg(self):
         loadavg = gdb.lookup_global_symbol('avenrun')
         if loadavg:
-            load = [loadavg.value()[0], loadavg.value()[1]. loadavg.value()[2]]
+            print(loadavg.value()[0])
+            load = [loadavg.value()[0], loadavg.value()[1], loadavg.value()[2]]
             return self.convert_loadavg(load)
         return "Unknown"
 
@@ -181,8 +182,11 @@ class CrashCacheSys(CrashCache):
 
         self.kernel_cache = dict()
         self.kernel_cache["uptime"] = self.get_uptime()
-        self.kernel_cache["loadavg"] = self.get_loadavg()
-
+        try:
+            self.kernel_cache["loadavg"] = self.get_loadavg()
+        except:
+            self.kernel_cache = None
+            raise
 
     def init_sys_caches(self):
         self.init_utsname_cache()
