@@ -34,6 +34,7 @@ DESCRIPTION
         group.add_argument('-s', action='store_true', default=False)
         group.add_argument('-z', action='store_true', default=False)
         group.add_argument('-V', action='store_true', default=False)
+        group.add_argument('-o', action='store_true', default=False)
 
         parser.add_argument('arg', nargs=argparse.REMAINDER)
 
@@ -61,6 +62,8 @@ DESCRIPTION
 
             print "Checking done."
             return
+        elif args.o:
+            crash.cache.objects.kmem_cache_types()
           
         if not args.arg:
             print "Nothing to do."

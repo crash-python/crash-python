@@ -11,6 +11,7 @@ from crash.types.page import Page
 from crash.types.node import Node
 from crash.types.cpu import for_each_online_cpu
 from crash.cache.slab import cache as caches_cache
+from crash.cache import objects as obj_cache
 
 kmem_cache_type = gdb.lookup_type("struct kmem_cache")
 
@@ -300,6 +301,9 @@ class KmemCache:
         
         self.objs_per_slab = int(gdb_obj["num"])
         self.buffer_size = int(gdb_obj[KmemCache.buffer_size_name])
+        if KmemCache.buffer_size_name == "size":
+            self.object_size = int(gdb_obj["object_size"])
+            self.align = int(gdb_obj["align"])
 
     def __fill_array_cache(self, acache, ac_type, nid_src, nid_tgt):
         avail = int(acache["avail"])
@@ -319,7 +323,7 @@ class KmemCache:
             else:
                 self.array_caches[ptr] = cache_dict
 
-    def __fill_alien_caches(self, node, nid_src):
+    def __for_each_alien_cache(self, node):
         alien_cache = node["alien"]
 
         # TODO check that this only happens for single-node systems?
@@ -332,6 +336,11 @@ class KmemCache:
             # TODO: limit should prevent this?
             if array.address == 0:
                 continue
+
+            yield (nid, array)
+
+    def __fill_alien_caches(self, node, nid_src):
+        for (nid, array) in self.__for_each_alien_cache(node):
 
             if KmemCache.alien_cache_type is not None:
                 array = array["ac"]
@@ -367,6 +376,13 @@ class KmemCache:
             
             self.__fill_alien_caches(node, nid)
 
+    def is_kmalloc_cache(self):
+        return (self.name.startswith("kmalloc-")
+            or self.name.startswith("size-")
+            or self.name.startswith("dma-kmalloc-")
+            or self.name.startswith("dma-size-"))
+
+
     def get_array_caches(self):
         if self.array_caches is None:
             self.__fill_all_array_caches()
@@ -395,6 +411,7 @@ class KmemCache:
         return free
 
     def check_all(self):
+        self.fill_obj_cache()
         for (nid, node) in self.__get_nodelists():
             free_declared = long(node["free_objects"])
             free_counted = self.__check_slabs(node["slabs_partial"],slab_partial, nid)
@@ -403,4 +420,37 @@ class KmemCache:
             if free_declared != free_counted:
                 print ("free objects mismatch on node %d: declared=%d counted=%d" %
                                                 (nid, free_declared, free_counted))
+    def can_fit_objsize(self, objsize):
+        if KmemCache.buffer_size_name == "size":
+            return self.object_size == objsize
+        else:
+            if (self.buffer_size >= objsize
+                    and self.buffer_size < objsize + 64):
+                return True
+            else:
+                return False
+
+    def get_sizes_string(self):
+        if KmemCache.buffer_size_name == "size":
+            return ("objsize=%d size=%d align=%d" %
+                (self.object_size, self.buffer_size, self.align))
+        else:
+            return "buffer_size=%d" % self.buffer_size
+
+
+    def fill_obj_cache(self):
+        name = self.name
+
+        for (nid, node) in self.__get_nodelists():
+            desc = ("node/list3 object for kmem_cache %s nid %d" % (name, nid))
+            obj_cache.add_gdb_object(node, 1.0, desc)
+
+            shared_cache = node["shared"].dereference()
+            desc = ("shared cache for kmem_cache %s nid %d" % (name, nid))
+            obj_cache.add_gdb_object(shared_cache, 1.0, desc)
+
+            for (nid_tgt, alien) in self.__for_each_alien_cache(node):
+                desc = ("alien cache for kmem_cache %s nid %d to nid %d" %
+                                                    (name, nid, nid_tgt))
+
 
