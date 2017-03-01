@@ -131,6 +131,18 @@ class CrashCacheSys(CrashCache):
 
         return buf
 
+    def convert_loadavg(self, loadavg):
+        FSHIFT = 11
+        FIXED_1 = 1<<FSHIFT
+        buf = ""
+
+        for lavg in loadavg:
+            a = int(lavg) + (FIXED_1/200)
+            b = a >> FSHIFT
+            c = ((a & (FIXED_1-1)) * 100) >> FSHIFT
+            buf += "%d.%02d " % (b,c)
+        return buf
+
     def get_uptime(self):
         jiffies = gdb.lookup_global_symbol('jiffies_64').value()
         if jiffies:
@@ -142,6 +154,12 @@ class CrashCacheSys(CrashCache):
 
         return self.convert_time(jiffies)
 
+    def get_loadavg(self):
+        loadavg = gdb.lookup_global_symbol('avenrun')
+        if loadavg:
+            load = [loadavg.value()[0], loadavg.value()[1]. loadavg.value()[2]]
+            return self.convert_loadavg(load)
+        return "Unknown"
 
     def init_machdep_cache(self):
         if self.machdep_cache:
@@ -163,6 +181,7 @@ class CrashCacheSys(CrashCache):
 
         self.kernel_cache = dict()
         self.kernel_cache["uptime"] = self.get_uptime()
+        self.kernel_cache["loadavg"] = self.get_loadavg()
 
 
     def init_sys_caches(self):
