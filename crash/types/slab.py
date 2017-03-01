@@ -183,9 +183,9 @@ class Slab:
         if page_slab:
             slab_nid = self.page.get_nid()
             if nid != slab_nid:
-                self.__error(": slab is on nid %d instead of %d" % 
+                self.__error(": slab is on nid %d instead of %d" %
                                                         (slab_nid, nid))
-                print "free objects %d" % num_free
+                print("free objects %d" % num_free)
 
         ac = self.kmem_cache.get_array_caches()
         last_page_addr = 0
@@ -205,7 +205,7 @@ class Slab:
             last_page_addr = long(page.gdb_obj.address)
 
             if page.get_nid() != nid:
-                self.__error(": obj %x is on nid %d instead of %d" % 
+                self.__error(": obj %x is on nid %d instead of %d" %
                                                (obj, page.get_nid(), nid))
             if not page.is_slab():
                 self.__error(": obj %x is not on PageSlab page" % obj)
