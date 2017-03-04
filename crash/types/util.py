@@ -3,6 +3,66 @@
 
 import gdb
 
+class OffsetOfError(Exception):
+    """Generic Exception for offsetof errors"""
+    def __init__(self, message):
+        super(OffsetOfError, self).__init__()
+        self.message = message
+
+    def __str__(self):
+        return self.message
+
+class InvalidArgumentError(OffsetOfError):
+    """The provided object could not be converted to gdb.Type"""
+    formatter = "cannot convert {} to gdb.Type"
+
+    def __init__(self, val):
+        msg = self.formatter.format(str(type(val)))
+        super(InvalidArgumentError, self).__init__(msg)
+        self.val = val
+
+class InvalidArgumentTypeError(OffsetOfError):
+    """The provided type is not a struct or union"""
+    formatter = "`{}' is not a struct or union"
+    def __init__(self, gdbtype):
+        msg = self.formatter.format(str(gdbtype))
+        super(InvalidArgumentTypeError, self).__init__(msg)
+        self.type = gdbtype
+
+class InvalidComponentError(OffsetOfError):
+    """An error occured while resolving the member specification"""
+    formatter = "cannot resolve '{}->{}' ({})"
+    def __init__(self, gdbtype, spec, message):
+        msg = self.formatter.format(str(gdbtype), spec, message)
+        super(InvalidComponentError, self).__init__(msg)
+        self.type = gdbtype
+        self.spec = spec
+
+# These exceptions are only raised by _offsetof and should not be
+# visible outside of this module.
+class _InvalidComponentBaseError(OffsetOfError):
+    """An internal error occured while resolving the member specification"""
+    pass
+
+class _InvalidComponentTypeError(_InvalidComponentBaseError):
+    """The component expects the type to be a struct or union but it is not."""
+    formatter = "component `{}' in `{}' is not a struct or union"
+    def __init__(self, name, spec):
+        msg = self.formatter.format(name, spec)
+        super(_InvalidComponentTypeError, self).__init__(msg)
+        self.name = name
+        self.spec = spec
+
+class _InvalidComponentNameError(_InvalidComponentBaseError):
+    """The requested member component does not exist in the provided type."""
+
+    formatter = "no such member `{}' in `{}'"
+    def __init__(self, member, gdbtype):
+        msg = self.formatter.format(member, str(gdbtype))
+        super(_InvalidComponentNameError, self).__init__(msg)
+        self.member = member
+        self.type = gdbtype
+
 def get_symbol_value(symname):
     return gdb.lookup_symbol(symname, None)[0].value()
 
@@ -15,38 +75,77 @@ def safe_get_symbol_value(symname):
         return None
 
 def resolve_type(val):
-    if isinstance(val, str):
-        gdbtype = gdb.lookup_type(val)
+    if isinstance(val, gdb.Type):
+        gdbtype = val
     elif isinstance(val, gdb.Value):
         gdbtype = val.type
+    elif isinstance(val, str):
+        gdbtype = gdb.lookup_type(val)
+    elif isinstance(val, gdb.Symbol):
+        gdbtype = val.value().type
     else:
-        gdbtype = val
+        raise TypeError("Invalid type {}".format(str(type(val))))
     return gdbtype
 
-def offsetof(val, member, error=True):
-    gdbtype = resolve_type(val)
-    if not isinstance(val, gdb.Type):
-        raise TypeError("offsetof requires gdb.Type or a string/value that can be used to lookup a gdb.Type")
+def __offsetof(val, spec, error):
+    gdbtype = val
+    offset = 0
 
-    try:
-        for field in gdbtype.values():
-            if field.type.code == gdb.TYPE_CODE_ENUM:
-                continue
+    for member in spec.split('.'):
+        found = False
+        if gdbtype.code != gdb.TYPE_CODE_STRUCT and \
+           gdbtype.code != gdb.TYPE_CODE_UNION:
+            raise _InvalidComponentTypeError(field.name, spec)
+        for field in gdbtype.fields():
             off = field.bitpos >> 3
             if field.name == member:
-                return off
-            res = offsetof(field.type, member, False)
-            if res is not None:
-                return res + off
+                found = True
+                break
+
+            # Step into anonymous structs and unions
+            if field.name is None:
+                res = __offsetof(field.type, member, False)
+                if res is not None:
+                    found = True
+                    off += res
+                    break
+        if not found:
+            if error:
+                raise _InvalidComponentNameError(member, gdbtype)
+            else:
+                return None
+        gdbtype = field.type
+        offset += off
+
+    return offset
+
+def offsetof(val, spec, error=True):
+    gdbtype = None
+    try:
+        gdbtype = resolve_type(val)
+    except gdb.error as e:
+        pass
     except TypeError as e:
-        # not iterable, skip
         pass
 
-    if error:
-        raise TypeError("offsetof couldn't find member '%s' in type '%s'" 
-                            % (member, str(gdbtype)))
-    else:
-        return None
+    if not isinstance(gdbtype, gdb.Type):
+        raise InvalidArgumentError(val)
+
+    # We'll be friendly and accept pointers as the initial type
+    if gdbtype.code == gdb.TYPE_CODE_PTR:
+        gdbtype = gdbtype.target()
+
+    if gdbtype.code != gdb.TYPE_CODE_STRUCT and \
+       gdbtype.code != gdb.TYPE_CODE_UNION:
+        raise InvalidArgumentTypeError(gdbtype)
+
+    try:
+        return __offsetof(gdbtype, spec, error)
+    except _InvalidComponentBaseError as e:
+        if error:
+            raise InvalidComponentError(gdbtype, spec, e.message)
+        else:
+            return None
 
 charp = gdb.lookup_type('char').pointer()
 def container_of(val, gdbtype, member):
