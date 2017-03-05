@@ -225,8 +225,9 @@ Options:
                 tmp = "{0} {1}".format(field.type, field.name)
                 if field.bitsize > 0:
                     output += "{0} : {1};".format(tmp, field.bitsize)
-                elif self.is_func_ptr(tmp):
-                    output += "{0};".format(self.parse_func_ptr(tmp))
+                elif self.is_func_ptr(field):
+                    output += "{0};".format(self.format_func_ptr(field.name,
+                                                                 field.type))
                 else:
                     output += "{0};".format(tmp)
 
@@ -261,13 +262,13 @@ Options:
             self.print_struct(value, members)
             address += objtype.sizeof
 
-    def is_func_ptr(self, line):
-        return re.match("^\w+[\w *]+\(\*\)\([\w *,]+\)", line) is not None
+    def is_func_ptr(self, field):
+        return (field.type.code == gdb.TYPE_CODE_PTR and
+                field.type.target().code == gdb.TYPE_CODE_FUNC)
 
-    def parse_func_ptr(self, string):
-        func_type = re.match("^\w+[\w *]+", string).group(0)
-        func_args = re.search("(?<=\))\([^\)]+\)", string).group(0)
-        func_name = re.search("(?<=\)) (\w+)", string).group(1)
-        return "{0} (*{1}){2};".format(func_type, func_name, func_args)
+    def format_func_ptr(self, name, typ):
+        return "{} (*{})({})".format(typ.target().target(), name,
+               ", ".join([str(f.type) for f in typ.target().fields()]))
+        return res
 
 StructCommand()
