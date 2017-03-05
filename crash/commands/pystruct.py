@@ -74,10 +74,9 @@ Options:
                 v = value
                 for component in member.split('.'):
                     v = v[component]
-                print("  {} = {}".format(member, v))
+                print("  {} = {}".format(member, unicode(v)))
         else:
-            # gdb's output isn't utf-8 safe.
-            print(value)
+            print(unicode(value))
 
     def print_struct_layout(self, gdbtype, address):
         print(gdbtype)
