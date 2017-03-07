@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
 import gdb
 import argparse
 from crash.commands import CrashCommand
 from crash.types.task import LinuxTask
 import sys
+import re
 
 if sys.version_info.major >= 3:
     long = int
@@ -525,6 +525,22 @@ EXAMPLES
                           task_struct['comm'].string(),
                           "]", int(task.is_kernel_task()))))
 
+    def is_requested(self, args, task):
+        #match by pid
+        if str(task.task_struct['pid']) in args:
+            return True
+        #match by task_struct addr, omitting leadin '0x'
+        elif str(task.task_struct.address)[2:] in args:
+            return True
+        #match by regex
+        else:
+            task_comm = task.task_struct['comm'].string()
+            for regex in args:
+                if re.match(regex, task_comm) is not None:
+                    return True
+
+        return False
+
     def execute(self, argv):
         sort_by_pid = lambda x: x.info.task_struct['pid']
         sort_by_last_run = lambda x: -x.info.last_run()
@@ -544,18 +560,21 @@ EXAMPLES
                 width = 16
             print(self.header_template.format(width, col4name))
 
-        if not argv.args:
-            for thread in sorted(gdb.selected_inferior().threads(), key=sort_by):
-                task = thread.info
-                if task:
-                    if argv.k and not task.is_kernel_task():
-                        continue
-                    if argv.u and task.is_kernel_task():
-                        continue
 
-                    # Only show thread group leaders
-#                    if argv.G and task.pid != int(task.task_struct['tgid']):
+        for thread in sorted(gdb.selected_inferior().threads(), key=sort_by):
+            task = thread.info
+            if task:
+                if argv.k and not task.is_kernel_task():
+                    continue
+                if argv.u and task.is_kernel_task():
+                    continue
 
-                    task.update_mem_usage()
-                    self.print_one(argv, thread)
+                # Only show thread group leaders
+#               if argv.G and task.pid != int(task.task_struct['tgid']):
+
+                task.update_mem_usage()
+                if argv.args and not self.is_requested(argv.args, task):
+                    continue
+                self.print_one(argv, thread)
+
 PSCommand()

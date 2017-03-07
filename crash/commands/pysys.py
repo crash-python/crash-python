@@ -3,7 +3,7 @@
 
 import gdb
 from crash.commands import CrashCommand
-from crash.cache import sys
+from crash.cache import sysinfo
 import argparse
 
 class LogTypeException(Exception):
@@ -58,18 +58,18 @@ EXAMPLES
 
 
     def show_default(self):
-        print("      UPTIME: %s" % (sys.cache.kernel_cache['uptime']))
-        print("LOAD AVERAGE: %s" % (sys.cache.kernel_cache['loadavg']))
-        print("    NODENAME: %s" % (sys.cache.utsname_cache['nodename']))
-        print("     RELEASE: %s" % (sys.cache.utsname_cache['release']))
-        print("     VERSION: %s" % (sys.cache.utsname_cache['version']))
-        print("     MACHINE: %s" % (sys.cache.utsname_cache['machine']))
+        print("      UPTIME: %s" % (sysinfo.cache.kernel_cache['uptime']))
+        print("LOAD AVERAGE: %s" % (sysinfo.cache.kernel_cache['loadavg']))
+        print("    NODENAME: %s" % (sysinfo.cache.utsname_cache['nodename']))
+        print("     RELEASE: %s" % (sysinfo.cache.utsname_cache['release']))
+        print("     VERSION: %s" % (sysinfo.cache.utsname_cache['version']))
+        print("     MACHINE: %s" % (sysinfo.cache.utsname_cache['machine']))
 
     def show_raw_ikconfig(self):
-        print(sys.cache.ikconfig_raw_cache)
+        print(sysinfo.cache.ikconfig_raw_cache)
 
     def execute(self, args):
-        sys.cache.init_sys_caches()
+        sysinfo.cache.init_sys_caches()
 
         if args.config:
             if args.config == "config":

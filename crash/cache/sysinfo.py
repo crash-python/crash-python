@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
 import gdb
 import re
 import zlib
@@ -146,7 +145,7 @@ class CrashCacheSys(CrashCache):
         buf = ""
 
         for lavg in loadavg:
-            a = int(lavg) + (FIXED_1/200)
+            a = int(lavg) + (FIXED_1//200)
             b = a >> FSHIFT
             c = ((a & (FIXED_1-1)) * 100) >> FSHIFT
             buf += "%d.%02d " % (b,c)
