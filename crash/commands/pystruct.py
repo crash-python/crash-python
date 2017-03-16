@@ -206,33 +206,9 @@ Options:
             return
 
         # Offset output
-        if argv.o:
-            print("{0} {{".format(objtype))
-            for field in objtype.fields():
-                field_offset = field.bitpos // 8
-                if address:
-                    field_offset += address
-                    output = "  [{0:x}] ".format(field_offset)
-                else:
-                    output = "  [{0}] ".format(field_offset)
-
-                if members and "{0}".format(field.name) not in members:
-                    continue
-
-                tmp = "{0} {1}".format(field.type, field.name)
-                if field.bitsize > 0:
-                    output += "{0} : {1};".format(tmp, field.bitsize)
-                elif self.is_func_ptr(field):
-                    output += "{0};".format(self.format_func_ptr(field.name,
-                                                                 field.type))
-                else:
-                    output += "{0};".format(tmp)
-
-                print(output)
-            print("}")
-            print("SIZE: {0}".format(objtype.sizeof))
+        if argv.o or address is None:
+            self.print_type(objtype, argv.o, address, members)
             return
-
 
         # Raw output
         if argv.r:
@@ -249,15 +225,81 @@ Options:
 
             return
 
-        if address is None:
-            self.print_struct_layout(objtype, address)
-            return
-
         # Symbolic output
         for n in range(0, count):
             value = gdb.Value(address).cast(objtype.pointer()).dereference()
             self.print_struct(value, members)
             address += objtype.sizeof
+
+    def format_subtype(self, objtype, offset_width, address, members, level=0):
+        output = ""
+        if level == 0 and not offset_width:
+            level += 1
+        indent_len = 4 * level
+        indent = "{0:<{1}}".format('', indent_len)
+        for field in objtype.fields():
+            field_offset = field.bitpos // 8
+
+            if members and field.name not in members:
+                continue
+
+            if ((field.type.code == gdb.TYPE_CODE_UNION or
+                field.type.code == gdb.TYPE_CODE_STRUCT) and
+                field.type.tag is None):
+                if field.type.code == gdb.TYPE_CODE_UNION:
+                    prefix = "union"
+                else:
+                    prefix = "struct"
+
+                width = indent_len
+                if offset_width:
+                    width += offset_width + 1
+                output += "{0:>{1}}{2} {{\n".format('', width, prefix)
+                addr = 0
+                if address:
+                    addr = address
+                addr += field_offset
+                output += self.format_subtype(field.type, offset_width, addr,
+                                              None, level + 1)
+                name = ""
+                if field.name:
+                    name = " " + field.name
+                output += "{0:>{1}}}}{2};\n".format('', width, name)
+                continue
+
+            if offset_width:
+                if address:
+                    field_offset += address
+                if address and level == 1:
+                    base = 'x'
+                base = 'd'
+                tmp = "[{0:{1}}]".format(field_offset, base)
+                output += "{0:>{1}} ".format(tmp, offset_width)
+
+            if field.bitsize > 0:
+                output += "{3:<{4}}{0} {1} : {2};\n".format(field.type,
+                                                  field.name, field.bitsize,
+                                                  '', indent_len)
+            elif self.is_func_ptr(field):
+                output += "{1:<{2}}{0};\n".format(
+                            self.format_func_ptr(field.name, field.type),
+                            '', indent_len)
+            else:
+                output += "{2:<{3}}{0} {1};\n".format(field.type, field.name,
+                                                    '', indent_len)
+        return output
+
+    def print_type(self, objtype, print_offset, address, members):
+        size = 0;
+        if print_offset:
+            size = len("[{}]".format(objtype.sizeof)) + 2
+        if address is None:
+            address = 0
+        print("{0} {{".format(objtype))
+        print self.format_subtype(objtype, size, address, members),
+        print("}")
+        print("SIZE: {0}".format(objtype.sizeof))
+
 
     def is_func_ptr(self, field):
         return (field.type.code == gdb.TYPE_CODE_PTR and
