@@ -79,9 +79,7 @@ Options:
             print(unicode(value))
 
     def print_struct_layout(self, gdbtype, address):
-        print(gdbtype)
         gdb.execute("ptype {}".format(str(gdbtype)))
-        print(gdbtype)
 
     def execute(self, argv):
         count = None
@@ -117,7 +115,6 @@ Options:
             if not name.startswith("struct "):
                 name = "struct {}".format(name)
             objtype = gdb.lookup_type(name)
-            print(objtype)
 
         if argv.count:
             if argv.c:
