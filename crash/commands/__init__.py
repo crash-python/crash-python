@@ -36,9 +36,10 @@ class CrashCommand(gdb.Command):
     def execute(self, argv):
         raise NotImplementedError("CrashCommand should not be called directly")
 
-modules = glob.glob(os.path.dirname(__file__)+"/[A-Za-z]*.py")
-__all__ = [ os.path.basename(f)[:-3] for f in modules]
+def discover():
+    modules = glob.glob(os.path.dirname(__file__)+"/[A-Za-z]*.py")
+    __all__ = [ os.path.basename(f)[:-3] for f in modules]
 
-mods = __all__
-for mod in mods:
-    x = importlib.import_module("crash.commands.%s" % mod)
+    mods = __all__
+    for mod in mods:
+        x = importlib.import_module("crash.commands.%s" % mod)
