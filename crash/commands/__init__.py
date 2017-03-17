@@ -8,6 +8,9 @@ import glob
 import importlib
 import argparse
 
+class CommandRuntimeError(RuntimeError):
+    pass
+
 class CrashCommand(gdb.Command):
     commands = {}
     def __init__(self, name, parser=None):
@@ -32,6 +35,8 @@ class CrashCommand(gdb.Command):
             return
         except KeyboardInterrupt:
             return
+        except CommandRuntimeError as e:
+            print(str(e))
 
     def execute(self, argv):
         raise NotImplementedError("CrashCommand should not be called directly")

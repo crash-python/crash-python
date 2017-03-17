@@ -46,6 +46,8 @@ struct test {
 
 	struct embedded embedded_struct_member;
 
+	int (*function_ptr_member)(struct test *test, int errval);
+
 	enum test_enum enum_member;
 };
 

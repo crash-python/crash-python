@@ -99,6 +99,7 @@ def __offsetof(val, spec, error):
         for field in gdbtype.fields():
             off = field.bitpos >> 3
             if field.name == member:
+                nexttype = field.type
                 found = True
                 break
 
@@ -107,19 +108,20 @@ def __offsetof(val, spec, error):
                 res = __offsetof(field.type, member, False)
                 if res is not None:
                     found = True
-                    off += res
+                    off += res[0]
+                    nexttype = res[1]
                     break
         if not found:
             if error:
                 raise _InvalidComponentNameError(member, gdbtype)
             else:
                 return None
-        gdbtype = field.type
+        gdbtype = nexttype
         offset += off
 
-    return offset
+    return (offset, gdbtype)
 
-def offsetof(val, spec, error=True):
+def offsetof_type(val, spec, error=True):
     gdbtype = None
     try:
         gdbtype = resolve_type(val)
@@ -146,6 +148,12 @@ def offsetof(val, spec, error=True):
             raise InvalidComponentError(gdbtype, spec, e.message)
         else:
             return None
+
+def offsetof(val, spec, error=True):
+    res = offsetof_type(val, spec, error)
+    if res:
+        return res[0]
+    return None
 
 charp = gdb.lookup_type('char').pointer()
 def container_of(val, gdbtype, member):
