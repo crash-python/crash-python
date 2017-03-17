@@ -4,7 +4,8 @@
 
 import gdb
 import argparse
-from crash.commands import CrashCommand
+from crash.commands import CrashCommand, CommandRuntimeError
+from crash.types.util import offsetof_type
 import sys
 import re
 
@@ -42,11 +43,14 @@ Options:
         group.add_argument('-x', action='store_true', default=False)
         group.add_argument('-d', action='store_true', default=False)
         parser.add_argument('-p', action='store_true', default=False)
+        parser.add_argument('-F', action='store_true', default=False)
         parser.add_argument('spec', type=str, nargs=1)
         parser.add_argument('location', type=str, nargs='?')
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-c', type=int, metavar="element-count")
         group.add_argument('count', type=int, nargs='?')
+
+        self.ulongsize = gdb.lookup_type("unsigned long").sizeof
 
         super(StructCommand, self).__init__('struct', parser)
 
@@ -54,13 +58,20 @@ Options:
         frame = None
         value = None
         block = None
+        sym = None
         thread = gdb.selected_thread()
         if thread:
             frame = gdb.selected_frame()
         if frame:
             block = frame.block()
 
-        sym = gdb.lookup_symbol(name, block)[0]
+        if block:
+            sym = gdb.lookup_symbol(name, block)[0]
+        else:
+            try:
+                sym = gdb.lookup_symbol(name)[0]
+            except gdb.error as e:
+                pass
         if sym:
             if frame:
                 value = sym.value(frame)
@@ -68,28 +79,62 @@ Options:
                 value = sym.value()
         return value
 
-    def print_struct(self, value, members):
+    def format_struct(self, value, members):
+        output = []
         if members:
             for member in members:
                 v = value
                 for component in member.split('.'):
                     v = v[component]
-                print("  {} = {}".format(member, unicode(v)))
+                output.append("  {} = {}".format(member, unicode(v)))
         else:
-            print(unicode(value))
+            output.append(unicode(value))
+        return output
 
-    def print_struct_layout(self, gdbtype, address):
-        gdb.execute("ptype {}".format(str(gdbtype)))
+    def resolve_symbolic_offset(self, symoff):
+        dot = symoff.find('.')
+        if dot == -1:
+            return None
 
-    def execute(self, argv):
-        count = None
+        typename = symoff[:dot]
+        member = symoff[dot+1:]
+
+        if not typename.startswith("struct"):
+            typename = "struct {}".format(typename)
+
+        offtype = gdb.lookup_type(typename)
+        if offtype:
+            return offsetof_type(offtype, member)
+            f = None
+            for memb in components[1:]:
+                if f and f.type.code & gdb.TYPE_CODE_PTR:
+                    offtype = f.type.target()
+                    offset = 0
+
+                try:
+                    f = offtype[memb]
+                except KeyError as e:
+                    raise CommandRuntimeError("Type `{}' has no member `{}'.".format(typename, memb))
+
+                offtype = f.type
+                offset += f.bitpos >> 3
+        else:
+            raise CommandRuntimeError("No such type `{}'".format(typename))
+
+        return (offset, offtype)
+
+    def format_output(self, argv):
+        count = 1
         block = None
         frame = None
         value = None
         address = None
 
+        # The parser ensures we only get one of these
         if argv.c:
             count = argv.c
+        elif argv.count:
+            count = argv.count
 
         thread = gdb.selected_thread()
         if thread:
@@ -104,9 +149,6 @@ Options:
             name = argv.spec[0][:dot]
             members = argv.spec[0][dot + 1:].split(",")
 
-        if argv.location:
-            argv.location = argv.location.rstrip(",;.:")
-
         symval = self.lookup_symbol(name)
         if symval:
             objtype = symval.type
@@ -115,15 +157,6 @@ Options:
             if not name.startswith("struct "):
                 name = "struct {}".format(name)
             objtype = gdb.lookup_type(name)
-
-        if argv.count:
-            if argv.c:
-                print("Count already specified using -c {}.".format(argv.c))
-                return
-            count = argv.count
-
-        if count is None:
-            count = 1
 
         offset = 0
         offtype = objtype
@@ -134,40 +167,13 @@ Options:
                 except ValueError as e:
                     offset = long(argv.l, 16)
             except ValueError as e:
-                dot = argv.l.find('.')
-                member = None
-                if dot == -1:
-                    print("Specifying a structure with no member means offset=0")
-                    offset = 0
-                else:
-                    components = argv.l.split('.')
-                    typename = components[0]
-                    member = argv.l[dot + 1:]
-
-                    if not typename.startswith("struct"):
-                        typename = "struct {}".format(typename)
-
-                    offtype = gdb.lookup_type(typename)
-                    if offtype:
-                        f = None
-                        for memb in components[1:]:
-                            if f and f.type.code & gdb.TYPE_CODE_PTR:
-                                offtype = f.type.target()
-                                offset = 0
-
-                            try:
-                                f = offtype[memb]
-                            except KeyError as e:
-                                print("Type `{}' has no member `{}'.".format(typename, memb))
-                                return
-
-                            offtype = f.type
-                            offset += f.bitpos >> 3
-                    else:
-                        print("No such type `{}'".format(typename))
-                        return
+                res = self.resolve_symbolic_offset(argv.l)
+                if res is not None:
+                    (offset, offtype) = res
 
         if argv.location:
+            argv.location = argv.location.rstrip(",;.:")
+
             try:
                 n = to_number(argv.location)
                 if count or n > 2*1024*1024: #arbitrary
@@ -178,74 +184,123 @@ Options:
                 mkpointer = False
                 location = argv.location
                 if location[0] == '&':
-                    mkpointer = True
                     location = location[1:]
 
                 components = location.split('.')
                 location_symval = self.lookup_symbol(components[0])
-                if location_symval:
-                    v = location_symval
-                    for memb in components[1:]:
-                        v = v[memb]
+                if not location_symval:
+                    sym = gdb.lookup_global_symbol(components[0])
+                    if sym:
+                        location_symval = sym.value()
 
-                    if mkpointer:
-                        v = v.address
+                if not location_symval:
+                    raise CommandRuntimeError("Could not resolve location {}".format(argv.location))
 
-                    if v.type.code != gdb.TYPE_CODE_PTR:
-                        address = long(v.address)
-                    else:
-                        address = long(v)
+                value = location_symval
+                if value.type.code != gdb.TYPE_CODE_PTR:
+                    value = value.address
+                address = long(value)
 
-                    if str(offtype.pointer()) != str(v.type):
-                        print("`{}' ({}) is not `{} *'".format(argv.location, v.type, offtype))
-                        return
+                if len(components) > 1:
+                    res = offsetof_type(location_symval.type,
+                                        ".".join(components[1:]))
+
+                    address += res[0]
+                    if not argv.l:
+                        objtype = res[1]
+                    value = gdb.Value(address).cast(res[1].pointer())
+
+                    if value.type.code != gdb.TYPE_CODE_PTR:
+                        value = value.address
+                    address = long(value)
+
+                if not argv.F and str(offtype.pointer()) != str(value.type):
+                    raise CommandRuntimeError("`{}' ({}) is not `{}'".format(
+                                              argv.location, value.type,
+                                              offtype.pointer()))
         if address:
             address -= offset
         elif offset:
-            print("Offset provided without a location.")
-            return
+            raise CommandRuntimeError("Offset provided without a location.")
 
         # Offset output
         if argv.o or address is None:
-            self.print_type(objtype, argv.o, address, members)
-            return
+            return self.format_struct_layout(objtype, argv.o, address, members)
 
         # Raw output
         if argv.r:
             if address is None:
-                print("Raw dump request without address being provided")
-                return
+                raise CommandRuntimeError("Raw dump request without address being provided")
             line = gdb.lookup_type('unsigned long').array(1)
             charp = gdb.lookup_type('char').pointer()
             size = objtype.sizeof
+            output = []
             for addr in range(address, address + size * count, size):
                 value = gdb.Value(addr).cast(line.pointer()).dereference()
-                print(value.cast(charp).string('ascii'))
-                print("{:>16x}:  {:>016x} {:>016x}".format(addr, long(value[0]), long(value[1])))
+                output.append(value.cast(charp).string('ascii'))
+                output.append("{:>16x}:  {:>016x} {:>016x}".format(addr,
+                                            long(value[0]), long(value[1])))
 
-            return
+            return output
 
         # Symbolic output
+        output = []
         for n in range(0, count):
             value = gdb.Value(address).cast(objtype.pointer()).dereference()
-            self.print_struct(value, members)
+            output += self.format_struct(value, members)
             address += objtype.sizeof
+        return output
 
-    def format_subtype(self, objtype, offset_width, address, members, level=0):
-        output = ""
+    def execute(self, argv):
+        output = self.format_output(argv)
+        if isinstance(output, list):
+            print("\n".join(output))
+        else:
+            print(output)
+
+    def step_into_subtype(self, field, members, depth):
+        if not (field.type.code == gdb.TYPE_CODE_UNION or
+                field.type.code == gdb.TYPE_CODE_STRUCT):
+            return False
+
+        if field.type.tag is None:
+            return True
+
+        if field.name is None:
+            return True
+
+        if members is None:
+            return False
+
+        for m in members:
+            m = m.split('.')
+
+            # Is there another component after this one?
+            if len(m) > depth + 1 and m[depth] == field.name:
+                return True
+        return False
+
+    def format_subtype(self, objtype, offset_width, address, base, members,
+                       level=0, depth=0):
+        output = []
         if level == 0 and not offset_width:
             level += 1
         indent_len = 4 * level
         indent = "{0:<{1}}".format('', indent_len)
+
         for field in objtype.fields():
             field_offset = field.bitpos // 8
 
-            if members and field.name not in members:
-                continue
+            found = False
+            if members and field.name is not None:
+                for m in members:
+                    m = m.split('.')
+                    if len(m) > depth and m[depth] == field.name:
+                        found = True
+                if not found:
+                    continue
 
-            if ((field.type.code == gdb.TYPE_CODE_UNION or
-                field.type.code == gdb.TYPE_CODE_STRUCT) and
-                field.type.tag is None):
+            if self.step_into_subtype(field, members, depth):
                 if field.type.code == gdb.TYPE_CODE_UNION:
                     prefix = "union"
                 else:
@@ -254,52 +309,67 @@ Options:
                 width = indent_len
                 if offset_width:
                     width += offset_width + 1
-                output += "{0:>{1}}{2} {{\n".format('', width, prefix)
                 addr = 0
                 if address:
                     addr = address
                 addr += field_offset
-                output += self.format_subtype(field.type, offset_width, addr,
-                                              None, level + 1)
+
                 name = ""
                 if field.name:
                     name = " " + field.name
-                output += "{0:>{1}}}}{2};\n".format('', width, name)
+                    depth += 1
+                subout = self.format_subtype(field.type, offset_width, addr,
+                                             base, members, level + 1, depth)
+                if subout:
+                    tag = ""
+                    if field.type.tag:
+                        tag = " " + field.type.tag
+                    output.append("{0:>{1}}{2}{3} {{".format('', width,
+                                                           prefix, tag))
+                    output += subout
+                    output.append("{0:>{1}}}}{2};".format('', width, name))
                 continue
 
+            line = ""
             if offset_width:
                 if address:
                     field_offset += address
-                if address and level == 1:
-                    base = 'x'
-                base = 'd'
-                tmp = "[{0:{1}}]".format(field_offset, base)
-                output += "{0:>{1}} ".format(tmp, offset_width)
+                if base == 16:
+                    tmp = "[{0:0{1}x}]".format(field_offset, self.ulongsize*2)
+                else:
+                    tmp = "[{0}]".format(field_offset)
+                line += "{0:>{1}} ".format(tmp, offset_width)
 
             if field.bitsize > 0:
-                output += "{3:<{4}}{0} {1} : {2};\n".format(field.type,
+                line += "{3:<{4}}{0} {1} : {2};".format(field.type,
                                                   field.name, field.bitsize,
                                                   '', indent_len)
             elif self.is_func_ptr(field):
-                output += "{1:<{2}}{0};\n".format(
-                            self.format_func_ptr(field.name, field.type),
-                            '', indent_len)
+                line += "{1:<{2}}{0};".format(
+                                self.format_func_ptr(field.name, field.type),
+                                '', indent_len)
             else:
-                output += "{2:<{3}}{0} {1};\n".format(field.type, field.name,
-                                                    '', indent_len)
+                line += "{2:<{3}}{0} {1};".format(field.type, field.name,
+                                                  '', indent_len)
+            output.append(line)
         return output
 
-    def print_type(self, objtype, print_offset, address, members):
+    def format_struct_layout(self, objtype, print_offset, address, members):
+        output = []
         size = 0;
-        if print_offset:
+        if print_offset and address:
+            size = len("[{0:{1}x}]".format(address, self.ulongsize*2)) + 2
+        elif print_offset:
             size = len("[{}]".format(objtype.sizeof)) + 2
+        base = 16
         if address is None:
             address = 0
-        print("{0} {{".format(objtype))
-        print self.format_subtype(objtype, size, address, members),
-        print("}")
-        print("SIZE: {0}".format(objtype.sizeof))
-
+            base = 10
+        output.append("{0} {{".format(objtype))
+        output += self.format_subtype(objtype, size, address, base, members)
+        output.append("}")
+        output.append("SIZE: {0}".format(objtype.sizeof))
+        return output
 
     def is_func_ptr(self, field):
         return (field.type.code == gdb.TYPE_CODE_PTR and
@@ -308,6 +378,5 @@ Options:
     def format_func_ptr(self, name, typ):
         return "{} (*{})({})".format(typ.target().target(), name,
                ", ".join([str(f.type) for f in typ.target().fields()]))
-        return res
 
 StructCommand()

@@ -21,6 +21,9 @@ class CrashCommandParser(argparse.ArgumentParser):
     def error(self, message):
         raise CrashCommandLineError(message)
 
+class CommandRuntimeError(RuntimeError):
+    pass
+
 class CrashCommand(CrashBaseClass, gdb.Command):
     commands = {}
     def __init__(self, name, parser=None):
@@ -50,6 +53,8 @@ class CrashCommand(CrashBaseClass, gdb.Command):
             print("{}: {}".format(self.name, str(e)))
         except (SystemExit, KeyboardInterrupt):
             pass
+        except CommandRuntimeError as e:
+            print(str(e))
 
     def execute(self, argv):
         raise NotImplementedError("CrashCommand should not be called directly")
