@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from __future__ import print_function
+
 path = "/lib/modules/4.4.20-6.gd2e08c5-default/kernel/fs/btrfs/btrfs.ko"
 
 from crash.types.list import list_for_each_entry
@@ -42,6 +44,6 @@ class LSBtrfs(CrashCommand):
                     u <<= 8
                     u += int(fs_info['fsid'][i])
                 u = uuid.UUID(int=u)
-                print "{} -> {} {}".format(sb.address, sb['s_id'].string(), u)
+                print("{} -> {} {}".format(sb.address, sb['s_id'].string(), u))
 
 LSBtrfs()

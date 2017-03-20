@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from __future__ import print_function
+
 from crash.types.list import list_for_each_entry
 import gdb
 import uuid
@@ -24,6 +26,6 @@ for module in list_for_each_entry(modules, module_type, 'list'):
         modname = modname.replace('_', '-')
         modpath = find(modname, path)
     if not modpath:
-        print "Couldn't find {} under {}.".format(module['name'], path)
+        print("Couldn't find {} under {}.".format(module['name'], path));
         continue
     gdb.execute("add-symbol-file {} {}".format(modpath, module['module_core']))

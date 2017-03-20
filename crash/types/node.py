@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from __future__ import print_function
+
 import gdb
 from .util import container_of, find_member_variant, get_symbol_value
 from .bitmap import for_each_set_bit

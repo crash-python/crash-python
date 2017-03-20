@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from __future__ import print_function
+
 import gdb
 from .util import container_of
 import sys
@@ -44,7 +46,7 @@ def list_for_each(list_head):
                 for i in range(2):
                     fast = fast['next'].dereference()
                     if node.address == fast.address:
-                        print ("detected linked list cycle, aborting traversal")
+                        print("detected linked list cycle, aborting traversal")
                         return
 
             prev = node

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from __future__ import print_function
+
 import gdb
 from crash.arch import CrashArchitecture, register
 import sys
@@ -57,7 +59,7 @@ class x86_64Architecture(CrashArchitecture):
 
         # ex = in_exception_stack(rsp)
         # if ex:
-        #     print "EXCEPTION STACK: pid %d" % task['pid']
+        #     print("EXCEPTION STACK: pid %d" % task['pid'])
 
         thread.registers['rsp'].value = rsp
         thread.registers['rbp'].value = rbp

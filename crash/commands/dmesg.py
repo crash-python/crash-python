@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from __future__ import print_function
+from __future__ import absolute_import
+
 import gdb
 from crash.commands import CrashCommand
 from crash.types.util import safe_get_symbol_value as get_value

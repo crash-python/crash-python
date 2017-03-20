@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from __future__ import print_function
+
 import gdb
 import crash
 from .util import container_of, find_member_variant, safe_lookup_type, get_symbol_value
@@ -320,7 +322,7 @@ class KmemCache:
         for i in range(avail):
             ptr = long(acache["entry"][i])
             if ptr in self.array_caches:
-                print ("WARNING: array cache duplicity detected!")
+                print("WARNING: array cache duplicity detected!")
             else:
                 self.array_caches[ptr] = cache_dict
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from __future__ import print_function
+
 import gdb
 from crash.commands import CrashCommand
 import crash.cache.tasks
@@ -41,6 +43,6 @@ EXAMPLES
 #                gdb.execute("thread {}".format(thread.num))
 #                return
 
-#        print "Couldn't find thread for pid {}".format(args.pid[0])
+#        print("Couldn't find thread for pid {}".format(args.pid[0]))
 
 ThreadCommand("thread")
