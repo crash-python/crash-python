@@ -425,6 +425,10 @@ EXAMPLES
             LinuxTask.TASK_DEAD            : "DE",
         }
 
+        self.rlim_names = ["CPU", "FSIZE", "DATA", "STACK", "CORE", "RSS",
+                "NPROC", "NOFILE", "MEMLOCK", "AS", "LOCKS", "SIGPENDING",
+                "MSGQUEUE", "NICE", "RTPRIO", "RTTTIME"]
+
         if LinuxTask.TASK_TRACING_STOPPED:
             self.task_states[LinuxTask.TASK_TRACING_STOPPED] = "TR"
 
@@ -486,9 +490,35 @@ EXAMPLES
                               self.task_state_string(task),
                               self.task_header(task)))
 
+    def print_rlimit(self, task):
+        ptr_size = gdb.lookup_type("void").pointer().sizeof
+        task_struct = task.task_struct
+        print(self.task_header(task))
+
+        print("{0:>10} {1:^13} {2:^13}".format("RLIMT", "CURRENT", "MAXIMUM"))
+        try:
+            #we have struct rlim straight into task_struct
+            rlim = task_struct['rlim']
+        except gdb.error:
+            #struct rlim is put in signal_struct
+            signal_struct = task_struct['signal']
+            rlim = signal_struct['rlim']
+
+        for i, name in enumerate(self.rlim_names):
+            curr_value = long(rlim[i]['rlim_cur'])
+            max_value =  long(rlim[i]['rlim_max'])
+            if curr_value == (2 ** (8 * ptr_size) - 1):
+                curr_value = "(unlimited)"
+            if max_value == (2 ** (8 * ptr_size) - 1):
+                max_value = "(unlimited)"
+
+            print("{0:>10} {1:^13} {2:^13}".format(name, curr_value, max_value))
+
+        print("\n")
+
+
     def print_one(self, argv, thread):
         task = thread.info
-        specified = argv.args == None
         task_struct = task.task_struct
 
         pointer = task_struct.address
@@ -500,6 +530,10 @@ EXAMPLES
 
         if argv.l:
             self.print_last_run(task)
+            return
+
+        if argv.r:
+            self.print_rlimit(task)
             return
 
         try:
@@ -561,7 +595,9 @@ EXAMPLES
             else:
                 col4name = "TASK"
                 width = 16
-            print(self.header_template.format(width, col4name))
+
+            if not argv.r:
+                print(self.header_template.format(width, col4name))
 
 
         for thread in sorted(gdb.selected_inferior().threads(), key=sort_by):
