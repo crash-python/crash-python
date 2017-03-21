@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 setup(
     name = "crash",
     version = "0.1",
-    packages = find_packages(),
+    packages = ['crash'],
     package_data = {
         '' : [ "*.dist" "*.txt" ],
     },
