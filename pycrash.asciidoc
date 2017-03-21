@@ -1,0 +1,52 @@
+pycrash(1)
+==========
+
+NAME
+----
+pycrash - a Linux kernel crash dump debugger written in Python
+
+SYNOPSIS
+--------
+*pycrash* [options] <vmlinux> <vmcore>
+
+DESCRIPTION
+-----------
+The *pycrash* utility is a Linux kernel crash debugger written in Python.  It
+improves upon the original crash tool by adding support for symbolic
+backtraces and in that it is easily extensible by the user.
+
+In order to operate properly, full debuginfo is required for the kernel
+image and all modules in use.
+
+OPTIONS
+-------
+*-d|--search-dir <directory>*::
+Specify a directory to search recursively for modules or debuginfo for
+the kernel or modules.
++
+This option may be specified multiple times.
+
+*--gdb*::
+Start the gdb instance used with crash-python within gdb.
++
+This option is primarily intended for debugging gdb issues.
+
+*--valgrind*::
+Start the gdb instance used with crash-python within valgrind.
++
+This option is primarily intended for debugging gdb issues.
+
+EXIT STATUS
+-----------
+*pycrash* returns a zero exit status if it succeeds.  Non zero is returned in
+case of failure.
+
+AVAILABILITY
+------------
+*pycrash* is part of crash-python.
+Please refer to the GitHub repository at https://github.com/jeffmahoney/crash-python for more information.
+
+SEE ALSO
+--------
+`gdb`(1)
+`libdkumpfil`
