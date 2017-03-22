@@ -159,6 +159,8 @@ def offsetof(val, spec, error=True):
 
 charp = gdb.lookup_type('char').pointer()
 def container_of(val, gdbtype, member):
+    if val.type.code != gdb.TYPE_CODE_PTR:
+        val = val.address
     gdbtype = resolve_type(gdbtype)
     offset = offsetof(gdbtype, member)
     return (val.cast(charp) - offset).cast(gdbtype.pointer()).dereference()
