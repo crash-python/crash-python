@@ -547,6 +547,21 @@ EXAMPLES
         for indent, line in enumerate(reversed(task_lines)):
             print("{0:.{1}} {2}".format(" ", indent, line))
 
+    def print_children(self, task):
+        children_list = []
+        task_struct = task.task_struct
+
+        for task2 in self.task_thread_map.values():
+            if str(task2.task_struct['real_parent']) == str(task_struct.address):
+                children_list.append(self.task_header(task2))
+
+        print(self.task_header(task))
+        for line in children_list:
+            print(" {0}".format(line))
+
+        print("\n")
+
+
     def print_one(self, argv, thread):
         task = thread.info
         task_struct = task.task_struct
@@ -568,6 +583,10 @@ EXAMPLES
 
         if argv.p:
             self.print_parent(task)
+            return
+
+        if argv.c:
+            self.print_children(task)
             return
 
         try:
@@ -630,7 +649,9 @@ EXAMPLES
                 col4name = "TASK"
                 width = 16
 
-            if not argv.r and not argv.p:
+            #don't print header on certain parameters' output, that don't
+            #require it
+            if not argv.r and not argv.p and not argv.c:
                 print(self.header_template.format(width, col4name))
 
 
