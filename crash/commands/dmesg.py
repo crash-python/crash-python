@@ -277,7 +277,7 @@ EXAMPLES
             if args.d:
                 raise LogInvalidOption("Unstructured logs don't offer key/value pair support")
 
-            print(self.filter_unstructured_log(log_buf.string(), args))
+            print(self.filter_unstructured_log(log_buf.string('utf-8', 'replace'), args))
 
     def execute(self, args):
         try:
