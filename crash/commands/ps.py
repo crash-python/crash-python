@@ -447,6 +447,19 @@ EXAMPLES
         self.num_line_template  = "{0} {1:>5}   {2:>5}  {3:>3}  {4:{5}d}  {6:3}  {7:.1f}"
         self.num_line_template += " {8:7d} {9:6d}  {10:.{11}}{12}{13:.{14}}"
 
+        self.init_task = gdb.lookup_global_symbol("init_task").value()
+
+        self.task_thread_map = self.init_task_mapping()
+
+    def init_task_mapping(self):
+        mapping = {}
+        for thread in gdb.selected_inferior().threads():
+            task = thread.info
+            task_struct = task.task_struct
+            mapping[str(task_struct.address)] = task
+
+        return mapping
+
     def task_state_string(self, task):
         state = task.task_state()
         buf = None
@@ -490,9 +503,8 @@ EXAMPLES
                               self.task_state_string(task),
                               self.task_header(task)))
 
-    def print_rlimit(self, task):
+    def print_rlimit(self, task_struct):
         ptr_size = gdb.lookup_type("void").pointer().sizeof
-        task_struct = task.task_struct
         print(self.task_header(task))
 
         print("{0:>10} {1:^13} {2:^13}".format("RLIMT", "CURRENT", "MAXIMUM"))
@@ -516,6 +528,39 @@ EXAMPLES
 
         print("\n")
 
+    def print_parent(self, task):
+        task_lines = []
+        task_struct = task.task_struct
+
+        while str(task_struct['parent'].dereference().address) != str(self.init_task['parent'].dereference().address):
+            line = self.task_header(task)
+            task_lines.append(line)
+            task_struct = task_struct['parent'].dereference()
+            #The parent of the init task is the swapper, unfortunately
+            #we do not have access to it from the inferior gdb interface
+            #and we get a KeyError when we try to traver the 'init' process
+            try:
+                task = self.task_thread_map[str(task_struct.address)]
+            except KeyError:
+                break
+
+        for indent, line in enumerate(reversed(task_lines)):
+            print("{0:.{1}} {2}".format(" ", indent, line))
+
+    def print_children(self, task):
+        children_list = []
+        task_struct = task.task_struct
+
+        for task2 in self.task_thread_map.values():
+            if str(task2.task_struct['real_parent']) == str(task_struct.address):
+                children_list.append(self.task_header(task2))
+
+        print(self.task_header(task))
+        for line in children_list:
+            print(" {0}".format(line))
+
+        print("\n")
+
 
     def print_one(self, argv, thread):
         task = thread.info
@@ -534,6 +579,14 @@ EXAMPLES
 
         if argv.r:
             self.print_rlimit(task)
+            return
+
+        if argv.p:
+            self.print_parent(task)
+            return
+
+        if argv.c:
+            self.print_children(task)
             return
 
         try:
@@ -596,7 +649,9 @@ EXAMPLES
                 col4name = "TASK"
                 width = 16
 
-            if not argv.r:
+            #don't print header on certain parameters' output, that don't
+            #require it
+            if not argv.r and not argv.p and not argv.c:
                 print(self.header_template.format(width, col4name))
 
 
