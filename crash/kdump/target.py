@@ -7,7 +7,7 @@ from __future__ import division
 
 import gdb
 from kdumpfile import kdumpfile, KDUMP_KVADDR
-from .util import list_for_each_entry
+from crash.types.util import list_for_each_entry
 from kdumpfile.exceptions import *
 
 #arch = "i386:x86-64"
