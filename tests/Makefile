@@ -1,5 +1,5 @@
 CFLAGS = -ggdb
-OBJS := test-util.o
-all: $(OBJS)
+TARGETS := test-util.o test-list.o test-list test-util
+all: $(TARGETS)
 clean:
-	rm -f $(OBJS)
+	rm -f $(TARGETS)

@@ -7,6 +7,7 @@ from __future__ import division
 
 import gdb
 from crash.infra import delayed_init, exporter, export
+from crash.exceptions import MissingTypeError, MissingSymbolError
 
 class OffsetOfError(Exception):
     """Generic Exception for offsetof errors"""
@@ -68,14 +69,16 @@ class _InvalidComponentNameError(_InvalidComponentBaseError):
         self.member = member
         self.type = gdbtype
 
-@delayed_init
 @exporter
+@delayed_init
 class TypesUtilClass(object):
     def __init__(self):
         self.charp = gdb.lookup_type('char').pointer()
 
     @export
     def container_of(self, val, gdbtype, member):
+        if not isinstance(val, gdb.Value):
+            raise TypeError("container_of expects gdb.Value")
         charp = self.charp
         if val.type.code != gdb.TYPE_CODE_PTR:
             val = val.address
@@ -86,16 +89,17 @@ class TypesUtilClass(object):
     @export
     @staticmethod
     def get_symbol_value(symname):
-        return gdb.lookup_symbol(symname, None)[0].value()
+        sym = gdb.lookup_symbol(symname, None)[0]
+        if sym:
+            return sym.value()
+        raise MissingSymbolError("Cannot locate symbol {}".format(symname))
 
     @export
-    @staticmethod
-    def safe_get_symbol_value(symname):
-        sym = gdb.lookup_symbol(symname, None)[0]
-
-        if sym is not None:
-            return sym.value()
-        else:
+    @classmethod
+    def safe_get_symbol_value(cls, symname):
+        try:
+            return cls.get_symbol_value(symname)
+        except MissingSymbolError:
             return None
 
     @export
@@ -106,14 +110,19 @@ class TypesUtilClass(object):
         elif isinstance(val, gdb.Value):
             gdbtype = val.type
         elif isinstance(val, str):
-            gdbtype = gdb.lookup_type(val)
+            try:
+                gdbtype = gdb.lookup_type(val)
+            except gdb.error:
+                raise MissingTypeError("Could not resolve type {}"
+                                       .format(val))
         elif isinstance(val, gdb.Symbol):
             gdbtype = val.value().type
         else:
             raise TypeError("Invalid type {}".format(str(type(val))))
         return gdbtype
 
-    def __offsetof(self, val, spec, error):
+    @classmethod
+    def __offsetof(cls, val, spec, error):
         gdbtype = val
         offset = 0
 
@@ -131,7 +140,7 @@ class TypesUtilClass(object):
 
                 # Step into anonymous structs and unions
                 if field.name is None:
-                    res = self.__offsetof(field.type, member, False)
+                    res = cls.__offsetof(field.type, member, False)
                     if res is not None:
                         found = True
                         off += res[0]
@@ -148,11 +157,12 @@ class TypesUtilClass(object):
         return (offset, gdbtype)
 
     @export
-    def offsetof_type(self, val, spec, error=True):
+    @classmethod
+    def offsetof_type(cls, val, spec, error=True):
         gdbtype = None
         try:
             gdbtype = resolve_type(val)
-        except gdb.error as e:
+        except MissingTypeError as e:
             pass
         except TypeError as e:
             pass
@@ -169,7 +179,7 @@ class TypesUtilClass(object):
             raise InvalidArgumentTypeError(gdbtype)
 
         try:
-            return self.__offsetof(gdbtype, spec, error)
+            return cls.__offsetof(gdbtype, spec, error)
         except _InvalidComponentBaseError as e:
             if error:
                 raise InvalidComponentError(gdbtype, spec, e.message)
@@ -177,19 +187,21 @@ class TypesUtilClass(object):
                 return None
 
     @export
-    def offsetof(self, val, spec, error=True):
-        res = offsetof_type(val, spec, error)
+    @classmethod
+    def offsetof(cls, val, spec, error=True):
+        res = cls.offsetof_type(val, spec, error)
         if res:
             return res[0]
         return None
 
     @export
-    def find_member_variant(self, gdbtype, variants):
+    @classmethod
+    def find_member_variant(cls, gdbtype, variants):
         for v in variants:
-            if offsetof(gdbtype, v, False) is not None:
+            if cls.offsetof(gdbtype, v, False) is not None:
                 return v
-        raise TypeError("Unrecognized '{}': could not find member '{}'".format(
-                        str(gdbtype), variants[0]))
+        raise TypeError("Unrecognized '{}': could not find member '{}'"
+                        .format(str(gdbtype), variants[0]))
 
     @export
     @staticmethod
@@ -198,4 +210,3 @@ class TypesUtilClass(object):
             return gdb.lookup_type(name)
         except gdb.error:
             return None
-

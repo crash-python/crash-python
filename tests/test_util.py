@@ -8,15 +8,22 @@ from __future__ import division
 import unittest
 import gdb
 
-from crash.types.util import offsetof
-from crash.types.util import InvalidComponentError
-from crash.types.util import InvalidArgumentError
-from crash.types.util import InvalidArgumentTypeError
+from crash.exceptions import MissingTypeError, MissingSymbolError
+from crash.util import offsetof, container_of, resolve_type
+from crash.util import get_symbol_value, safe_get_symbol_value
+from crash.util import InvalidComponentError
+from crash.util import InvalidArgumentError
+from crash.util import InvalidArgumentTypeError
+from crash.util import InvalidComponentError
+
+def getsym(sym):
+    return gdb.lookup_symbol(sym, None)[0].value()
 
 class TestUtil(unittest.TestCase):
     def setUp(self):
-        gdb.execute("file tests/test-util.o")
-        self.ulongsize = gdb.lookup_type('unsigned long').sizeof
+        gdb.execute("file tests/test-util")
+        self.ulong = gdb.lookup_type('unsigned long')
+        self.ulongsize = self.ulong.sizeof
         self.test_struct = gdb.lookup_type("struct test")
 
     def test_invalid_python_type(self):
@@ -296,3 +303,299 @@ class TestUtil(unittest.TestCase):
         with self.assertRaises(InvalidComponentError):
             offset = offsetof(self.test_struct,
                               'anon_union_embedded_struct.invalid.next_component')
+
+
+    def test_resolve_type(self):
+        t = gdb.lookup_type('unsigned long')
+        resolved_type = resolve_type(t)
+        self.assertTrue(t == resolved_type)
+
+    def test_resolve_type_by_value(self):
+        v = gdb.Value(10)
+        resolved_type = resolve_type(v)
+        self.assertTrue(v.type == resolved_type)
+
+    def test_resolve_type_by_str_good(self):
+        t = gdb.lookup_type('unsigned long')
+        resolved_type = resolve_type('unsigned long')
+        self.assertTrue(t == resolved_type)
+
+    def test_resolve_type_by_str_bad(self):
+        with self.assertRaises(MissingTypeError):
+            resolved_type = resolve_type('unsigned long bad type')
+
+    def test_resolve_type_by_sym(self):
+        sym = gdb.lookup_symbol("test_struct", None)[0]
+        resolved_type = resolve_type(sym)
+        self.assertTrue(sym.value().type == resolved_type)
+
+    def test_resolve_type_None(self):
+        with self.assertRaises(TypeError):
+            resolved_type = resolve_type(None)
+
+    def test_container_of_sym(self):
+        sym = gdb.lookup_symbol("test_struct", None)[0]
+        with self.assertRaises(TypeError):
+            print(container_of(sym, None, None))
+
+    def test_get_symbol_value_good(self):
+        sym = get_symbol_value("test_struct")
+        self.assertTrue(isinstance(sym, gdb.Value))
+
+    def test_get_symbol_value_good(self):
+        with self.assertRaises(MissingSymbolError):
+            sym = get_symbol_value("test_struct_bad")
+
+    def test_safe_get_symbol_value_good(self):
+        sym = safe_get_symbol_value("test_struct")
+        self.assertTrue(isinstance(sym, gdb.Value))
+
+    def test_safe_get_symbol_value_bad(self):
+        sym = safe_get_symbol_value("test_struct_bad")
+        self.assertTrue(sym is None)
+
+    def test_container_of_long_container(self):
+        sym = getsym('long_container')
+        container = getsym('test_struct')
+        addr = container_of(sym, self.test_struct, 'test_member')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_anon_struct_long_container1(self):
+        sym = getsym('anon_struct_long_container1')
+        container = getsym('test_struct')
+        addr = container_of(sym, self.test_struct, 'anon_struct_member1')
+        self.assertTrue(sym.address != container.address)
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_anon_struct_long_container2(self):
+        sym = getsym('anon_struct_long_container2')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct, 'anon_struct_member2')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_anon_struct_embedded_container(self):
+        sym = getsym('anon_struct_embedded_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'anon_struct_embedded_struct')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_anon_struct_embedded_member1_container(self):
+        sym = getsym('anon_struct_embedded_member1_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'anon_struct_embedded_struct.embedded_member1')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_anon_struct_embedded_member2_container(self):
+        sym = getsym('anon_struct_embedded_member2_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'anon_struct_embedded_struct.embedded_member2')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_anon_struct_embedded_list_container(self):
+        sym = getsym('anon_struct_embedded_list_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'anon_struct_embedded_struct.embedded_list')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_anon_union_long_container1(self):
+        sym = getsym('anon_union_long_container1')
+        container = getsym('test_struct')
+        addr = container_of(sym, self.test_struct, 'anon_union_member1')
+        self.assertTrue(sym.address != container.address)
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_anon_union_long_container2(self):
+        sym = getsym('anon_union_long_container2')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct, 'anon_union_member2')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_anon_union_embedded_container(self):
+        sym = getsym('anon_union_embedded_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'anon_union_embedded_struct')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_anon_union_embedded_member1_container(self):
+        sym = getsym('anon_union_embedded_member1_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'anon_union_embedded_struct.embedded_member1')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_anon_union_embedded_member2_container(self):
+        sym = getsym('anon_union_embedded_member2_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'anon_union_embedded_struct.embedded_member2')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_anon_union_embedded_list_container(self):
+        sym = getsym('anon_union_embedded_list_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'anon_union_embedded_struct.embedded_list')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_named_struct_long_container1(self):
+        sym = getsym('named_struct_long_container1')
+        container = getsym('test_struct')
+        addr = container_of(sym, self.test_struct,
+                            'named_struct.named_struct_member1')
+        self.assertTrue(sym.address != container.address)
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_named_struct_long_container2(self):
+        sym = getsym('named_struct_long_container2')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'named_struct.named_struct_member2')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_named_struct_embedded_container(self):
+        sym = getsym('named_struct_embedded_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'named_struct.named_struct_embedded_struct')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_named_struct_embedded_member1_container(self):
+        sym = getsym('named_struct_embedded_member1_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'named_struct.named_struct_embedded_struct.embedded_member1')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_named_struct_embedded_member2_container(self):
+        sym = getsym('named_struct_embedded_member2_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'named_struct.named_struct_embedded_struct.embedded_member2')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_named_struct_embedded_list_container(self):
+        sym = getsym('named_struct_embedded_list_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'named_struct.named_struct_embedded_struct.embedded_list')
+        self.assertTrue(addr.address == container.address)
+
+
+    def test_container_of_named_union_long_container1(self):
+        sym = getsym('named_union_long_container1')
+        container = getsym('test_struct')
+        addr = container_of(sym, self.test_struct,
+                            'named_union.named_union_member1')
+        self.assertTrue(sym.address != container.address)
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_named_union_long_container2(self):
+        sym = getsym('named_union_long_container2')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'named_union.named_union_member2')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_named_union_embedded_container(self):
+        sym = getsym('named_union_embedded_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'named_union.named_union_embedded_struct')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_named_union_embedded_member1_container(self):
+        sym = getsym('named_union_embedded_member1_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'named_union.named_union_embedded_struct.embedded_member1')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_named_union_embedded_member2_container(self):
+        sym = getsym('named_union_embedded_member2_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'named_union.named_union_embedded_struct.embedded_member2')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_named_union_embedded_list_container(self):
+        sym = getsym('named_union_embedded_list_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'named_union.named_union_embedded_struct.embedded_list')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_embedded_struct_container(self):
+        sym = getsym('embedded_struct_container')
+        container = getsym('test_struct')
+        addr = container_of(sym, self.test_struct, 'embedded_struct_member')
+        self.assertTrue(sym.address != container.address)
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_embedded_struct_member1(self):
+        sym = getsym('embedded_struct_member1_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'embedded_struct_member.embedded_member1')
+        self.assertTrue(addr.address == container.address)
+
+    def test_container_of_embedded_struct_member2(self):
+        sym = getsym('embedded_struct_member2_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'embedded_struct_member.embedded_member2')
+
+    def test_container_of_embedded_struct_list(self):
+        sym = getsym('embedded_struct_list_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        addr = container_of(sym, self.test_struct,
+                            'embedded_struct_member.embedded_list')
+
+    def test_container_of_bad_name(self):
+        sym = getsym('embedded_struct_list_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        with self.assertRaises(InvalidComponentError):
+            addr = container_of(sym, self.test_struct, 'bad_name')
+
+    def test_container_of_bad_intermediate_name2(self):
+        sym = getsym('embedded_struct_list_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        with self.assertRaises(InvalidComponentError):
+            addr = container_of(sym, self.test_struct,
+                                'embedded_member.good')
+
+    def test_container_of_bad_type(self):
+        sym = getsym('embedded_struct_list_container')
+        container = getsym('test_struct')
+        self.assertTrue(sym.address != container.address)
+        with self.assertRaises(InvalidArgumentTypeError):
+            addr = container_of(sym, self.ulong, 'test_member')

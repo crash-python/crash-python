@@ -133,6 +133,43 @@ unsigned long global_array[5] = {
 	0xdeadbef3,
 };
 
+/* for container_of */
+unsigned long *long_container = &test_struct.test_member;
+
+unsigned long *anon_struct_long_container1 = &test_struct.anon_struct_member1;
+unsigned long *anon_struct_long_container2 = &test_struct.anon_struct_member2;
+struct embedded *anon_struct_embedded_container = &test_struct.anon_struct_embedded_struct;
+unsigned long *anon_struct_embedded_member1_container = &test_struct.anon_struct_embedded_struct.embedded_member1;
+unsigned long *anon_struct_embedded_member2_container = &test_struct.anon_struct_embedded_struct.embedded_member2;
+struct list_head *anon_struct_embedded_list_container = &test_struct.anon_struct_embedded_struct.embedded_list;
+
+unsigned long *named_struct_long_container1 = &test_struct.named_struct.named_struct_member1;
+unsigned long *named_struct_long_container2 = &test_struct.named_struct.named_struct_member2;
+struct embedded *named_struct_embedded_container = &test_struct.named_struct.named_struct_embedded_struct;
+unsigned long *named_struct_embedded_member1_container = &test_struct.named_struct.named_struct_embedded_struct.embedded_member1;
+unsigned long *named_struct_embedded_member2_container = &test_struct.named_struct.named_struct_embedded_struct.embedded_member2;
+struct list_head *named_struct_embedded_list_container = &test_struct.named_struct.named_struct_embedded_struct.embedded_list;
+
+unsigned long *anon_union_long_container1 = &test_struct.anon_union_member1;
+unsigned long *anon_union_long_container2 = &test_struct.anon_union_member2;
+struct embedded *anon_union_embedded_container = &test_struct.anon_union_embedded_struct;
+unsigned long *anon_union_embedded_member1_container = &test_struct.anon_union_embedded_struct.embedded_member1;
+unsigned long *anon_union_embedded_member2_container = &test_struct.anon_union_embedded_struct.embedded_member2;
+struct list_head *anon_union_embedded_list_container = &test_struct.anon_union_embedded_struct.embedded_list;
+
+unsigned long *named_union_long_container1 = &test_struct.named_union.named_union_member1;
+unsigned long *named_union_long_container2 = &test_struct.named_union.named_union_member2;
+struct embedded *named_union_embedded_container = &test_struct.named_union.named_union_embedded_struct;
+unsigned long *named_union_embedded_member1_container = &test_struct.named_union.named_union_embedded_struct.embedded_member1;
+unsigned long *named_union_embedded_member2_container = &test_struct.named_union.named_union_embedded_struct.embedded_member2;
+struct list_head *named_union_embedded_list_container = &test_struct.named_union.named_union_embedded_struct.embedded_list;
+
+struct embedded *embedded_struct_container = &test_struct.embedded_struct_member;
+unsigned long *embedded_struct_member1_container = &test_struct.embedded_struct_member.embedded_member1;
+unsigned long *embedded_struct_member2_container = &test_struct.embedded_struct_member.embedded_member2;
+struct list_head *embedded_struct_list_container = &test_struct.embedded_struct_member.embedded_list;
+
+
 int
 main(void)
 {
