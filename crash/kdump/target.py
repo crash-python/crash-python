@@ -1,9 +1,13 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import division
 
 import gdb
 from kdumpfile import kdumpfile, KDUMP_KVADDR
-from util import list_for_each_entry
+from .util import list_for_each_entry
 from kdumpfile.exceptions import *
 
 #arch = "i386:x86-64"
@@ -45,16 +49,16 @@ def setup_thread_amd64(thread, task):
 def symbol_func(symname):
     ms = gdb.lookup_minimal_symbol(symname)
     if not ms:
-        print ("Cannot lookup symbol %s" % symname)
+        print(("Cannot lookup symbol %s" % symname))
         raise RuntimeError("Cannot lookup symbol %s" % symname)
-    return long(ms.value())
+    return int(ms.value())
 
 class Target(gdb.Target):
     def __init__(self, fil):
         if isinstance(fil, str):
             fil = file(fil)
             self.fil = fil
-            print "kdump (%s)" % fil
+            print("kdump (%s)" % fil)
             self.kdump = kdumpfile(fil)
             self.kdump.symbol_func = symbol_func
             self.kdump.vtop_init()
@@ -81,9 +85,9 @@ class Target(gdb.Target):
 		r = self.kdump.read (KDUMP_KVADDR, offset, ln)
 		readbuf[:] = r
 		ret = ln
-	    except EOFException, e:
+	    except EOFException as e:
 		raise gdb.TargetXferEof(str(e))
-	    except NoDataException, e:
+	    except NoDataException as e:
 		raise gdb.TargetXferUnavailable(str(e))
 	else:
 	    raise IOError("Unknown obj type")
