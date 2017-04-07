@@ -188,8 +188,8 @@ class TypesUtilClass(object):
         for v in variants:
             if offsetof(gdbtype, v, False) is not None:
                 return v
-        raise TypeError("Unrecognized '%s': could not find member '%s'" %
-                            (str(gdbtype), variants[0]))
+        raise TypeError("Unrecognized '{}': could not find member '{}'".format(
+                        str(gdbtype), variants[0]))
 
     @export
     @staticmethod

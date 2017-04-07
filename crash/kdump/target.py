@@ -33,7 +33,7 @@ def setup_thread_amd64(thread, task):
 
 #    ex = in_exception_stack(rsp)
 #    if ex:
-#    print "EXCEPTION STACK: pid %d" % task['pid']
+#    print("EXCEPTION STACK: pid {:d}".format(task['pid']))
 
     thread.registers['rsp'].value = rsp
     thread.registers['rbp'].value = rbp
@@ -49,8 +49,8 @@ def setup_thread_amd64(thread, task):
 def symbol_func(symname):
     ms = gdb.lookup_minimal_symbol(symname)
     if not ms:
-        print(("Cannot lookup symbol %s" % symname))
-        raise RuntimeError("Cannot lookup symbol %s" % symname)
+        print("Cannot lookup symbol {}".format(symname))
+        raise RuntimeError("Cannot lookup symbol {}".format(symname))
     return int(ms.value())
 
 class Target(gdb.Target):
@@ -58,7 +58,7 @@ class Target(gdb.Target):
         if isinstance(fil, str):
             fil = file(fil)
             self.fil = fil
-            print("kdump (%s)" % fil)
+            print("kdump ({})".format(fil))
             self.kdump = kdumpfile(fil)
             self.kdump.symbol_func = symbol_func
             self.kdump.vtop_init()
@@ -97,7 +97,7 @@ class Target(gdb.Target):
         return True
 
     def to_pid_to_str(self, ptid):
-        return "pid %d" % ptid[1]
+        return "pid {:d}".format(ptid[1])
 
     def to_fetch_registers(self, register):
         thread = gdb.selected_thread()
