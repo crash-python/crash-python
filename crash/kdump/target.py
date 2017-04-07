@@ -21,18 +21,18 @@ def symbol_func(symname):
     return int(ms.value())
 
 class Target(gdb.Target):
-    def __init__(self, fil):
-        if isinstance(fil, str):
-            fil = file(fil)
-            self.fil = fil
-            print("kdump ({})".format(fil))
-            self.kdump = kdumpfile(fil)
-            self.setup_arch()
-            self.kdump.symbol_func = symbol_func
-            self.kdump.vtop_init()
-            super(Target, self).__init__()
-            gdb.execute('set print thread-events 0')
-            self.setup_tasks()
+    def __init__(self, filename):
+        if type(filename) != str:
+            raise TypeError("filename must be specified as a string")
+        self.filename = filename
+        print("kdump ({})".format(filename))
+        self.kdump = kdumpfile(filename)
+        self.setup_arch()
+        self.kdump.symbol_func = symbol_func
+        self.kdump.vtop_init()
+        super(Target, self).__init__()
+        gdb.execute('set print thread-events 0')
+        self.setup_tasks()
 
     def setup_arch(self):
         archname = self.kdump.attr("arch")['name']
