@@ -27,6 +27,7 @@ def exporter(cls):
        using __class__ tricks.  Don't do that."""
     instance = cls()
     mod = sys.modules[cls.__module__]
+    setattr(instance, '__export_to_module', True)
 
     # inspect.getmembers plays tricks with static/classmethods
     for name, method in list(cls.__dict__.items()):
@@ -67,6 +68,11 @@ def __getattr__(self, name):
 def delayed_init(self):
     """Decoration to delay class's __init__ until first access."""
     self.__delayed_init__ = self.__init__
+
+    # If @exporter runs first, before the executable is loaded and identified
+    # as 64-bit, pointers will have the wrong size.
+    if hasattr(self, '__export_to_module'):
+        raise RuntimeError("@delayed_init needs to be applied before @exporter")
     try:
         self.__real_getattr__ = self.__getattr__
     except AttributeError as e:
