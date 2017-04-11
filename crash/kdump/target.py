@@ -21,9 +21,10 @@ if sys.version_info.major >= 3:
 LINUX_KERNEL_PID = 1
 
 class Target(gdb.Target):
-    def __init__(self, filename):
+    def __init__(self, filename, debug=False):
         self.filename = filename
         self.arch = None
+        self.debug = debug
         try:
             self.kdump = kdumpfile(filename)
         except SysErrException as e:
@@ -97,6 +98,12 @@ class Target(gdb.Target):
 
         gdb.selected_inferior().executing = False
 
+    @classmethod
+    def report_error(cls, addr, length, error):
+        print("Error while reading {:d} bytes from {:#x}: {}"
+              .format(length, addr, str(error)),
+              file=sys.stderr)
+
     def to_xfer_partial(self, obj, annex, readbuf, writebuf, offset, ln):
         ret = -1
         if obj == self.TARGET_OBJECT_MEMORY:
@@ -105,10 +112,16 @@ class Target(gdb.Target):
                 readbuf[:] = r
                 ret = ln
             except EOFException as e:
+                if self.debug:
+                    self.report_error(offset, ln, e)
                 raise gdb.TargetXferEof(str(e))
             except NoDataException as e:
+                if self.debug:
+                    self.report_error(offset, ln, e)
                 raise gdb.TargetXferUnavailable(str(e))
             except AddressTranslationException as e:
+                if self.debug:
+                    self.report_error(offset, ln, e)
                 raise gdb.TargetXferUnavailable(str(e))
         else:
             raise IOError("Unknown obj type")

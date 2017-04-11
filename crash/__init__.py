@@ -12,7 +12,8 @@ import crash.kdump.target
 
 class Session(object):
     """crash.Session is the main driver component for crash-python"""
-    def __init__(self, kernel_exec, vmcore, kernelpath, searchpath=None):
+    def __init__(self, kernel_exec, vmcore, kernelpath, searchpath=None,
+                 debug=False):
         print("crash-python initializing...")
         if searchpath is None:
             searchpath = []
@@ -30,5 +31,5 @@ class Session(object):
             except gdb.error as e:
                 raise RuntimeError("Couldn't locate debuginfo for {}".format(kernel_exec))
 
-        self.target = crash.kdump.target.Target(vmcore)
+        self.target = crash.kdump.target.Target(vmcore, debug)
         load_modules(self.searchpath)
