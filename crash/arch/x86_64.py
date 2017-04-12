@@ -6,7 +6,7 @@ from __future__ import print_function
 from __future__ import division
 
 import gdb
-from crash.arch import CrashArchitecture, register
+from crash.arch import CrashArchitecture, register, KernelFrameFilter
 
 class x86_64Architecture(CrashArchitecture):
     ident = "i386:x86-64"
@@ -21,6 +21,9 @@ class x86_64Architecture(CrashArchitecture):
             raise RuntimeError("{} requires symbol 'thread_return'"
                                .format(self.__class__.__name__))
         self.ulong_type = gdb.lookup_type('unsigned long')
+
+        # Stop stack traces with addresses below this
+        self.filter = KernelFrameFilter(0xffff000000000000)
 
     def setup_thread_active(self, thread):
         task = thread.info

@@ -5,6 +5,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
+import gdb
+
 class CrashArchitecture(object):
     ident = "base-class"
     aliases = None
@@ -22,6 +24,34 @@ class CrashArchitecture(object):
             self.setup_thread_active(thread)
         else:
             self.setup_thread_scheduled(thread)
+
+# This keeps stack traces from continuing into userspace and causing problems.
+class KernelFrameFilter(object):
+    def __init__(self, address):
+        self.name = "KernelFrameFilter"
+        self.priority = 100
+        self.enabled = True
+        self.address = address
+        gdb.frame_filters[self.name] = self
+
+    def filter(self, frame_iter):
+        return KernelAddressIterator(frame_iter, self.address)
+
+class KernelAddressIterator(object):
+    def __init__(self, ii, address):
+        self.input_iterator = ii
+        self.address = address
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        frame = next(self.input_iterator)
+
+        if frame.inferior_frame().pc() < self.address:
+            raise StopIteration
+
+        return frame
 
 architectures = {}
 def register(arch):
