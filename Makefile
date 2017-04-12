@@ -37,3 +37,5 @@ man-install: man
 install: man-install
 	python setup.py install
 
+lint:
+	pylint --rcfile tests/pylintrc crash
