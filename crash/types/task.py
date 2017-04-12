@@ -13,7 +13,7 @@ if sys.version_info.major >= 3:
 
 from crash.infra import delayed_init
 
-PF_EXITING = 0x4L
+PF_EXITING = long(0x4)
 
 def get_value(symname):
     sym = gdb.lookup_symbol(symname, block=None, domain=gdb.SYMBOL_VAR_DOMAIN)
