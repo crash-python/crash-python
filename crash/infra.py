@@ -43,6 +43,14 @@ def export(func):
     return func
 
 def delayed_init(cls):
+    """This marks a class for delayed initialization.  It is implemented
+    by inheriting from the base class and wraps it with separate
+    __init__, __getattr__, and __setattr__ routines.
+
+    There is one big limitation: super() can't be used since it will
+    return the base class instead of a parent of the base class.  If
+    super().__init__ is called from base_class.__init__ it will result
+    in infinite recursion."""
     if not isinstance(cls, type):
         raise TypeError("must be class not instance")
     class delayed_init_class(cls):

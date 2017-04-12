@@ -182,3 +182,30 @@ class TestInfra(unittest.TestCase):
 
         self.assertTrue(x.foo == 'bar')
 
+    def test_delayed_init_with_parent(self):
+        class test_parent_class(object):
+            def __init__(self):
+                self.x = 107
+                pass
+
+        @delayed_init
+        class test_class(test_parent_class):
+            def __init__(self):
+                test_parent_class.__init__(self)
+
+        x = test_class()
+        self.assertTrue(x.x == 107)
+
+    def test_delayed_init_with_super(self):
+        class test_parent_class(object):
+            def __init__(self):
+                pass
+
+        @delayed_init
+        class test_class(test_parent_class):
+            def __init__(self):
+                super(test_class, self).__init__() # infinite recursion
+
+        x = test_class()
+        with self.assertRaises(RuntimeError):
+            print(x.x)
