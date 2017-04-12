@@ -7,6 +7,11 @@ from __future__ import division
 
 import gdb
 import argparse
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
+
 from crash.commands import CrashCommand
 from crash.types.task import LinuxTask, TaskStateFlags as TF
 

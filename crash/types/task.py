@@ -6,6 +6,10 @@ from __future__ import absolute_import
 from __future__ import division
 
 import gdb
+import sys
+
+if sys.version_info.major >= 3:
+    long = int
 
 from crash.infra import delayed_init
 
