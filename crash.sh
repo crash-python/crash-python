@@ -8,7 +8,7 @@ END
 exit 1
 }
 
-TEMP=$(getopt -o 'd:' --long 'search-dir:' -n "$(basename $0)" -- "$@")
+TEMP=$(getopt -o 'd:' --long 'search-dir:,gdb,valgrind' -n "$(basename $0)" -- "$@")
 
 if [ $? -ne 0 ]; then
     echo "Terminating." >&2
@@ -25,6 +25,16 @@ while true; do
             shift 2
             continue
         ;;
+        '--gdb')
+            DEBUGMODE=gdb
+            shift
+            continue
+            ;;
+        '--valgrind')
+            DEBUGMODE=valgrind
+            shift
+            continue
+            ;;
         '--')
             shift
             break
@@ -83,4 +93,14 @@ except RuntimeError as e:
     print("Failed to open {}: {}".format("$VMCORE", str(e)))
 EOF
 
-gdb -nh -q -x $GDBINIT
+# This is how we debug gdb problems when running crash
+if [ "$DEBUGMODE" = "gdb" ]; then
+    RUN="run -nh -q -x $GDBINIT"
+
+    echo $RUN > /tmp/gdbinit
+    gdb gdb -nh -q -x /tmp/gdbinit
+elif [ "$DEBUGMODE" = "valgrind" ]; then
+    valgrind --keep-stacktraces=alloc-and-free gdb -nh -q -x $GDBINIT
+else
+    gdb -nh -q -x $GDBINIT
+fi
