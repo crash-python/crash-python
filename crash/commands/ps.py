@@ -513,7 +513,7 @@ EXAMPLES
 
         try:
             parent_pid = task_struct['parent']['pid']
-        except KeyError, ke:
+        except KeyError:
             # This can happen on live systems where pids have gone
             # away
             print("Couldn't locate task at address {:#x}"

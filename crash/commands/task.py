@@ -38,7 +38,7 @@ EXAMPLES
         try:
             thread = crash.cache.tasks.get_task(args.pid[0]).thread
             gdb.execute("thread {}".format(thread.num))
-        except KeyError, e:
+        except KeyError:
             print("No such task with pid {}".format(args.pid[0]))
 
 TaskCommand("task")

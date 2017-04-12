@@ -50,7 +50,7 @@ DESCRIPTION
                         print(text)
                     else:
                         print(text[f+1:])
-                except KeyError, e:
+                except KeyError:
                     print("No such command `{}'".format(cmd))
 
 HelpCommand()
