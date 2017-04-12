@@ -71,6 +71,10 @@ class Target(gdb.Target):
 
         self.pid_to_task_struct = {}
 
+        print("Loading tasks...", end='')
+        sys.stdout.flush()
+
+        task_count = 0
         tasks = []
         for taskg in list_for_each_entry(task_list, init_task.type, 'tasks'):
             tasks.append(taskg)
@@ -95,6 +99,12 @@ class Target(gdb.Target):
             thread.name = task['comm'].string()
 
             ltask.attach_thread(thread)
+
+            task_count += 1
+            if task_count % 100 == 0:
+                print(".", end='')
+                sys.stdout.flush()
+        print(" done. ({} tasks total)".format(task_count))
 
         gdb.selected_inferior().executing = False
 
