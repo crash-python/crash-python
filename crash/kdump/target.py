@@ -13,32 +13,43 @@ from crash.types.list import list_for_each_entry
 import crash.arch
 import crash.arch.x86_64
 
-def symbol_func(symname):
-    ms = gdb.lookup_minimal_symbol(symname)
-    if not ms:
-        print("Cannot lookup symbol {}".format(symname))
-        raise RuntimeError("Cannot lookup symbol {}".format(symname))
-    return int(ms.value())
-
 class Target(gdb.Target):
-    def __init__(self, fil):
-        if isinstance(fil, str):
-            fil = file(fil)
-            self.fil = fil
-            print("kdump ({})".format(fil))
-            self.kdump = kdumpfile(fil)
-            self.setup_arch()
-            self.kdump.symbol_func = symbol_func
-            self.kdump.vtop_init()
-            super(Target, self).__init__()
-            gdb.execute('set print thread-events 0')
-            self.setup_tasks()
+    def __init__(self, filename):
+        self.filename = filename
+        self.arch = None
+        try:
+            self.kdump = kdumpfile(filename)
+        except SysErrException as e:
+            raise RuntimeError(str(e))
+        self.kdump.vtop_init()
+
+        gdb.execute('set print thread-events 0')
+
+        self.setup_arch()
+
+        # So far we've read from the kernel image, now that we've setup
+        # the architecture, we're ready to plumb into the target
+        # infrastructure.
+        super(Target, self).__init__()
+
+        # Now we're reading from the dump file
+        self.setup_tasks()
 
     def setup_arch(self):
-        archname = self.kdump.attr("arch")['name']
+        archname = self.kdump.attr.arch.name
         archclass = crash.arch.get_architecture(archname)
         if not archclass:
-            raise NotImplementedError("Architecture %s is not supported yet." % archname)
+            raise NotImplementedError("Architecture {} is not supported yet."
+                                      .format(archname))
+
+        # Doesn't matter what symbol as long as it's everywhere
+        # Use vsnprintf since 'printk' can be dropped with CONFIG_PRINTK=n
+        sym = gdb.lookup_symbol('vsnprintf', None)[0]
+        if sym is None:
+            raise RuntimeError("Missing vsnprintf indicates there is no kernel image loaded.")
+        if sym.symtab.objfile.architecture.name() != archclass.ident:
+            raise TypeError("Dump file is for `{}' but provided kernel is for `{}'"
+                            .format(archname, archclass.ident))
 
         self.arch = archclass()
 
@@ -58,21 +69,25 @@ class Target(gdb.Target):
         ret = -1
         if obj == self.TARGET_OBJECT_MEMORY:
             try:
-                r = self.kdump.read (KDUMP_KVADDR, offset, ln)
+                r = self.kdump.read(KDUMP_KVADDR, offset, ln)
                 readbuf[:] = r
                 ret = ln
             except EOFException as e:
                 raise gdb.TargetXferEof(str(e))
             except NoDataException as e:
                 raise gdb.TargetXferUnavailable(str(e))
+            except AddressTranslationException as e:
+                raise gdb.TargetXferUnavailable(str(e))
         else:
             raise IOError("Unknown obj type")
         return ret
 
-    def to_thread_alive(self, ptid):
+    @staticmethod
+    def to_thread_alive(ptid):
         return True
 
-    def to_pid_to_str(self, ptid):
+    @staticmethod
+    def to_pid_to_str(ptid):
         return "pid {:d}".format(ptid[1])
 
     def to_fetch_registers(self, register):
@@ -80,12 +95,15 @@ class Target(gdb.Target):
         self.arch.setup_thread(thread)
         return True
 
-    def to_prepare_to_store(self, thread):
+    @staticmethod
+    def to_prepare_to_store(thread):
         pass
 
     # We don't need to store anything; The regcache is already written.
-    def to_store_registers(self, thread):
+    @staticmethod
+    def to_store_registers(thread):
         pass
 
-    def to_has_execution(self, ptid):
+    @staticmethod
+    def to_has_execution(ptid):
         return False

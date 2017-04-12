@@ -10,9 +10,10 @@ from crash.arch import CrashArchitecture, register
 
 class x86_64Architecture(CrashArchitecture):
     ident = "i386:x86-64"
-    aliases = [ "x86_64" ]
+    aliases = ["x86_64"]
 
     def __init__(self):
+        super(x86_64Architecture, self).__init__()
         # PC for blocked threads
         self.rip = gdb.lookup_minimal_symbol("thread_return").value()
         self.ulong_type = gdb.lookup_type('unsigned long')
