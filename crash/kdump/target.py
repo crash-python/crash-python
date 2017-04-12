@@ -98,7 +98,9 @@ class Target(gdb.Target):
                 continue
             thread.name = task['comm'].string()
 
+            self.arch.setup_thread_info(thread)
             ltask.attach_thread(thread)
+            ltask.set_get_stack_pointer(self.arch.get_stack_pointer)
 
             task_count += 1
             if task_count % 100 == 0:
