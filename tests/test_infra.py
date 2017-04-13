@@ -169,3 +169,16 @@ class TestInfra(unittest.TestCase):
                 return 106
 
         self.assertTrue(test_func() == 106)
+
+    def test_delayed_init_with_getattr(self):
+        @delayed_init
+        class test_class(object):
+            def __getattr__(self, name):
+                if name == 'foo':
+                    return 'bar'
+                raise AttributeError
+
+        x = test_class()
+
+        self.assertTrue(x.foo == 'bar')
+

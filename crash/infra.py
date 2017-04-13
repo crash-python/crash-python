@@ -73,6 +73,9 @@ def delayed_init(cls):
                 self.__dict__['__initializing'] = False
                 self.__delayed_init__()
                 return getattr(self, name)
+            cls = self.__dict__['__cls']
+            if hasattr(cls, '__getattr__'):
+                return cls.__getattr__(self, name)
             raise AttributeError('type {} does not contain attribute {}'.format(type(self), name))
 
     delayed_init_class.__name__ = "{}_delayed".format(cls.__name__)
