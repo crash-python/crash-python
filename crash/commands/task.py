@@ -6,7 +6,7 @@ from __future__ import absolute_import
 from __future__ import division
 
 import gdb
-from crash.commands import CrashCommand
+from crash.commands import CrashCommand, CrashCommandParser
 import crash.cache.tasks
 import argparse
 
@@ -27,7 +27,7 @@ EXAMPLES
     """
     def __init__(self, name):
 
-        parser = argparse.ArgumentParser(prog=name)
+        parser = CrashCommandParser(prog=name)
 
         parser.add_argument('pid', type=int, nargs=1)
 

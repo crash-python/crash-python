@@ -13,7 +13,7 @@ import re
 
 from crash.util import safe_get_symbol_value
 from crash.infra import exporter, export, delayed_init
-from crash.commands import CrashCommand
+from crash.commands import CrashCommand, CrashCommandParser
 
 if sys.version_info.major >= 3:
     long = int
@@ -149,7 +149,7 @@ EXAMPLES
     """
     def __init__(self, name):
         self.charp = gdb.lookup_type('char').pointer()
-        parser = argparse.ArgumentParser(prog=name)
+        parser = CrashCommandParser(prog=name)
 
         parser.add_argument('-t', action='store_true', default=False)
         parser.add_argument('-d', action='store_true', default=False)

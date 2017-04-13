@@ -7,7 +7,7 @@ from __future__ import division
 
 import gdb
 import argparse
-from crash.commands import CrashCommand
+from crash.commands import CrashCommand, CrashCommandParser
 
 class HelpCommand(CrashCommand):
     """ this command
@@ -25,7 +25,7 @@ DESCRIPTION
 """
 
     def __init__(self):
-        parser = argparse.ArgumentParser(prog="help")
+        parser = CrashCommandParser(prog="help")
         parser.add_argument('args', nargs=argparse.REMAINDER)
         super(HelpCommand, self).__init__('help', parser)
 

@@ -12,30 +12,42 @@ import glob
 import importlib
 import argparse
 
+class CrashCommandLineError(RuntimeError):
+    pass
+
+class CrashCommandParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise CrashCommandLineError(message)
+
 class CrashCommand(gdb.Command):
     commands = {}
     def __init__(self, name, parser=None):
-        name = "py" + name
-        gdb.Command.__init__(self, name, gdb.COMMAND_USER)
+        self.name = "py" + name
         if parser is None:
-            parser = argparse.ArgumentParser(prog=name)
+            parser = CrashCommandParser(prog=self.name)
+        elif not isinstance(parser, CrashCommandParser):
+            raise TypeError("parser must be CrashCommandParser")
 
         nl = ""
         if self.__doc__[-1] != '\n':
             nl = "\n"
         parser.format_help = lambda: self.__doc__ + nl
         self.parser = parser
-        self.commands[name] = self
+        self.commands[self.name] = self
+        gdb.Command.__init__(self, self.name, gdb.COMMAND_USER)
 
-    def invoke(self, argstr, from_tty):
+    def invoke_uncaught(self, argstr, from_tty):
         argv = gdb.string_to_argv(argstr)
+        args = self.parser.parse_args(argv)
+        self.execute(args)
+
+    def invoke(self, argstr, from_tty=False):
         try:
-            args = self.parser.parse_args(argv)
-            self.execute(args)
-        except SystemExit:
-            return
-        except KeyboardInterrupt:
-            return
+            self.invoke_uncaught(argstr, from_tty)
+        except CrashCommandLineError as e:
+            print("{}: {}".format(self.name, str(e)))
+        except (SystemExit, KeyboardInterrupt):
+            pass
 
     def execute(self, argv):
         raise NotImplementedError("CrashCommand should not be called directly")

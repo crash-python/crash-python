@@ -12,7 +12,7 @@ import sys
 if sys.version_info.major >= 3:
     long = int
 
-from crash.commands import CrashCommand
+from crash.commands import CrashCommand, CrashCommandParser
 from crash.types.task import LinuxTask, TaskStateFlags as TF
 
 class PSCommand(CrashCommand):
@@ -388,7 +388,7 @@ EXAMPLES
           20      2   3  ffff8802129a9710  IN   0.0      0      0  [migration/3]
         """
     def __init__(self):
-        parser = argparse.ArgumentParser(prog="ps")
+        parser = CrashCommandParser(prog="ps")
 
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-k', action='store_true', default=False)
