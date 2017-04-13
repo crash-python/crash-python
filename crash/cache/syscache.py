@@ -8,36 +8,39 @@ from __future__ import division
 import gdb
 import re
 import zlib
-from crash.exceptions import MissingSymbolError
 import sys
 from datetime import timedelta
 
 if sys.version_info.major >= 3:
     long = int
 
+from crash.exceptions import MissingSymbolError
 from crash.cache import CrashCache
 from crash.infra import delayed_init
 
-@delayed_init
 class CrashUtsnameCache(CrashCache):
-    def __init__(self):
-        # Can't use super() with @delayed_init
-        CrashCache.__init__(self)
-
-
+    def load_utsname(self):
         sym = gdb.lookup_global_symbol('init_uts_ns')
         if not sym:
             raise MissingSymbolError("CrashUtsnameCache requires init_uts_ns")
         init_uts_ns = sym.value()
         self.utsname = init_uts_ns['name']
+        return self.utsname
 
+    def init_utsname_cache(self):
         self.utsname_cache = {}
 
         for field in self.utsname.type.fields():
             val = self.utsname[field.name].string()
             self.utsname_cache[field.name] = val
 
+        return self.utsname_cache
+
     def __getattr__(self, name):
+        if name == 'utsname_cache':
+            return self.init_utsname_cache()
+        elif name == 'utsname':
+            return self.load_utsname()
         if name in self.utsname_cache:
             return self.utsname_cache[name]
         raise AttributeError
@@ -52,12 +55,12 @@ class CrashConfigCache(CrashCache):
 
     def __getattr__(self, name):
         if name == 'config_buffer':
-            self.config_buffer = self.decompress_config_buffer()
-            return self.config_buffer
+            self.decompress_config_buffer()
         elif name == 'ikconfig_cache':
             self._parse_config()
-            return self.ikconfig_cache
-        raise AttributeError
+        else:
+            raise AttributeError
+        return getattr(self, name)
 
     @staticmethod
     def read_buf(address, size):
@@ -95,7 +98,7 @@ class CrashConfigCache(CrashCache):
         #        to use gzip module.
         buf_len = data_len - len(MAGIC_START) - len(MAGIC_END) - GZIP_HEADER_LEN
         buf = self.read_buf(data_addr + len(MAGIC_START) + GZIP_HEADER_LEN, buf_len)
-        return zlib.decompress(buf, -15, buf_len)
+        self.config_buffer = zlib.decompress(buf, -15, buf_len)
 
     def __str__(self):
         return self.config_buffer
@@ -115,24 +118,32 @@ class CrashConfigCache(CrashCache):
                 self.ikconfig_cache[m.group(1)] = m.group(2)
 
     def __getitem__(self, name):
-        self._parse_config()
         return self.ikconfig_cache[name]
 
-@delayed_init
 class CrashKernelCache(CrashCache):
-    def __init__(self):
+    def __init__(self, config):
         CrashCache.__init__(self)
-        self.hz = long(config['HZ'])
-        self.uptime = self.get_uptime()
+        self.config = config
 
-    @classmethod
-    def _get_uptime(cls, hz):
+    def __getattr__(self, name):
+        if name == 'hz':
+            self.hz = long(self.config['HZ'])
+        elif name == 'uptime':
+            self.uptime = self.get_uptime()
+        elif name == 'jiffies':
+            self.load_jiffies()
+        else:
+            raise AttributeError
+
+        return getattr(self, name)
+
+    def load_jiffies(self):
         jiffies_sym = gdb.lookup_global_symbol('jiffies_64')
         if jiffies_sym:
             jiffies = long(jiffies_sym.value())
             # FIXME: Only kernel above 2.6.0 initializes 64-bit jiffies
             #        value by 2^32 + 5 minutes
-            jiffies -= long(0x100000000) - 300 * hz
+            jiffies -= long(0x100000000) - 300 * self.hz
         else:
             jiffies_sym = gdb.lookup_global_symbol('jiffies')
             if jiffies_sym:
@@ -141,18 +152,12 @@ class CrashKernelCache(CrashCache):
         if jiffies_sym is None:
             raise MissingSymbolError("Could not locate jiffies_64 or jiffies")
 
-        return cls._convert_time(jiffies, hz)
+        self.jiffies = jiffies
 
     def get_uptime(self):
-        return self._get_uptime(self.hz)
+        return timedelta(seconds=self.jiffies // self.hz)
 
-    @staticmethod
-    def _convert_time(jiffies, hz):
-        return timedelta(seconds=jiffies // hz)
-
-    def convert_time(self, jiffies):
-        return self._convert_time(jiffies, self.hz)
 
 utsname = CrashUtsnameCache()
 config = CrashConfigCache()
-kernel = CrashKernelCache()
+kernel = CrashKernelCache(config)

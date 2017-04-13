@@ -2,6 +2,10 @@
 #include <linux/utsname.h>
 #include <stdint.h>
 
+#define MAGIC_START     "IKCFG_ST"
+#define MAGIC_END       "IKCFG_ED"
+#include "config_data.h"
+
 struct utsname_test_struct {
 	struct new_utsname name;
 };
