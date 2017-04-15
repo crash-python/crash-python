@@ -33,7 +33,7 @@ class Target(gdb.Target):
         self.kdump = kdumpfile(fil)
         self.setup_arch()
         self.kdump.symbol_func = symbol_func
-        self.kdump.vtop_init()
+        self.kdump.attr['addrxlat.ostype'] = 'linux'
         super(Target, self).__init__()
         gdb.execute('set print thread-events 0')
         self.setup_tasks()
