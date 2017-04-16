@@ -116,10 +116,12 @@ class CrashKernel(object):
         filepath = None
 
         # Check current directory first
-        if not os.path.exists(filename):
+        if os.path.exists(filename):
+            filepath = filename
+        else:
             for path in searchpath:
                 filepath = self.find_module_file(filename, path)
-                if path:
+                if filepath:
                     break
 
         if filepath:
