@@ -8,19 +8,23 @@ from __future__ import division
 import gdb
 import sys
 import os.path
-from crash.infra import exporter, export, delayed_init
+from crash.infra import exporter, export
 from crash.types.list import list_for_each_entry
 
 if sys.version_info.major >= 3:
     long = int
 
 @exporter
-@delayed_init
 class CrashKernel(object):
     def __init__(self):
-        self.modules = gdb.lookup_symbol('modules', None)[0].value()
-        self.module_type = gdb.lookup_type('struct module')
         self.findmap = {}
+
+    def __getattr__(self, name):
+        if name == 'modules':
+            self.modules = gdb.lookup_symbol('modules', None)[0].value()
+        elif name == 'module_type':
+            self.module_type = gdb.lookup_type('struct module')
+        return getattr(self, name)
 
     @export
     def for_each_module(self):
