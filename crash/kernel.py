@@ -102,7 +102,8 @@ class CrashKernel(object):
                     nname = filename.replace('-', '_')
                     self.findmap[path][nname] = os.path.join(root, filename)
         try:
-            return self.findmap[path][name]
+            nname = name.replace('-', '_')
+            return self.findmap[path][nname]
         except KeyError:
             return None
 
