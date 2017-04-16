@@ -10,3 +10,6 @@ class MissingSymbolError(RuntimeError):
 
 class MissingTypeError(RuntimeError):
     pass
+
+class CorruptedError(RuntimeError):
+    pass
