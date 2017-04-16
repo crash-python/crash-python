@@ -465,7 +465,7 @@ EXAMPLES
             except KeyError:
                 pass
 
-            if state & TF.TASK_DEAD and self.maybe_dead():
+            if state & TF.TASK_DEAD and task.maybe_dead():
                 buf = self.task_states[TF.TASK_DEAD]
 
         if buf is not None and exclusive:
