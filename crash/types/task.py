@@ -103,6 +103,15 @@ class TaskStateFlags(object):
 
 TF = TaskStateFlags
 
+class BadTaskError(TypeError):
+    msgtemplate = "task_struct must be gdb.Value describing struct task_struct not {}"
+    def __init__(self, task):
+        if isinstance(task, gdb.Value):
+            typedesc = task.type
+        else:
+            typedesc = type(task)
+        self(BadTaskError, task).__init__(msgtemplate.format(typedesc))
+
 @delayed_init
 class LinuxTask(object):
     task_struct_type = None
@@ -113,17 +122,16 @@ class LinuxTask(object):
 
     def __init__(self, task_struct, active=False, cpu=None, regs=None):
         flags = TaskStateFlags.discover_flags()
-        t = gdb.lookup_type('struct task_struct')
-        setattr(LinuxTask, 'task_struct_type', t)
 
-        self.init_task_types()
+        self.init_task_types(task_struct)
 
         if cpu is not None and not isinstance(cpu, int):
             raise TypeError("cpu must be integer or None")
 
-        if not isinstance(task_struct, gdb.Value) or \
-           not task_struct.type != t:
-            raise TypeError("task_struct must be gdb.Value describing struct task_struct")
+        if not (isinstance(task_struct, gdb.Value) and
+                (task_struct.type == self.task_struct_type or
+                 task_struct.type == self.task_struct_type.pointer())):
+                raise BadTaskError(task_struct)
 
         self.task_struct = task_struct
         self.active = active
@@ -141,8 +149,18 @@ class LinuxTask(object):
         self.pgd_addr = 0
 
     @classmethod
-    def init_task_types(cls):
+    def init_task_types(cls, task):
         if not cls.valid:
+            t = gdb.lookup_type('struct task_struct')
+            if task.type != t:
+                raise BadTaskError(task_struct)
+
+            # Using a type within the same context makes things a *lot* faster
+            # This works around a shortcoming in gdb.  A type lookup and
+            # a type resolved from a symbol will be different structures
+            # within gdb.  Equality requires a deep comparison rather than
+            # a simple pointer comparison.
+            cls.task_struct_type = task.type
             fields = cls.task_struct_type.fields()
             cls.task_state_has_exit_state = 'exit_state' in fields
             cls.mm_struct_fields = gdb.lookup_type('struct mm_struct').keys()
