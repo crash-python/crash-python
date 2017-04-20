@@ -40,10 +40,14 @@ class TypesListClass(object):
             raise TypeError("Must be struct list_head not {}"
                             .format(str(list_head.type)))
         fast = None
+        if long(list_head.address) == 0:
+            raise CorruptListError("list_head is NULL pointer.")
 
         try:
             nxt = list_head['next']
             prev = list_head
+            if long(nxt) == 0:
+                raise CorruptListError("next pointer is NULL")
             node = nxt.dereference()
         except gdb.error as e:
             raise BufferError("Failed to read list_head {:#x}: {}"
@@ -74,6 +78,8 @@ class TypesListClass(object):
                             raise ListCycleError("Cycle in list detected.")
 
                 prev = node
+                if long(nxt) == 0:
+                    raise CorruptListError("next pointer is NULL")
                 node = nxt.dereference()
             except gdb.error as e:
                 raise BufferError("Failed to read list_head {:#x}: {}"
