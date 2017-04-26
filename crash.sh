@@ -59,10 +59,16 @@ trap _cleanup EXIT
 
 GDBINIT="$TMPDIR/gdbinit"
 
+set -e
+
 # If we're using crash.sh from the git repo, use the modules from the git repo
 DIR="$(dirname $0)"
 if [ -e "$DIR/setup.py" ]; then
-echo "python sys.path.insert(0, '$DIR')" >> $GDBINIT
+    pushd $DIR > /dev/null
+    rm -rf build/lib/crash
+    python setup.py build > /dev/null
+    echo "python sys.path.insert(0, '$DIR/build/lib')" >> $GDBINIT
+    popd > /dev/null
 fi
 
 ZKERNEL="$1"

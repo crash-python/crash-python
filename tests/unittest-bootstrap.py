@@ -9,7 +9,7 @@ import sys
 import os
 import unittest
 
-sys.path.insert(0, os.path.abspath("."))
+sys.path.insert(0, os.path.abspath("build/lib"))
 
 test_loader = unittest.TestLoader()
 test_suite = test_loader.discover('tests', pattern='test_*.py')
