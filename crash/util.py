@@ -207,9 +207,9 @@ class TypesUtilClass(object):
 
     @export
     @staticmethod
-    def safe_lookup_type(name):
+    def safe_lookup_type(name, block=None):
         try:
-            return gdb.lookup_type(name)
+            return gdb.lookup_type(name, block=None)
         except gdb.error:
             return None
 
