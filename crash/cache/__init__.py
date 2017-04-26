@@ -11,10 +11,9 @@ import os
 import glob
 import importlib
 
-class CrashCache(object):
-    def __init__(self):
-        pass
+from crash.infra import CrashBaseClass
 
+class CrashCache(CrashBaseClass):
     def refresh(self):
         pass
 

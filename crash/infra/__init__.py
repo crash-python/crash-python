@@ -10,6 +10,8 @@ from future.utils import with_metaclass
 import sys
 import inspect
 
+from crash.infra.lookup import DelayedLookups
+
 class export_wrapper(object):
     def __init__(self, mod, cls, func):
         self.cls = cls
@@ -91,15 +93,46 @@ def delayed_init(cls):
     return delayed_init_class
 
 class _CrashBaseMeta(type):
-    """This metaclass handles both exporting methods to the module namespace.
-    To enable it, all you need to do is define your class as follows:
+    """This metaclass handles both exporting methods to the module namespace
+    and handling asynchronous loading of types and symbols.  To enable it,
+    all you need to do is define your class as follows:
 
     class Foo(CrashBaseClass):
         ...
+
+    There are several special class variables that are interpreted during
+    class (not instance) creation.
+
+    The following create properties in the class that initially
+    raise MissingSymbolError but contain the requested information when
+    made available.  The properties for types will be the name of the type,
+    with 'struct ' removed and _type appended.  E.g. 'struct test' becomes
+    test_type.  If it's a pointer type, _p is appended after the type name,
+    e.g. 'struct test *' becomes test_p_type.  The properties for the symbols
+    are named with the symbol name.  If there is a naming collision,
+    NameError is raised.
+    __types__      -- A list consisting of type names.  Pointer are handled in
+                      Pointer are handled in a manner similarly to how
+                      they are handled in C code. e.g. 'char *'.
+    __symbols__    -- A list of symbol names
+    __minsymbols__ -- A list of minimal symbols
+    __symvals__    -- A list of symbol names that will return the value
+                      associated with the symbol instead of the symbol itself.
+
+    The following set up callbacks when the requested type or symbol value
+    is available.  These each accept a list of 2-tuples, (specifier, callback).
+    The callback is passed the type or symbol requested.
+    __type_callbacks__
+    __symbol_callbacks__
     """
+    def __new__(cls, name, parents, dct):
+        DelayedLookups.setup_delayed_lookups_for_class(name, dct)
+        return type.__new__(cls, name, parents, dct)
+
     def __init__(cls, name, parents, dct):
         super(_CrashBaseMeta, cls).__init__(name, parents, dct)
         cls.setup_exports_for_class(cls, dct)
+        DelayedLookups.setup_named_callbacks(cls, dct)
 
     @staticmethod
     def setup_exports_for_class(cls, dct):
