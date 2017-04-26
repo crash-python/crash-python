@@ -193,6 +193,8 @@ class CrashKernelCache(CrashCache):
     def get_uptime(self):
         return timedelta(seconds=self.jiffies // self.hz)
 
+    def jiffies_to_msec(self, jiffies):
+        return 1000 // self.hz * jiffies
 
 utsname = CrashUtsnameCache()
 config = CrashConfigCache()
