@@ -14,7 +14,7 @@ setup(
         '' : [ "*.dist" "*.txt" ],
     },
 
-    install_requires = [],
+    install_requires = [ 'future' ],
 
     author = "Jeff Mahoney",
     author_email = "jeffm@suse.com",

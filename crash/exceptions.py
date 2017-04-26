@@ -13,3 +13,8 @@ class MissingTypeError(RuntimeError):
 
 class CorruptedError(RuntimeError):
     pass
+
+class DelayedAttributeError(AttributeError):
+    def __init__(self, owner, name):
+        msg = "{} has delayed attribute {} but it has not been completed."
+        super(DelayedAttributeError, self).__init__(msg.format(owner, name))
