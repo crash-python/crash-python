@@ -88,17 +88,19 @@ class TypesUtilClass(object):
 
     @export
     @staticmethod
-    def get_symbol_value(symname):
-        sym = gdb.lookup_symbol(symname, None)[0]
+    def get_symbol_value(symname, block=None, domain=None):
+        if domain is None:
+            domain = gdb.SYMBOL_VAR_DOMAIN
+        sym = gdb.lookup_symbol(symname, block, domain)[0]
         if sym:
             return sym.value()
         raise MissingSymbolError("Cannot locate symbol {}".format(symname))
 
     @export
     @classmethod
-    def safe_get_symbol_value(cls, symname):
+    def safe_get_symbol_value(cls, symname, block=None, domain=None):
         try:
-            return cls.get_symbol_value(symname)
+            return cls.get_symbol_value(symname, block, domain)
         except MissingSymbolError:
             return None
 
