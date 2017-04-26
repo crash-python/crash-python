@@ -21,6 +21,7 @@ class Session(object):
             searchpath = []
 
         autoload_submodules('crash.cache')
+        autoload_submodules('crash.subsystem')
         autoload_submodules('crash.commands')
 
         self.searchpath = searchpath
