@@ -110,36 +110,61 @@ class TestInfra(unittest.TestCase):
 
         self.assertTrue(test_func() == 101)
 
-    def test_delayed_init_then_exporter(self):
+    def test_exporter_baseline_without_delayed_init(self):
         @exporter
-        @delayed_init
         class test_class(object):
+            inited = False
             def __init__(self):
-                self.retval = 102
+                self.retval = 1020
+                setattr(self.__class__, 'inited', True)
             @export
             def test_func(self):
                 return self.retval
 
-        self.assertFalse('retval' in test_class.__dict__)
-        self.assertTrue(test_func() == 102)
-        self.assertTrue('retval' in test_class.__dict__)
+        x = test_class()
+        self.assertTrue(x.inited)
 
-    # This should be unnecessary but for now throwing an exception is
-    # easier than fixing it properly.
+        self.assertTrue(test_class.inited)
+        self.assertTrue(test_func() == 1020)
+        self.assertTrue(test_class.inited)
+
     def test_exporter_then_delayed_init(self):
-        try:
-            del test_func
-        except:
-            pass
-        with self.assertRaises(TypeError):
-            @delayed_init
-            @exporter
-            class test_class(object):
-                def __init__(self):
-                    self.class_voidp = gdb.lookup_type("void").pointer()
-                @export
-                def test_func(self):
-                    return 103
+        @delayed_init
+        @exporter
+        class test_class(object):
+            inited = False
+            def __init__(self):
+                self.retval = 1021
+                setattr(self.__class__, 'inited', True)
+            @export
+            def test_func(self):
+                return self.retval
+
+        x = test_class()
+        self.assertFalse(x.inited)
+
+        self.assertFalse(test_class.inited)
+        self.assertTrue(test_func() == 1021)
+        self.assertTrue(test_class.inited)
+
+    def test_delayed_init_then_exporter(self):
+        @exporter
+        @delayed_init
+        class test_class(object):
+            inited = False
+            def __init__(self):
+                self.retval = 1022
+                setattr(self.__class__, 'inited', True)
+            @export
+            def test_func(self):
+                return self.retval
+
+        x = test_class()
+        self.assertFalse(x.inited)
+
+        self.assertFalse(test_class.inited)
+        self.assertTrue(test_func() == 1022)
+        self.assertTrue(test_class.inited)
 
     def test_export_normal(self):
         @exporter
@@ -149,6 +174,16 @@ class TestInfra(unittest.TestCase):
                 return 104
 
         self.assertTrue(test_func() == 104)
+
+    def test_static_export(self):
+        @exporter
+        class test_class(object):
+            @staticmethod
+            @export
+            def test_func():
+                return 1050
+
+        self.assertTrue(test_func() == 1050)
 
     def test_export_static(self):
         @exporter
@@ -169,6 +204,30 @@ class TestInfra(unittest.TestCase):
                 return 106
 
         self.assertTrue(test_func() == 106)
+
+    def test_export_multiple_exports_one_instance(self):
+        @exporter
+        class test_class(object):
+            instances = 0
+            def __init__(self):
+                setattr(self.__class__, 'instances', self.instances + 1)
+
+            @export
+            def test_func(self):
+                return 1060
+            @export
+            def test_func2(self):
+                return 1061
+
+        self.assertTrue(test_class.instances == 0)
+        self.assertTrue(test_func() == 1060)
+        self.assertTrue(test_class.instances == 1)
+        self.assertTrue(test_func() == 1060)
+        self.assertTrue(test_class.instances == 1)
+        self.assertTrue(test_func2() == 1061)
+        self.assertTrue(test_class.instances == 1)
+        self.assertTrue(test_func2() == 1061)
+        self.assertTrue(test_class.instances == 1)
 
     def test_delayed_init_with_getattr(self):
         @delayed_init

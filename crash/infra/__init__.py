@@ -8,30 +8,52 @@ from __future__ import division
 import sys
 import inspect
 
+class export_wrapper(object):
+    def __init__(self, mod, cls, func):
+        self.cls = cls
+        self.func = func
+
+        if not hasattr(mod, '_export_wrapper_singleton_dict'):
+            mod._export_wrapper_singleton_dict = {}
+        self.singleton_dict = mod._export_wrapper_singleton_dict
+
+    def __call__(self, *args, **kwargs):
+        try:
+            obj = self.singleton_dict[self.cls]
+        except KeyError:
+            obj = self.cls()
+            self.singleton_dict[self.cls] = obj
+
+        if isinstance(self.func, classmethod):
+            return self.func.__func__(self.cls, *args, **kwargs)
+        elif isinstance(self.func, staticmethod):
+            return self.func.__func__(*args, **kwargs)
+        else:
+            return self.func(obj, *args, **kwargs)
+
 def exporter(cls):
     """This marks the class for export to the module namespace.
        Individual methods must be exported with @export.
-       Use of this decorator implies that this class will only have
-       a single instance and the name of this class will refer to
-       that instance.  It is possible to instantiate more copies
-       using __class__ tricks.  Don't do that."""
-    instance = cls()
+
+       The exported routines will share a single, private class
+       instance."""
+
+    # Detect delayed_init and use the right module
     if hasattr(cls, 'wrapped_class'):
         mod = sys.modules[cls.wrapped_class.__module__]
     else:
         mod = sys.modules[cls.__module__]
-
-    # If we use inspect.getmembers, we get everything but we also
-    # get appropriately bound methods so we don't need to play wrapper
-    # games.
-    for name, method in inspect.getmembers(instance):
-        for superclass in instance.__class__.mro():
+    for name, method in inspect.getmembers(cls):
+        for superclass in cls.mro():
             if name in superclass.__dict__:
                 decl = superclass.__dict__[name]
                 break
-        if hasattr(method, "__export_to_module__"):
-            setattr(mod, name, method)
-    return instance
+        if (hasattr(decl, '__export_to_module__') or
+            ((isinstance(decl, classmethod) or
+              isinstance(decl, staticmethod)) and
+             hasattr(decl.__func__, "__export_to_module__"))):
+            setattr(mod, name, export_wrapper(mod, cls, decl))
+    return cls
 
 def export(func):
     """This marks the function for export to the module namespace.
