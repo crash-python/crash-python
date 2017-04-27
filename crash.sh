@@ -89,10 +89,10 @@ set height 0
 set print pretty on
 
 python
-import crash
+import crash.session
 path = "$SEARCHDIRS".split(' ')
 try:
-   x = crash.Session("$KERNEL", "$VMCORE", "$ZKERNEL", path)
+   x = crash.session.Session("$KERNEL", "$VMCORE", "$ZKERNEL", path)
 except gdb.error as e:
     print(str(e))
 except RuntimeError as e:
