@@ -8,14 +8,14 @@ from __future__ import print_function
 import gdb
 import sys
 
+from crash.infra import autoload_submodules
+from crash.kernel import load_debuginfo, load_modules
+import crash.kdump.target
+
 class Session(object):
     """crash.Session is the main driver component for crash-python"""
     def __init__(self, kernel_exec, vmcore, kernelpath, searchpath=None,
                  debug=False):
-        from crash.kernel import load_debuginfo, load_modules
-        import crash.kdump.target
-        import crash.cache
-        import crash.commands
         print("crash-python initializing...")
         if searchpath is None:
             searchpath = []
@@ -35,5 +35,5 @@ class Session(object):
 
         self.target = crash.kdump.target.Target(vmcore, debug)
         load_modules(self.searchpath)
-        crash.cache.discover()
-        crash.commands.discover()
+        autoload_submodules('crash.cache')
+        autoload_submodules('crash.commands')

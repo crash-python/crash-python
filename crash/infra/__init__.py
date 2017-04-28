@@ -8,7 +8,10 @@ from __future__ import division
 from future.utils import with_metaclass
 
 import sys
+import glob
+import os.path
 import inspect
+import importlib
 
 from crash.infra.lookup import DelayedLookups
 
@@ -98,3 +101,31 @@ class _CrashBaseMeta(type):
 
 class CrashBaseClass(with_metaclass(_CrashBaseMeta)):
     pass
+
+def autoload_submodules(caller, callback=None):
+    mods = []
+    try:
+        mod = sys.modules[caller]
+    except KeyError:
+        mod = importlib.import_module(caller)
+        mods.append(caller)
+    path = os.path.dirname(mod.__file__)
+    modules = glob.glob("{}/[A-Za-z0-9_]*.py".format(path))
+    for mod in modules:
+        mod = os.path.basename(mod)[:-3]
+        if mod == '__init__':
+            continue
+        modname = "{}.{}".format(caller, mod)
+        x = importlib.import_module(modname)
+        if callback:
+            callback(x)
+        mods.append(modname)
+    packages = glob.glob("{}/[A-Za-z0-9_]*/__init__.py".format(path))
+    for pkg in packages:
+        modname = "{}.{}".format(caller, os.path.basename(os.path.dirname(pkg)))
+        x = importlib.import_module(modname)
+        if callback:
+            callback(x)
+
+        mods += autoload_submodules(modname, callback)
+    return mods
