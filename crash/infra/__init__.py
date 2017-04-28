@@ -44,54 +44,6 @@ def export(func):
         func.__export_to_module__ = True
     return func
 
-def delayed_init(cls):
-    """This marks a class for delayed initialization.  It is implemented
-    by inheriting from the base class and wraps it with separate
-    __init__, __getattr__, and __setattr__ routines.
-
-    There is one big limitation: super() can't be used since it will
-    return the base class instead of a parent of the base class.  If
-    super().__init__ is called from base_class.__init__ it will result
-    in infinite recursion."""
-    if not isinstance(cls, type):
-        raise TypeError("must be class not instance")
-    class delayed_init_class(cls):
-        def __init__(self, *args, **kwargs):
-            self.__dict__['__initializing'] = True
-            self.__dict__['__init_args'] = args
-            self.__dict__['__init_kwargs'] = kwargs
-            self.__dict__['__cls'] = cls
-
-        def __delayed_init__(self):
-            cls = self.__dict__['__cls']
-            args = self.__dict__['__init_args']
-            kwargs = self.__dict__['__init_kwargs']
-            cls.__init__(self, *args, **kwargs)
-
-        def __setattr__(self, name, value):
-            if (self.__dict__['__initializing'] and
-                    not name[:2] == '__' == name[-2:]):
-                self.__dict__['__initializing'] = False
-                self.__delayed_init__()
-
-            cls = self.__dict__['__cls']
-            return cls.__setattr__(self, name, value)
-
-        def __getattr__(self, name):
-            if (self.__dict__['__initializing'] and
-                    not name[:2] == '__' == name[-2:]):
-                self.__dict__['__initializing'] = False
-                self.__delayed_init__()
-                return getattr(self, name)
-            cls = self.__dict__['__cls']
-            if hasattr(cls, '__getattr__'):
-                return cls.__getattr__(self, name)
-            raise AttributeError('type {} does not contain attribute {}'.format(type(self), name))
-
-    delayed_init_class.__name__ = "{}_delayed".format(cls.__name__)
-    delayed_init_class.wrapped_class = cls
-    return delayed_init_class
-
 class _CrashBaseMeta(type):
     """This metaclass handles both exporting methods to the module namespace
     and handling asynchronous loading of types and symbols.  To enable it,
