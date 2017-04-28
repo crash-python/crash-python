@@ -8,7 +8,7 @@ END
 exit 1
 }
 
-TEMP=$(getopt -o 'd:' --long 'search-dir:,gdb,valgrind' -n "$(basename $0)" -- "$@")
+TEMP=$(getopt -o 'd:' --long 'search-dir:,gdb,valgrind,nofiles' -n "$(basename $0)" -- "$@")
 
 if [ $? -ne 0 ]; then
     echo "Terminating." >&2
@@ -35,6 +35,11 @@ while true; do
             shift
             continue
             ;;
+        '--nofiles')
+            NOFILES=yes
+            shift
+            continue
+            ;;
         '--')
             shift
             break
@@ -46,7 +51,7 @@ while true; do
     esac
 done
 
-if [ "$#" -ne 2 ]; then
+if [ "$#" -ne 2 -a -z "$NOFILES" ]; then
     usage
 fi
 
