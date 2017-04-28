@@ -11,7 +11,7 @@ import os
 import glob
 import importlib
 
-from crash.infra import CrashBaseClass
+from crash.infra import CrashBaseClass, autoload_submodules
 
 class CrashCache(CrashBaseClass):
     def refresh(self):
@@ -21,9 +21,4 @@ class CrashCache(CrashBaseClass):
         return False
 
 def discover():
-    modules = glob.glob(os.path.dirname(__file__)+"/[A-Za-z]*.py")
-    __all__ = [os.path.basename(f)[:-3] for f in modules]
-
-    mods = __all__
-    for mod in mods:
-        x = importlib.import_module("crash.cache.{}".format(mod))
+    autoload_submodules('crash.cache')
