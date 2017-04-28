@@ -14,13 +14,19 @@ import crash.kdump.target
 
 class Session(object):
     """crash.Session is the main driver component for crash-python"""
-    def __init__(self, kernel_exec, vmcore, kernelpath, searchpath=None,
-                 debug=False):
+    def __init__(self, kernel_exec=None, vmcore=None, kernelpath=None,
+                 searchpath=None, debug=False):
         print("crash-python initializing...")
         if searchpath is None:
             searchpath = []
 
+        autoload_submodules('crash.cache')
+        autoload_submodules('crash.commands')
+
         self.searchpath = searchpath
+
+        if not kernel_exec:
+            return
 
         error = gdb.execute("file {}".format(kernel_exec), to_string=True)
 
@@ -35,5 +41,3 @@ class Session(object):
 
         self.target = crash.kdump.target.Target(vmcore, debug)
         load_modules(self.searchpath)
-        autoload_submodules('crash.cache')
-        autoload_submodules('crash.commands')
