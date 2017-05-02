@@ -7,15 +7,14 @@ from __future__ import division
 
 import gdb
 import sys
-from crash.infra import delayed_init, exporter, export
+from crash.infra import delayed_init, CrashBaseClass, export
 from crash.types.klist import klist_for_each_entry
 
 if sys.version_info.major >= 3:
     long = int
 
-@exporter
 @delayed_init
-class ClassDeviceClass(object):
+class ClassDeviceClass(CrashBaseClass):
     def __init__(self):
         self.device_type = gdb.lookup_type('struct device')
 
