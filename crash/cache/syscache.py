@@ -18,7 +18,6 @@ if sys.version_info.major >= 3:
 
 from crash.exceptions import MissingSymbolError
 from crash.cache import CrashCache
-from crash.infra import delayed_init
 from crash.util import array_size
 
 class CrashUtsnameCache(CrashCache):
@@ -48,13 +47,9 @@ class CrashUtsnameCache(CrashCache):
             return self.utsname_cache[name]
         raise AttributeError
 
-@delayed_init
 class CrashConfigCache(CrashCache):
-    def __init__(self):
-        CrashCache.__init__(self)
-
-        self.uchar = gdb.lookup_type('unsigned char')
-        self.ucharp = self.uchar.pointer()
+    __types__ = [ 'char *' ]
+    __symvals__ = [ 'kernel_config_data' ]
 
     def __getattr__(self, name):
         if name == 'config_buffer':
@@ -74,14 +69,9 @@ class CrashConfigCache(CrashCache):
         MAGIC_END = 'IKCFG_ED'
         GZIP_HEADER_LEN = 10
 
-        sym = gdb.lookup_symbol('kernel_config_data',
-                                block=None, domain=gdb.SYMBOL_VAR_DOMAIN)[0]
-        if sym is None:
-            raise MissingSymbolError("CrashConfigCache requires 'kernel_config_data' symbol.")
-        kernel_config_data = sym.value()
-        # Must cast it to ucharp to do the pointer arithmetic correctly
-        data_addr = kernel_config_data.address.cast(self.ucharp)
-        data_len = kernel_config_data.type.sizeof
+        # Must cast it to char * to do the pointer arithmetic correctly
+        data_addr = self.kernel_config_data.address.cast(self.char_p_type)
+        data_len = self.kernel_config_data.type.sizeof
 
         buf_len = len(MAGIC_START)
         buf = self.read_buf(data_addr, buf_len)
