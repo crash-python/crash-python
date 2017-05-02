@@ -11,7 +11,9 @@ import sys
 if sys.version_info.major >= 3:
     long = int
 
-from crash.infra import delayed_init
+from crash.util import array_size
+from crash.infra import CrashBaseClass
+from crash.infra.lookup import DelayedValue, ClassProperty, get_delayed_lookup
 
 PF_EXITING = long(0x4)
 
@@ -20,66 +22,50 @@ def get_value(symname):
     if sym[0]:
         return sym[0].value()
 
-@delayed_init
-class TaskStateFlags(object):
-    valid = False
-
-    def __init__(self):
-        self.discover_flags()
+class TaskStateFlags(CrashBaseClass):
+    __types__ = [ 'char *', 'struct task_struct' ]
+    __symvals__ = [ 'task_state_array' ]
+    __symbol_callbacks__ = [ ('task_state_array', 'task_state_flags_callback') ]
+    __delayed_values__ = [ 'TASK_RUNNING', 'TASK_INTERRUPTIBLE',
+                           'TASK_UNINTERRUPTIBLE', 'TASK_ZOMBIE',
+                           'TASK_STOPPED', 'TASK_SWAPPING', 'TASK_EXCLUSIVE' ]
 
     @classmethod
-    def _discover_flags(cls):
-        task_struct = gdb.lookup_type('struct task_struct')
-        task_state = get_value('task_state_array')
-        charp = gdb.lookup_type('char').pointer()
+    def task_state_flags_callback(cls, symbol):
+        count = array_size(cls.task_state_array)
 
-        if task_state:
-            count = task_state.type.sizeof // charp.sizeof
+        bit = 0
+        for i in range(count):
+            state = cls.task_state_array[i].string()
+            state_strings = {
+                '(running)'      : 'TASK_RUNNING',
+                '(sleeping)'     : 'TASK_INTERRUPTIBLE',
+                '(disk sleep)'   : 'TASK_UNINTERRUPTIBLE',
+                '(stopped)'      : 'TASK_STOPPED',
+                '(zombie)'       : 'TASK_ZOMBIE',
+                #'(dead)'        : 'TASK_DEAD',
+                '(swapping)'     : 'TASK_SWAPPING',
+                #'(tracing stop)' : 'TASK_TRACING_STOPPED',
+                '(wakekill)'     : 'TASK_WAKEKILL',
+                '(waking)'       : 'TASK_WAKING',
+            }
 
-            bit = 0
-            for i in range(count):
-                state = task_state[i].string()
-                state_strings = {
-                    '(running)'      : 'TASK_RUNNING',
-                    '(sleeping)'     : 'TASK_INTERRUPTIBLE',
-                    '(disk sleep)'   : 'TASK_UNINTERRUPTIBLE',
-                    '(stopped)'      : 'TASK_STOPPED',
-                    '(zombie)'       : 'TASK_ZOMBIE',
-                    #'(dead)'        : 'TASK_DEAD',
-                    '(swapping)'     : 'TASK_SWAPPING',
-                    #'(tracing stop)' : 'TASK_TRACING_STOPPED',
-                    '(wakekill)'     : 'TASK_WAKEKILL',
-                    '(waking)'       : 'TASK_WAKING',
-                }
-
-                for key in state_strings:
-                    if key in state:
+            for key in state_strings:
+                if key in state:
+                    try:
+                        dv = get_delayed_lookup(cls, state_strings[key])
+                        dv.callback(bit)
+                    except KeyError:
                         setattr(cls, state_strings[key], bit)
-                    if '(dead)' in state:
-                        cls.TASK_DEAD = bit
-                    if '(tracing stop)' in state:
-                        cls.TASK_TRACING_STOPPED = bit
-                if bit == 0:
-                    bit = 1
-                else:
-                    bit <<= 1
-        else:
-            # Sane defaults
-            cls.TASK_RUNNING = 0
-            cls.TASK_INTERRUPTIBLE = 1
-            cls.TASK_UNINTERRUPTIBLE = 2
-            cls.TASK_ZOMBIE = 4
-            cls.TASK_STOPPED = 8
-            cls.TASK_SWAPPING = 16
-            cls.TASK_EXCLUSIVE = 32
-
+                if '(dead)' in state:
+                    cls.TASK_DEAD = bit
+                if '(tracing stop)' in state:
+                    cls.TASK_TRACING_STOPPED = bit
+            if bit == 0:
+                bit = 1
+            else:
+                bit <<= 1
         cls.check_state_bits()
-        cls.valid = True
-
-    @classmethod
-    def discover_flags(cls):
-        if not cls.valid:
-            cls._discover_flags()
 
     @classmethod
     def check_state_bits(cls):
@@ -112,7 +98,6 @@ class BadTaskError(TypeError):
             typedesc = type(task)
         super(BadTaskError, self).__init__(self.msgtemplate.format(typedesc))
 
-@delayed_init
 class LinuxTask(object):
     task_struct_type = None
     mm_struct_fields = None
@@ -121,8 +106,6 @@ class LinuxTask(object):
     valid = False
 
     def __init__(self, task_struct, active=False, cpu=None, regs=None):
-        flags = TaskStateFlags.discover_flags()
-
         self.init_task_types(task_struct)
 
         if cpu is not None and not isinstance(cpu, int):
