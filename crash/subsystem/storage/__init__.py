@@ -51,18 +51,23 @@ class Storage(CrashBaseClass):
     @export
     @classmethod
     def register_bio_decoder(cls, sym, decoder):
-        cls.bio_decoders[sym] = decoder
+        if isinstance(sym, gdb.Symbol):
+            sym = sym.value().address
+        elif not isinstance(sym, gdb.Value)):
+            raise TypeError("register_bio_decoder expects gdb.Symbol or gdb.Value")
+        cls.bio_decoders[long(sym)] = decoder
 
     @export
     @classmethod
-    def bio_chain(cls, bio, duration):
+    def bio_chain(cls, bio):
         try:
-            chain = cls.bio_decoders[bio['bi_end_io']](bio)
+            chain = cls.bio_decoders[long(bio['bi_end_io'])](bio)
             if chain and 'bio' in chain:
                 return cls.bio_chain(chain['bio']) + [chain]
             else:
                 return [chain]
         except KeyError:
+            print(cls.bio_decoders)
             raise NotImplementedError("No handler for endio handler {}"
                                       .format(bio['bi_end_io']))
 
