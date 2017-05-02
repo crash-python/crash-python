@@ -15,15 +15,11 @@ if sys.version_info.major >= 3:
     long = int
 
 class CrashKernel(CrashBaseClass):
+    __types__ = [ 'struct module' ]
+    __symvals__ = [ 'modules' ]
+
     def __init__(self):
         self.findmap = {}
-
-    def __getattr__(self, name):
-        if name == 'modules':
-            self.modules = gdb.lookup_symbol('modules', None)[0].value()
-        elif name == 'module_type':
-            self.module_type = gdb.lookup_type('struct module')
-        return getattr(self, name)
 
     @export
     def for_each_module(self):

@@ -8,7 +8,7 @@ from __future__ import division
 import gdb
 import sys
 from crash.util import container_of
-from crash.infra import delayed_init, CrashBaseClass, export
+from crash.infra import CrashBaseClass, export
 
 if sys.version_info.major >= 3:
     long = int
@@ -22,10 +22,8 @@ class CorruptListError(ListError):
 class ListCycleError(CorruptListError):
     pass
 
-@delayed_init
 class TypesListClass(CrashBaseClass):
-    def __init__(self):
-        self.list_head_type = gdb.lookup_type("struct list_head")
+    __types__ = [ 'struct list_head' ]
 
     @export
     def list_for_each(self, list_head):

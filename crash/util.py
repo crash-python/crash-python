@@ -6,7 +6,7 @@ from __future__ import print_function
 from __future__ import division
 
 import gdb
-from crash.infra import delayed_init, CrashBaseClass, export
+from crash.infra import CrashBaseClass, export
 from crash.exceptions import MissingTypeError, MissingSymbolError
 
 class OffsetOfError(Exception):
@@ -69,16 +69,14 @@ class _InvalidComponentNameError(_InvalidComponentBaseError):
         self.member = member
         self.type = gdbtype
 
-@delayed_init
 class TypesUtilClass(CrashBaseClass):
-    def __init__(self):
-        self.charp = gdb.lookup_type('char').pointer()
+    __types__ = [ 'char *' ]
 
     @export
     def container_of(self, val, gdbtype, member):
         if not isinstance(val, gdb.Value):
             raise TypeError("container_of expects gdb.Value")
-        charp = self.charp
+        charp = self.char_p_type
         if val.type.code != gdb.TYPE_CODE_PTR:
             val = val.address
         gdbtype = resolve_type(gdbtype)
