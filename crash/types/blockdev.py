@@ -7,34 +7,38 @@ from __future__ import division
 
 import gdb
 import sys
-from crash.infra import CrashBaseClass, export, delayed_init
+from crash.exceptions import DelayedAttributeError
+from crash.infra import CrashBaseClass, export
 from crash.types.classdev import for_each_class_device
 from crash.util import container_of, get_symbol_value
 
 if sys.version_info.major >= 3:
     long = int
 
-@delayed_init
 class BlockDeviceClass(CrashBaseClass):
-    def __init__(self):
-        self.block_class = gdb.lookup_global_symbol("block_class").value()
-        self.gendisk_type = gdb.lookup_type('struct gendisk')
-        self.hd_struct_type = gdb.lookup_type('struct hd_struct')
-        self.device_type = gdb.lookup_type('struct device')
-        self.device_type_type = gdb.lookup_type('struct device_type')
-        self.bdev_inode_type = gdb.lookup_type('struct bdev_inode')
-        self.disk_type = get_symbol_value('disk_type')
-        self.part_type = get_symbol_value('part_type')
-        self.blockdev_superblock = gdb.lookup_global_symbol('blockdev_superblock').value()
-        if self.disk_type.type != self.device_type_type:
-            raise TypeError("disk_type expected to be {} not {}"
-                            .format(self.device_type_type,
-                                    self.disk_type.type))
-        self.device_type_type = self.disk_type.type
-        if self.part_type.type != self.device_type_type:
-            raise TypeError("part_type expected to be {} not {}"
-                            .format(self.device_type_type,
-                                    self.disk_type.type))
+    __types__ = [ 'struct gendisk', 'struct hd_struct', 'struct device',
+                  'struct device_type', 'struct bdev_inode' ]
+    __symbols__ = [ 'blockdev_superblock' ]
+    __symvals__ = [ 'block_class', 'disk_type', 'part_type' ]
+    __symbol_callbacks = [
+                ( 'disk_type', 'check_types' ),
+                ( 'part_type', 'check_types' ) ]
+    __type_callbacks = [ ( 'struct device_type', 'check_types' ) ]
+
+    @classmethod
+    def check_types(cls, symbol):
+        try:
+            if cls.disk_type.type != cls.device_type_type:
+                raise TypeError("disk_type expected to be {} not {}"
+                                .format(cls.device_type_type,
+                                        cls.disk_type.type))
+            cls.device_type_type = cls.disk_type.type
+            if cls.part_type.type != cls.device_type_type:
+                raise TypeError("part_type expected to be {} not {}"
+                                .format(cls.device_type_type,
+                                        cls.disk_type.type))
+        except DelayedAttributeError:
+            pass
 
     @export
     def dev_to_gendisk(self, dev):
