@@ -8,7 +8,7 @@ from __future__ import division
 import unittest
 import gdb
 
-from crash.infra import delayed_init, exporter, export
+from crash.infra import delayed_init, CrashBaseClass, export
 
 # The delayed init tests check for presence of an attribute in the instance
 # dict (or class dict for class attributes) since hasattr() will call
@@ -102,8 +102,7 @@ class TestInfra(unittest.TestCase):
         self.assertTrue(inst2.classattr == 'someval')
 
     def test_exporter_alone(self):
-        @exporter
-        class test_class(object):
+        class test_class(CrashBaseClass):
             @export
             def test_func(self):
                 return 101
@@ -111,8 +110,7 @@ class TestInfra(unittest.TestCase):
         self.assertTrue(test_func() == 101)
 
     def test_exporter_baseline_without_delayed_init(self):
-        @exporter
-        class test_class(object):
+        class test_class(CrashBaseClass):
             inited = False
             def __init__(self):
                 self.retval = 1020
@@ -130,8 +128,7 @@ class TestInfra(unittest.TestCase):
 
     def test_exporter_then_delayed_init(self):
         @delayed_init
-        @exporter
-        class test_class(object):
+        class test_class(CrashBaseClass):
             inited = False
             def __init__(self):
                 self.retval = 1021
@@ -147,28 +144,8 @@ class TestInfra(unittest.TestCase):
         self.assertTrue(test_func() == 1021)
         self.assertTrue(test_class.inited)
 
-    def test_delayed_init_then_exporter(self):
-        @exporter
-        @delayed_init
-        class test_class(object):
-            inited = False
-            def __init__(self):
-                self.retval = 1022
-                setattr(self.__class__, 'inited', True)
-            @export
-            def test_func(self):
-                return self.retval
-
-        x = test_class()
-        self.assertFalse(x.inited)
-
-        self.assertFalse(test_class.inited)
-        self.assertTrue(test_func() == 1022)
-        self.assertTrue(test_class.inited)
-
     def test_export_normal(self):
-        @exporter
-        class test_class(object):
+        class test_class(CrashBaseClass):
             @export
             def test_func(self):
                 return 104
@@ -176,8 +153,7 @@ class TestInfra(unittest.TestCase):
         self.assertTrue(test_func() == 104)
 
     def test_static_export(self):
-        @exporter
-        class test_class(object):
+        class test_class(CrashBaseClass):
             @staticmethod
             @export
             def test_func():
@@ -186,8 +162,7 @@ class TestInfra(unittest.TestCase):
         self.assertTrue(test_func() == 1050)
 
     def test_export_static(self):
-        @exporter
-        class test_class(object):
+        class test_class(CrashBaseClass):
             @export
             @staticmethod
             def test_func():
@@ -196,8 +171,7 @@ class TestInfra(unittest.TestCase):
         self.assertTrue(test_func() == 105)
 
     def test_export_class(self):
-        @exporter
-        class test_class(object):
+        class test_class(CrashBaseClass):
             @classmethod
             @export
             def test_func(self):
@@ -206,8 +180,7 @@ class TestInfra(unittest.TestCase):
         self.assertTrue(test_func() == 106)
 
     def test_export_multiple_exports_one_instance(self):
-        @exporter
-        class test_class(object):
+        class test_class(CrashBaseClass):
             instances = 0
             def __init__(self):
                 setattr(self.__class__, 'instances', self.instances + 1)

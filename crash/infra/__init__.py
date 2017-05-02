@@ -5,6 +5,8 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 
+from future.utils import with_metaclass
+
 import sys
 import inspect
 
@@ -31,33 +33,9 @@ class export_wrapper(object):
         else:
             return self.func(obj, *args, **kwargs)
 
-def exporter(cls):
-    """This marks the class for export to the module namespace.
-       Individual methods must be exported with @export.
-
-       The exported routines will share a single, private class
-       instance."""
-
-    # Detect delayed_init and use the right module
-    if hasattr(cls, 'wrapped_class'):
-        mod = sys.modules[cls.wrapped_class.__module__]
-    else:
-        mod = sys.modules[cls.__module__]
-    for name, method in inspect.getmembers(cls):
-        for superclass in cls.mro():
-            if name in superclass.__dict__:
-                decl = superclass.__dict__[name]
-                break
-        if (hasattr(decl, '__export_to_module__') or
-            ((isinstance(decl, classmethod) or
-              isinstance(decl, staticmethod)) and
-             hasattr(decl.__func__, "__export_to_module__"))):
-            setattr(mod, name, export_wrapper(mod, cls, decl))
-    return cls
-
 def export(func):
     """This marks the function for export to the module namespace.
-       The class must be decorated with @exporter."""
+       The class must inherit from CrashBaseClass."""
     if isinstance(func, staticmethod) or isinstance(func, classmethod):
         func.__func__.__export_to_module__ = True
     else:
@@ -111,3 +89,27 @@ def delayed_init(cls):
     delayed_init_class.__name__ = "{}_delayed".format(cls.__name__)
     delayed_init_class.wrapped_class = cls
     return delayed_init_class
+
+class _CrashBaseMeta(type):
+    """This metaclass handles both exporting methods to the module namespace.
+    To enable it, all you need to do is define your class as follows:
+
+    class Foo(CrashBaseClass):
+        ...
+    """
+    def __init__(cls, name, parents, dct):
+        super(_CrashBaseMeta, cls).__init__(name, parents, dct)
+        cls.setup_exports_for_class(cls, dct)
+
+    @staticmethod
+    def setup_exports_for_class(cls, dct):
+        mod = sys.modules[dct['__module__']]
+        for name, decl in dct.items():
+            if (hasattr(decl, '__export_to_module__') or
+                ((isinstance(decl, classmethod) or
+                  isinstance(decl, staticmethod)) and
+                 hasattr(decl.__func__, "__export_to_module__"))):
+                setattr(mod, name, export_wrapper(mod, cls, decl))
+
+class CrashBaseClass(with_metaclass(_CrashBaseMeta)):
+    pass

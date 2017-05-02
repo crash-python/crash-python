@@ -9,7 +9,7 @@ import gdb
 from crash.util import container_of
 from crash.types.list import list_for_each_entry
 from crash.exceptions import CorruptedError
-from crash.infra import exporter, export, delayed_init
+from crash.infra import CrashBaseClass, export, delayed_init
 import sys
 
 if sys.version_info.major >= 3:
@@ -18,9 +18,8 @@ if sys.version_info.major >= 3:
 class KlistCorruptedError(CorruptedError):
     pass
 
-@exporter
 @delayed_init
-class TypesKlistClass(object):
+class TypesKlistClass(CrashBaseClass):
     def __init__(self):
         self.klist_node_type = gdb.lookup_type("struct klist_node")
         self.klist_type = gdb.lookup_type("struct klist")

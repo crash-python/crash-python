@@ -7,15 +7,14 @@ from __future__ import division
 
 import gdb
 import sys
-from crash.infra import delayed_init, exporter, export
+from crash.infra import delayed_init, CrashBaseClass, export
 from crash.util import array_size
 
 if sys.version_info.major >= 3:
     long = int
 
-@exporter
 @delayed_init
-class TypesPerCPUClass(object):
+class TypesPerCPUClass(CrashBaseClass):
     def __init__(self):
         self.charp = gdb.lookup_type('char').pointer()
 

@@ -6,7 +6,7 @@ from __future__ import print_function
 from __future__ import division
 
 import gdb
-from crash.infra import delayed_init, exporter, export
+from crash.infra import delayed_init, CrashBaseClass, export
 from crash.exceptions import MissingTypeError, MissingSymbolError
 
 class OffsetOfError(Exception):
@@ -69,9 +69,8 @@ class _InvalidComponentNameError(_InvalidComponentBaseError):
         self.member = member
         self.type = gdbtype
 
-@exporter
 @delayed_init
-class TypesUtilClass(object):
+class TypesUtilClass(CrashBaseClass):
     def __init__(self):
         self.charp = gdb.lookup_type('char').pointer()
 

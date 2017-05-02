@@ -8,14 +8,13 @@ from __future__ import division
 import gdb
 import sys
 import os.path
-from crash.infra import exporter, export
+from crash.infra import CrashBaseClass, export
 from crash.types.list import list_for_each_entry
 
 if sys.version_info.major >= 3:
     long = int
 
-@exporter
-class CrashKernel(object):
+class CrashKernel(CrashBaseClass):
     def __init__(self):
         self.findmap = {}
 

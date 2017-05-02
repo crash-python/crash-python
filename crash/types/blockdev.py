@@ -7,16 +7,15 @@ from __future__ import division
 
 import gdb
 import sys
-from crash.infra import exporter, export, delayed_init
+from crash.infra import CrashBaseClass, export, delayed_init
 from crash.types.classdev import for_each_class_device
 from crash.util import container_of, get_symbol_value
 
 if sys.version_info.major >= 3:
     long = int
 
-@exporter
 @delayed_init
-class BlockDeviceClass(object):
+class BlockDeviceClass(CrashBaseClass):
     def __init__(self):
         self.block_class = gdb.lookup_global_symbol("block_class").value()
         self.gendisk_type = gdb.lookup_type('struct gendisk')
