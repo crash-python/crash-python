@@ -7,32 +7,36 @@ from __future__ import division
 
 import gdb
 import sys
-from crash.infra import delayed_init, CrashBaseClass, export
+from crash.infra import CrashBaseClass, export
 from crash.util import array_size
+from crash.exceptions import DelayedAttributeError
 
 if sys.version_info.major >= 3:
     long = int
 
-@delayed_init
 class TypesPerCPUClass(CrashBaseClass):
-    def __init__(self):
-        self.charp = gdb.lookup_type('char').pointer()
+    __types__ = [ 'char *' ]
+    __symvals__ = [ '__per_cpu_offset' ]
+    __minsymvals__ = ['__per_cpu_start', '__per_cpu_end' ]
+    __minsymbol_callbacks__ = [ ('__per_cpu_start', 'setup_per_cpu_size'),
+                             ('__per_cpu_end', 'setup_per_cpu_size') ]
+    __symbol_callbacks__ = [ ('__per_cpu_offset', 'setup_nr_cpus') ]
 
-        pcpu_offset = gdb.lookup_global_symbol('__per_cpu_offset')
-        self.per_cpu_offset_value = pcpu_offset.value()
+    @classmethod
+    def setup_per_cpu_size(cls, symbol):
+        try:
+            cls.per_cpu_size = cls.__per_cpu_end - cls.__per_cpu_start
+        except DelayedAttributeError:
+            pass
 
-        # Really only helpful for testing since it's always 0 in the kernel
-        pcpu_start = gdb.lookup_minimal_symbol('__per_cpu_start')
-        self.per_cpu_start = long(pcpu_start.value())
-        pcpu_end = gdb.lookup_minimal_symbol('__per_cpu_end')
-        self.per_cpu_end = long(pcpu_end.value())
-        self.per_cpu_size = self.per_cpu_end - self.per_cpu_start
-        self.nr_cpus = array_size(self.per_cpu_offset_value)
+    @classmethod
+    def setup_nr_cpus(cls, ignored):
+        cls.nr_cpus = array_size(cls.__per_cpu_offset)
 
     def __is_percpu_var(self, var):
-        if long(var) < self.per_cpu_start:
+        if long(var) < self.__per_cpu_start:
             return False
-        v = var.cast(self.charp) - self.per_cpu_start
+        v = var.cast(self.char_p_type) - self.__per_cpu_start
         return long(v) < self.per_cpu_size
 
     @export
@@ -48,22 +52,27 @@ class TypesPerCPUClass(CrashBaseClass):
                 vals[cpu] = self.get_percpu_var_nocheck(var, cpu)
             return vals
 
-        addr = self.per_cpu_offset_value[cpu]
-        addr += var.cast(self.charp)
-        addr -= self.per_cpu_start
+        addr = self.__per_cpu_offset[cpu]
+        addr += var.cast(self.char_p_type)
+        addr -= self.__per_cpu_start
         vartype = var.type
         return addr.cast(vartype).dereference()
 
     @export
     def get_percpu_var(self, var, cpu=None):
+        # Percpus can be:
+        # - actual objects, where we'll need to use the address.
+        # - pointers to objects, where we'll need to use the target
+        # - a pointer to a percpu object, where we'll need to use the
+        #   address of the target
         if isinstance(var, gdb.Symbol):
-            try:
-                var = long(var.value())
-            except:
-                var = var.value().address
-        if not (isinstance(var, gdb.Value) and
-                var.type.code == gdb.TYPE_CODE_PTR):
-            raise TypeError("Argument must be gdb.Symbol or gdb.Value describing a pointer {}".format(type(var)))
+            var = var.value()
+        if not isinstance(var, gdb.Value):
+            raise TypeError("Argument must be gdb.Symbol or gdb.Value")
+        if var.type.code != gdb.TYPE_CODE_PTR:
+            var = var.address
+        if not self.is_percpu_var(var):
+            var = var.address
         if not self.is_percpu_var(var):
             raise TypeError("Argument does not correspond to a percpu pointer.")
         return self.get_percpu_var_nocheck(var, cpu)
