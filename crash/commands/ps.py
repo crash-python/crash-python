@@ -415,23 +415,6 @@ EXAMPLES
 
         CrashCommand.__init__(self, "ps", parser)
 
-        self.task_states = {
-            TF.TASK_RUNNING         : "RU",
-            TF.TASK_INTERRUPTIBLE   : "IN",
-            TF.TASK_UNINTERRUPTIBLE : "UN",
-            TF.TASK_ZOMBIE          : "ZO",
-            TF.TASK_STOPPED         : "ST",
-        }
-
-        if hasattr(TF, 'TASK_EXCLUSIVE'):
-            self.task_states[TF.TASK_EXCLUSIVE] = "EX"
-        if hasattr(TF, 'TASK_SWAPPING'):
-            self.task_states[TF.TASK_SWAPPING] = "SW"
-        if hasattr(TF, 'TASK_DEAD'):
-            self.task_states[TF.TASK_DEAD] = "DE"
-        if hasattr(TF, 'TASK_TRACING_STOPPED'):
-            self.task_states[TF.TASK_TRACING_STOPPED] = "TR"
-
         self.header_template = "    PID    PPID  CPU {1:^{0}}  ST  %MEM     " \
                                "VSZ    RSS  COMM"
 
@@ -539,9 +522,33 @@ EXAMPLES
                           task_struct['comm'].string(),
                           "]", int(task.is_kernel_task())))
 
+    def setup_task_states(self):
+        self.task_states = {
+            TF.TASK_RUNNING         : "RU",
+            TF.TASK_INTERRUPTIBLE   : "IN",
+            TF.TASK_UNINTERRUPTIBLE : "UN",
+            TF.TASK_ZOMBIE          : "ZO",
+            TF.TASK_STOPPED         : "ST",
+        }
+
+        if hasattr(TF, 'TASK_EXCLUSIVE'):
+            self.task_states[TF.TASK_EXCLUSIVE] = "EX"
+        if hasattr(TF, 'TASK_SWAPPING'):
+            self.task_states[TF.TASK_SWAPPING] = "SW"
+        if hasattr(TF, 'TASK_DEAD'):
+            self.task_states[TF.TASK_DEAD] = "DE"
+        if hasattr(TF, 'TASK_TRACING_STOPPED'):
+            self.task_states[TF.TASK_TRACING_STOPPED] = "TR"
+
     def execute(self, argv):
         sort_by_pid = lambda x: x.info.task_struct['pid']
         sort_by_last_run = lambda x: -x.info.last_run()
+
+        if not hasattr(self, 'task_states'):
+            try:
+                self.setup_task_states()
+            except AttributeError:
+                raise CrashCommandError("The task subsystem is not available.")
 
         sort_by = sort_by_pid
         if argv.l:
