@@ -65,8 +65,10 @@ class CrashKernel(CrashBaseClass):
                 gdb.execute("add-symbol-file {} {} {}"
                             .format(modpath, module['module_core'], sections),
                             to_string=True)
-                objfile = gdb.lookup_objfile(modpath)
-                load_debuginfo(searchpath, objfile, modpath)
+                sal = gdb.find_pc_line(long(module['module_core']))
+                if sal.symtab is None:
+                    objfile = gdb.lookup_objfile(modpath)
+                    load_debuginfo(searchpath, objfile, modpath)
 
                 # We really should check the version, but GDB doesn't export
                 # a way to lookup sections.
@@ -125,5 +127,6 @@ class CrashKernel(CrashBaseClass):
                     break
 
         if filepath:
-            print("Found debuginfo for {}".format(name))
             objfile.add_separate_debug_file(filepath)
+        else:
+            print("Could not locate debuginfo for {}".format(name))
