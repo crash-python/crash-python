@@ -12,7 +12,6 @@ import argparse
 import re
 
 from crash.util import safe_get_symbol_value
-from crash.infra import exporter, export, delayed_init
 from crash.commands import CrashCommand, CrashCommandParser
 
 if sys.version_info.major >= 3:
