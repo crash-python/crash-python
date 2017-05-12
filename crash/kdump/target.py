@@ -9,6 +9,7 @@ import gdb
 import sys
 from kdumpfile import kdumpfile, KDUMP_KVADDR
 from kdumpfile.exceptions import *
+import addrxlat
 from crash.types.list import list_for_each_entry
 from crash.types.percpu import get_percpu_var
 from crash.types.task import LinuxTask
@@ -21,6 +22,27 @@ if sys.version_info.major >= 3:
 
 LINUX_KERNEL_PID = 1
 
+class SymbolCallback(object):
+    "addrxlat symbolic callback"
+
+    def __init__(self, ctx=None, *args, **kwargs):
+        super(SymbolCallback, self).__init__(*args, **kwargs)
+        self.ctx = ctx
+
+    def __call__(self, symtype, *args):
+        if self.ctx is not None:
+            try:
+                return self.ctx.next_cb_sym(symtype, *args)
+            except addrxlat.BaseException:
+                self.ctx.clear_err()
+
+        if symtype == addrxlat.SYM_VALUE:
+            ms = gdb.lookup_minimal_symbol(args[0])
+            if ms is not None:
+                return long(ms.value())
+
+        raise addrxlat.NoDataError()
+
 class Target(gdb.Target):
     def __init__(self, filename, debug=False):
         self.filename = filename
@@ -30,6 +52,8 @@ class Target(gdb.Target):
             self.kdump = kdumpfile(filename)
         except OSErrorException as e:
             raise RuntimeError(str(e))
+        ctx = self.kdump.get_addrxlat_ctx()
+        ctx.cb_sym = SymbolCallback(ctx)
         self.kdump.attr['addrxlat.ostype'] = 'linux'
 
         gdb.execute('set print thread-events 0')
