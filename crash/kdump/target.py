@@ -28,9 +28,9 @@ class Target(gdb.Target):
         self.debug = debug
         try:
             self.kdump = kdumpfile(filename)
-        except SysErrException as e:
+        except OSErrorException as e:
             raise RuntimeError(str(e))
-        self.kdump.vtop_init()
+        self.kdump.attr['addrxlat.ostype'] = 'linux'
 
         gdb.execute('set print thread-events 0')
 
