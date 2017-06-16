@@ -75,7 +75,8 @@ class Target(gdb.Target):
             active = long(task.address) in rqscurrs
             if active:
                 cpu = rqscurrs[long(task.address)]
-                regs = self.kdump.attr.cpu[cpu].reg
+                if 'cpu' in dir(self.kdump.attr):
+                    regs = self.kdump.attr.cpu[cpu].reg
 
             ltask = LinuxTask(task, active, cpu, regs)
             ptid = (LINUX_KERNEL_PID, task['pid'], 0)
@@ -119,7 +120,7 @@ class Target(gdb.Target):
 
     def to_fetch_registers(self, register):
         thread = gdb.selected_thread()
-        self.arch.fetch_register(thread, register.regnum)
+        self.arch.fetch_register(thread, register)
         return True
 
     def to_prepare_to_store(self, thread):
