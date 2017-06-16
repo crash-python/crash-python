@@ -110,7 +110,7 @@ class BadTaskError(TypeError):
             typedesc = task.type
         else:
             typedesc = type(task)
-        self(BadTaskError, task).__init__(msgtemplate.format(typedesc))
+        super(BadTaskError, self).__init__(self.msgtemplate.format(typedesc))
 
 @delayed_init
 class LinuxTask(object):
