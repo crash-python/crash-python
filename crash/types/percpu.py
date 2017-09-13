@@ -61,10 +61,10 @@ class TypesPerCPUClass(CrashBaseClass):
     @export
     def get_percpu_var(self, var, cpu=None):
         if isinstance(var, gdb.Symbol):
-            if 'percpu' in var.section:
+            try:
+                var = long(var.value())
+            except:
                 var = var.value().address
-            else:
-                var = var.value()
         if not (isinstance(var, gdb.Value) and
                 var.type.code == gdb.TYPE_CODE_PTR):
             raise TypeError("Argument must be gdb.Symbol or gdb.Value describing a pointer {}".format(type(var)))

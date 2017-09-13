@@ -5,6 +5,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
+from crash.infra import CrashBaseClass
+
 import gdb
 
 import os
@@ -19,7 +21,7 @@ class CrashCommandParser(argparse.ArgumentParser):
     def error(self, message):
         raise CrashCommandLineError(message)
 
-class CrashCommand(gdb.Command):
+class CrashCommand(CrashBaseClass, gdb.Command):
     commands = {}
     def __init__(self, name, parser=None):
         self.name = "py" + name

@@ -11,7 +11,6 @@ import os.path
 import argparse
 import re
 
-from crash.util import safe_get_symbol_value
 from crash.commands import CrashCommand, CrashCommandParser
 
 if sys.version_info.major >= 3:
@@ -157,13 +156,9 @@ EXAMPLES
         parser.format_usage = lambda: 'log [-tdm]\n'
         CrashCommand.__init__(self, name, parser)
 
-        self.printk_log_type = None
-        try:
-            printk_log = gdb.lookup_type('struct printk_log')
-            if printk_log:
-                self.printk_log_type = printk_log.pointer()
-        except gdb.error as e:
-            pass
+    __types__ = [ 'struct printk_log *' ]
+    __symvals__ = [ 'log_buf', 'log_buf_len', 'log_first_idx', 'log_next_idx',
+                    'clear_seq', 'log_first_seq', 'log_next_seq' ]
 
     @classmethod
     def filter_unstructured_log(cls, log, args):
@@ -181,12 +176,13 @@ EXAMPLES
         return '\n'.join(lines)
 
     def log_from_idx(self, logbuf, idx, dict_needed=False):
-        logbuf = logbuf.address.dereference()
-        msg = (logbuf + idx).cast(self.printk_log_type)
+        msg = (logbuf + idx).cast(self.printk_log_p_type)
 
         try:
+            print(msg)
             textval = (msg.cast(self.charp) +
-                       self.printk_log_type.target().sizeof)
+                       self.printk_log_p_type.target().sizeof)
+            print(textval)
             text = textval.string(length=msg['text_len'])
         except UnicodeDecodeError as e:
             print(e)
@@ -212,7 +208,7 @@ EXAMPLES
         if dict_needed:
             dict_len = int(msg['dict_len'])
             d = (msg.cast(self.charp) +
-                 self.printk_log_type.target().sizeof + textlen)
+                 self.printk_log_p_type.target().sizeof + textlen)
             s = ''
 
             for i in range(0, dict_len):
@@ -227,25 +223,18 @@ EXAMPLES
         return msgdict
 
     def get_log_msgs(self, dict_needed=False):
-        first_idx = safe_get_symbol_value('log_first_idx')
-        next_idx = safe_get_symbol_value('log_next_idx')
-        clear_seq = safe_get_symbol_value('clear_seq')
-        first_seq = safe_get_symbol_value('log_first_seq')
-        next_seq = safe_get_symbol_value('log_next_seq')
-        logbuf = safe_get_symbol_value('log_buf')
-
-        if first_idx is None or next_idx is None:
+        if self.log_first_idx is None or self.log_next_idx is None:
             raise LogTypeException('not structured log')
 
-        if clear_seq < first_seq:
-            clear_seq = first_seq
+        if self.clear_seq < self.log_first_seq:
+            self.clear_seq = self.log_first_seq
 
 
-        seq = clear_seq
-        idx = first_idx
+        seq = self.clear_seq
+        idx = self.log_first_idx
 
-        while seq < next_seq:
-            msg = self.log_from_idx(logbuf, idx, dict_needed)
+        while seq < self.log_next_seq:
+            msg = self.log_from_idx(self.log_buf, idx, dict_needed)
             seq += 1
             idx = msg['next']
             yield msg
@@ -269,16 +258,15 @@ EXAMPLES
                 print('{}'.format(d.encode('string_escape')))
 
     def handle_logbuf(self, args):
-        log_buf_len = safe_get_symbol_value('log_buf_len')
-        log_buf = safe_get_symbol_value('log_buf')
-
-        if log_buf_len and log_buf:
+        if self.log_buf_len and self.log_buf:
             if args.d:
                 raise LogInvalidOption("Unstructured logs don't offer key/value pair support")
 
             print(self.filter_unstructured_log(log_buf.string('utf-8', 'replace'), args))
 
     def execute(self, args):
+        print(dir(self))
+        print(dir(self.__class__))
         try:
             self.handle_structured_log(args)
             return

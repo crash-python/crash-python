@@ -91,6 +91,9 @@ class Target(gdb.Target):
         task_list = init_task.value()['tasks']
         runqueues = gdb.lookup_global_symbol('runqueues')
 
+        print(init_task)
+        print(runqueues)
+
         rqs = get_percpu_var(runqueues)
         rqscurrs = {long(x["curr"]) : k for (k, x) in rqs.items()}
 

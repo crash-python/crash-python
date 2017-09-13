@@ -8,7 +8,7 @@ from __future__ import division
 import unittest
 import gdb
 
-from crash.exceptions import MissingSymbolError
+from crash.exceptions import DelayedAttributeError
 from crash.cache.syscache import utsname, config, kernel
 from crash.cache.syscache import CrashUtsnameCache
 from crash.cache.syscache import CrashConfigCache
@@ -28,6 +28,7 @@ CONFIG_HZ=250
 class TestSysCache(unittest.TestCase):
     def setUp(self):
         gdb.execute("file tests/test-syscache")
+        self.cycle_namespace()
 
     def cycle_namespace(self):
         import crash.cache.syscache
@@ -46,8 +47,10 @@ class TestSysCache(unittest.TestCase):
 
     def test_utsname_no_sym(self):
         gdb.execute("file")
+        gdb.execute("maint flush-symbol-cache")
+        self.cycle_namespace()
         utsname = CrashUtsnameCache()
-        with self.assertRaises(MissingSymbolError):
+        with self.assertRaises(DelayedAttributeError):
             release = utsname.release
 
     def test_utsname(self):
@@ -62,7 +65,7 @@ class TestSysCache(unittest.TestCase):
     def test_utsname_namespace_nofile(self):
         self.clear_namespace()
         from crash.cache.syscache import utsname
-        with self.assertRaises(MissingSymbolError):
+        with self.assertRaises(DelayedAttributeError):
             x = utsname.sysname
 
     def test_utsname_namespace(self):
@@ -92,7 +95,7 @@ class TestSysCache(unittest.TestCase):
     def test_config_namespace_nofile(self):
         self.clear_namespace()
         from crash.cache.syscache import config
-        with self.assertRaises(MissingSymbolError):
+        with self.assertRaises(DelayedAttributeError):
             x = str(config)
 
     def test_config_dict_namespace(self):
@@ -107,7 +110,8 @@ class TestSysCache(unittest.TestCase):
         kernel = FakeKernelCache(config)
         x = kernel.uptime
 
-        self.assertTrue(str(x) == '1 day, 6:01:54')
+        uptime = str(x)
+        self.assertTrue(uptime == '1 day, 6:01:54')
 
     def test_get_uptime_with_symbol(self):
         kernel = CrashKernelCache(self.get_fake_config())
@@ -123,7 +127,7 @@ class TestSysCache(unittest.TestCase):
     def test_kernel_namespace_nofile(self):
         self.clear_namespace()
         from crash.cache.syscache import kernel
-        with self.assertRaises(MissingSymbolError):
+        with self.assertRaises(DelayedAttributeError):
             x = kernel.uptime
 
     def test_calculate_loadavg(self):
@@ -155,7 +159,7 @@ class TestSysCache(unittest.TestCase):
         self.clear_namespace()
         config = CrashConfigCache()
         kernel = CrashKernelCache(config)
-        with self.assertRaises(MissingSymbolError):
+        with self.assertRaises(DelayedAttributeError):
            metrics = kernel.get_loadavg_values()
 
     def test_loadavg_missing_symbol(self):

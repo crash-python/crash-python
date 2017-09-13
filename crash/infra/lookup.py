@@ -132,7 +132,7 @@ class DelayedMinimalSymval(DelayedMinimalSymbol):
     """Sets the property to contain the value of the address of the
     minimal symbol as a long."""
     def callback(self, value):
-        self.value = long(value.value())
+        self.value = long(value.value().address)
 
     def __str__(self):
         return "{} attached with {}".format(self.__class__, str(self.cb))

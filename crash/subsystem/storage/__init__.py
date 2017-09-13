@@ -53,7 +53,7 @@ class Storage(CrashBaseClass):
     def register_bio_decoder(cls, sym, decoder):
         if isinstance(sym, gdb.Symbol):
             sym = sym.value().address
-        elif not isinstance(sym, gdb.Value)):
+        elif not isinstance(sym, gdb.Value):
             raise TypeError("register_bio_decoder expects gdb.Symbol or gdb.Value")
         cls.bio_decoders[long(sym)] = decoder
 

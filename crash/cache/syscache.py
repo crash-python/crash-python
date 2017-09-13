@@ -16,36 +16,39 @@ from datetime import timedelta
 if sys.version_info.major >= 3:
     long = int
 
-from crash.exceptions import MissingSymbolError
+from crash.exceptions import DelayedAttributeError
 from crash.cache import CrashCache
 from crash.util import array_size
+from crash.infra import export
+from crash.infra.lookup import get_delayed_lookup
 
 class CrashUtsnameCache(CrashCache):
+    __symvals__ = [ 'init_uts_ns' ]
+
     def load_utsname(self):
-        sym = gdb.lookup_global_symbol('init_uts_ns')
-        if not sym:
-            raise MissingSymbolError("CrashUtsnameCache requires init_uts_ns")
-        init_uts_ns = sym.value()
-        self.utsname = init_uts_ns['name']
+        self.utsname = self.init_uts_ns['name']
         return self.utsname
 
     def init_utsname_cache(self):
-        self.utsname_cache = {}
+        d = {}
 
         for field in self.utsname.type.fields():
             val = self.utsname[field.name].string()
-            self.utsname_cache[field.name] = val
+            d[field.name] = val
 
+        self.utsname_cache = d
         return self.utsname_cache
 
+    utsname_fields = [ 'sysname', 'nodename', 'release',
+                       'version', 'machine', 'domainname' ]
     def __getattr__(self, name):
         if name == 'utsname_cache':
             return self.init_utsname_cache()
         elif name == 'utsname':
             return self.load_utsname()
-        if name in self.utsname_cache:
+        if name in self.utsname_fields:
             return self.utsname_cache[name]
-        raise AttributeError
+        return getattr(self.__class__, name)
 
 class CrashConfigCache(CrashCache):
     __types__ = [ 'char *' ]
@@ -53,12 +56,17 @@ class CrashConfigCache(CrashCache):
 
     def __getattr__(self, name):
         if name == 'config_buffer':
-            self.decompress_config_buffer()
+            try:
+                return self.decompress_config_buffer()
+            except Exception as e:
+                print("ok wtf")
+                print(e)
+                sys.stdin.flush()
+                raise e
+                return None
         elif name == 'ikconfig_cache':
-            self._parse_config()
-        else:
-            raise AttributeError
-        return getattr(self, name)
+            return self._parse_config()
+        return getattr(self.__class__, name)
 
     @staticmethod
     def read_buf(address, size):
@@ -68,6 +76,10 @@ class CrashConfigCache(CrashCache):
         MAGIC_START = 'IKCFG_ST'
         MAGIC_END = 'IKCFG_ED'
         GZIP_HEADER_LEN = 10
+
+        print("---> decompress_config_buffer")
+        print(dir(self))
+        print("<---")
 
         # Must cast it to char * to do the pointer arithmetic correctly
         data_addr = self.kernel_config_data.address.cast(self.char_p_type)
@@ -92,6 +104,7 @@ class CrashConfigCache(CrashCache):
         buf_len = data_len - len(MAGIC_START) - len(MAGIC_END) - GZIP_HEADER_LEN
         buf = self.read_buf(data_addr + len(MAGIC_START) + GZIP_HEADER_LEN, buf_len)
         self.config_buffer = zlib.decompress(buf, -15, buf_len)
+        return self.config_buffer
 
     def __str__(self):
         return self.config_buffer
@@ -110,27 +123,37 @@ class CrashConfigCache(CrashCache):
             if m:
                 self.ikconfig_cache[m.group(1)] = m.group(2)
 
+        return self.ikconfig_cache
+
     def __getitem__(self, name):
         return self.ikconfig_cache[name]
 
 class CrashKernelCache(CrashCache):
+    __symvals__ = [ 'avenrun' ]
+    __symbol_callbacks__ = [
+                    ( 'jiffies', 'setup_jiffies' ),
+                    ( 'jiffies_64', 'setup_jiffies' ) ]
+    __delayed_values__ = [ 'jiffies' ]
+
+    jiffies_ready = False
+    adjust_jiffies = False
     def __init__(self, config):
         CrashCache.__init__(self)
         self.config = config
 
+        print("<---")
+        print(dir(self))
+        print("--->")
+
     def __getattr__(self, name):
         if name == 'hz':
             self.hz = long(self.config['HZ'])
+            return self.hz
         elif name == 'uptime':
-            self.uptime = self.get_uptime()
-        elif name == 'jiffies':
-            self.load_jiffies()
+            return self.get_uptime()
         elif name == 'loadavg':
-            self.loadavg = self.get_loadavg()
-        else:
-            raise AttributeError
-
-        return getattr(self, name)
+            return self.get_loadavg()
+        return getattr(self.__class__, name)
 
     @staticmethod
     def calculate_loadavg(metric):
@@ -147,44 +170,47 @@ class CrashKernelCache(CrashCache):
         return " ".join(out)
 
     def get_loadavg_values(self):
-        sym = gdb.lookup_global_symbol('avenrun')
-        if not sym:
-            raise MissingSymbolError("loadavg values require 'avenrun'")
-
-        avenrun = sym.value()
         metrics = []
-        for index in range(0, array_size(avenrun)):
-            metrics.append(self.calculate_loadavg(avenrun[index]))
+        for index in range(0, array_size(self.avenrun)):
+            metrics.append(self.calculate_loadavg(self.avenrun[index]))
 
         return metrics
 
     def get_loadavg(self):
         try:
             metrics = self.get_loadavg_values()
-            return self.format_loadavg(metrics)
-        except MissingSymbolError:
+            self.loadavg = self.format_loadavg(metrics)
+            return self.loadavg
+        except DelayedAttributeError:
             return "Unknown"
 
-    def load_jiffies(self):
+    @classmethod
+    def setup_jiffies(cls, symbol):
+        if cls.jiffies_ready:
+            return
+
         jiffies_sym = gdb.lookup_global_symbol('jiffies_64')
+
         if jiffies_sym:
-            jiffies = long(jiffies_sym.value())
-            # FIXME: Only kernel above 2.6.0 initializes 64-bit jiffies
-            #        value by 2^32 + 5 minutes
-            jiffies -= long(0x100000000) - 300 * self.hz
-        else:
-            jiffies_sym = gdb.lookup_global_symbol('jiffies')
-            if jiffies_sym:
+            try:
                 jiffies = long(jiffies_sym.value())
+            except gdb.MemoryError:
+                return False
+            cls.adjust_jiffies = True
+        else:
+            jiffies = long(gdb.lookup_global_symbol('jiffies').value())
+            cls.adjust_jiffies = False
 
-        if jiffies_sym is None:
-            raise MissingSymbolError("Could not locate jiffies_64 or jiffies")
+        delayed = get_delayed_lookup(cls, 'jiffies').callback(jiffies)
 
-        self.jiffies = jiffies
+    def adjusted_jiffies(self):
+        return cls.jiffies -(long(0x100000000) - 300 * self.hz)
 
     def get_uptime(self):
-        return timedelta(seconds=self.jiffies // self.hz)
+        self.uptime = timedelta(seconds=self.jiffies // self.hz)
+        return self.uptime
 
+    @export
     def jiffies_to_msec(self, jiffies):
         return 1000 // self.hz * jiffies
 
