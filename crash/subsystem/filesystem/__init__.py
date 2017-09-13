@@ -15,7 +15,7 @@ from crash.subsystem.storage import Storage as block
 class FileSystem(CrashBaseClass):
     __types__ = [ 'struct dio *',
                   'struct buffer_head *' ]
-    __symbol_callbacks = [
+    __symbol_callbacks__ = [
                     ('dio_bio_end', 'register_dio_bio_end'),
                     ('dio_bio_end_aio', 'register_dio_bio_end'),
                     ('mpage_end_io', 'register_mpage_end_io') ]
@@ -46,13 +46,16 @@ class FileSystem(CrashBaseClass):
 
     @classmethod
     def decode_dio_bio(cls, bio):
-        dio = bio['bi_private'].cast(self.dio_p_type)
+        dio = bio['bi_private'].cast(cls.dio_p_type)
         fstype = cls.super_fstype(dio['inode']['i_sb'])
         dev = block_device_name(dio['inode']['i_sb']['s_bdev'])
         offset = dio['block_in_file'] << dio['blkbits']
 
         chain = {
-            'description' : "Direct I/O Bio",
+            'description' : "{:x} bio: Direct I/O for {} inode {} on {}".format(
+                            long(bio), fstype, dio['inode']['i_ino'], dev),
+            'bio' : bio,
+            'dio' : dio,
             'fstype' : fstype,
             'inode' : dio['inode'],
             'offset' : offset,
@@ -65,7 +68,11 @@ class FileSystem(CrashBaseClass):
         inode = bio['bi_io_vec'][0]['bv_page']['mapping']['host']
         fstype = cls.super_fstype(inode['i_sb'])
         chain = {
-            'description' : "Multipage I/O",
+            'description' :
+                "{:x} bio: Multipage I/O: inode {}, type {}, dev {}".format(
+                        long(bio), inode['i_ino'], fstype,
+                        block_device_name(bio['bi_bdev'])),
+            'bio' : bio,
             'fstype' : fstype,
             'inode' : inode,
         }
@@ -75,11 +82,14 @@ class FileSystem(CrashBaseClass):
     def decode_bio_buffer_head(cls, bio):
         bh = bio['bi_private'].cast(cls.buffer_head_p_type)
         chain = {
-            'bh' : bh,
-            'description' : "Buffer Head",
+            'description' :
+                "{:x} bio: Bio representation of buffer head".format(long(bio)),
+            'bio' : bio,
+            'next' : bh,
+            'decoder' : cls.decode_buffer_head,
         }
 
-        return [cls.decode_buffer_head(bh), chain]
+        return chain
 
     @classmethod
     def decode_buffer_head(cls, bh):
@@ -88,23 +98,23 @@ class FileSystem(CrashBaseClass):
             return cls.buffer_head_decoders[endio](bh)
         except KeyError:
             pass
-        desc = ("Buffer Head (undecoded) for dev {}, block {}, size {}"
-                .format(block_device_name(bh['b_bdev']),
-                        bh['b_blocknr'], bh['b_size']))
+        desc = "{:x} buffer_head: for dev {}, block {}, size {} (undecoded)".format(
+                    long(bh), block_device_name(bh['b_bdev']),
+                    bh['b_blocknr'], bh['b_size'])
         chain = {
-            'bh' : bh,
             'description' : desc,
+            'bh' : bh,
         }
         return chain
 
     @classmethod
     def decode_end_buffer_write_sync(cls, bh):
-        desc = ("Buffer Head (unassociated) for dev {}, block {}, size {}"
+        desc = ("{:x} buffer_head: for dev {}, block {}, size {} (unassociated)"
                 .format(block_device_name(bh['b_bdev']),
                         bh['b_blocknr'], bh['b_size']))
         chain = {
-            'bh' : bh,
             'description' : desc,
+            'bh' : bh,
         }
         return chain
 

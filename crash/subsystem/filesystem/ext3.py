@@ -30,11 +30,12 @@ class Ext3(CrashBaseClass):
     @classmethod
     def decode_journal_buffer_io_sync(cls, bh):
         fstype = "journal on ext3"
+        devname = block_device_name(bh['b_bdev'])
         chain = {
             'bh' : bh,
-            'description' : "Ext3 journal block (jbd)",
+            'description' : "{:x} buffer_head: {} journal block (jbd) on {}".format(long(bh), fstype, devname),
             'fstype' : fstype,
-            'devname' : block_device_name(bh['b_bdev']),
+            'devname' : devname,
             'offset' : long(bh['b_blocknr']) * long(bh['b_size']),
             'length' : long(bh['b_size'])
         }

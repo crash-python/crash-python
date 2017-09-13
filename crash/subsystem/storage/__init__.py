@@ -59,13 +59,19 @@ class Storage(CrashBaseClass):
 
     @export
     @classmethod
-    def bio_chain(cls, bio):
+    def for_each_bio_in_stack(cls, bio):
+        first = cls.bio_decoders[long(bio['bi_end_io'])](bio)
+        if first:
+            yield first
+            while 'decoder' in first:
+                first = first['decoder'](first['next'])
+                yield first
+
+    @export
+    @classmethod
+    def decode_bio(cls, bio):
         try:
-            chain = cls.bio_decoders[long(bio['bi_end_io'])](bio)
-            if chain and 'bio' in chain:
-                return cls.bio_chain(chain['bio']) + [chain]
-            else:
-                return [chain]
+            return cls.bio_decoders[long(bio['bi_end_io'])](bio)
         except KeyError:
             print(cls.bio_decoders)
             raise NotImplementedError("No handler for endio handler {}"

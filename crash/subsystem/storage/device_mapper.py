@@ -13,6 +13,7 @@ if sys.version_info.major >= 3:
 
 from crash.infra import CrashBaseClass
 from crash.subsystem.storage import Storage as block
+from crash.subsystem.storage import block_device_name
 
 class DeviceMapper(CrashBaseClass):
     __types__ = [ 'struct dm_rq_clone_bio_info *',
@@ -43,18 +44,32 @@ class DeviceMapper(CrashBaseClass):
 
         chain = {
             'bio' : bio,
-            'description' : 'Request-based Device Mapper',
+            'next' : info['orig'],
+            'description' :
+                '{:x} bio: Request-based Device Mapper on {}'.format(
+                        long(bio), block_device_name(bio['bi_bdev'])),
+            'decoder' : block.decode_bio,
         }
 
         return chain
 
     @classmethod
     def decode_clone_bio(cls, bio):
-        tio = bio['bi_private'].cast(dm_target_io_p_type)
+        tio = bio['bi_private'].cast(cls.dm_target_io_p_type)
+
+        next_bio = tio['io']['bio']
 
         chain = {
-            'bio' : tio['io']['bio'],
-            'description' : 'Bio-based Device Mapper'
+            'description' : "{:x} bio: device mapper clone: {}[{}] -> {}[{}]".format(
+                            long(bio),
+                            block_device_name(bio['bi_bdev']),
+                            long(bio['bi_sector']),
+                            block_device_name(next_bio['bi_bdev']),
+                            long(next_bio['bi_sector'])),
+            'bio' : bio,
+            'tio' : tio,
+            'next' : tio['io']['bio'],
+            'decoder' : block.decode_bio,
         }
 
         return chain
