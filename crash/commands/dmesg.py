@@ -12,6 +12,7 @@ import argparse
 import re
 
 from crash.commands import CrashCommand, CrashCommandParser
+from crash.exceptions import DelayedAttributeError
 
 if sys.version_info.major >= 3:
     long = int
@@ -223,7 +224,9 @@ EXAMPLES
         return msgdict
 
     def get_log_msgs(self, dict_needed=False):
-        if self.log_first_idx is None or self.log_next_idx is None:
+        try:
+            idx = self.log_first_idx
+        except DelayedAttributeError, e:
             raise LogTypeException('not structured log')
 
         if self.clear_seq < self.log_first_seq:
@@ -262,7 +265,7 @@ EXAMPLES
             if args.d:
                 raise LogInvalidOption("Unstructured logs don't offer key/value pair support")
 
-            print(self.filter_unstructured_log(log_buf.string('utf-8', 'replace'), args))
+            print(self.filter_unstructured_log(self.log_buf.string('utf-8', 'replace'), args))
 
     def execute(self, args):
         print(dir(self))
