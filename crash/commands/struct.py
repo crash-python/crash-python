@@ -2,10 +2,14 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import division
+
 import gdb
 import argparse
-from crash.commands import CrashCommand, CommandRuntimeError
-from crash.types.util import offsetof_type
+from crash.commands import CrashCommand, CrashCommandParser, CommandRuntimeError
+from crash.util import offsetof_type
 import sys
 import re
 
@@ -31,7 +35,7 @@ Options:
            virtual address.
 """
     def __init__(self):
-        parser = argparse.ArgumentParser(prog="struct")
+        parser = CrashCommandParser(prog="struct")
         parser.add_argument('-l', type=str, help="offset within struct either as a number of bytes or in \"structure.member\" format", metavar="offset/struct.member")
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-o', action='store_true', help="show member offsets when displaying structure definitions.If used with an address or symbol argument, each member will be preceded by its virtual address", default=False)
@@ -105,19 +109,19 @@ Options:
         offtype = gdb.lookup_type(typename)
         if offtype:
             return offsetof_type(offtype, member)
-            f = None
-            for memb in components[1:]:
-                if f and f.type.code & gdb.TYPE_CODE_PTR:
-                    offtype = f.type.target()
-                    offset = 0
+        f = None
+        for memb in components[1:]:
+            if f and f.type.code & gdb.TYPE_CODE_PTR:
+                offtype = f.type.target()
+                offset = 0
 
-                try:
-                    f = offtype[memb]
-                except KeyError as e:
-                    raise CommandRuntimeError("Type `{}' has no member `{}'.".format(typename, memb))
+            try:
+                f = offtype[memb]
+            except KeyError as e:
+                raise CommandRuntimeError("Type `{}' has no member `{}'.".format(typename, memb))
 
-                offtype = f.type
-                offset += f.bitpos >> 3
+            offtype = f.type
+            offset += f.bitpos >> 3
         else:
             raise CommandRuntimeError("No such type `{}'".format(typename))
 
