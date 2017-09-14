@@ -4,11 +4,21 @@
 usage() {
 cat <<END >&2
 usage: $(basename $0) [-d|--search-dir <debuginfo/module dir>] <vmlinux> <vmcore>
+
+Debugging options:
+--gdb           Run the embedded gdb underneath a separate gdb instance.
+                This is useful for debugging issues in gdb that are seen
+                while running crash-python.
+--valgrind      Run the embedded gdb underneath valgrind.
+                This is useful for debugging memory leaks in gdb patches.
+--nofiles       Start up without loading any object files.
+                This is useful for testing delayed lookup error handling.
+
 END
 exit 1
 }
 
-TEMP=$(getopt -o 'd:' --long 'search-dir:,gdb,valgrind,nofiles' -n "$(basename $0)" -- "$@")
+TEMP=$(getopt -o 'd:h' --long 'search-dir:,gdb,valgrind,nofiles,help' -n "$(basename $0)" -- "$@")
 
 if [ $? -ne 0 ]; then
     echo "Terminating." >&2
@@ -40,10 +50,12 @@ while true; do
             shift
             continue
             ;;
+        '-h'|'--help')
+            usage ;;
         '--')
             shift
             break
-        ;;
+            ;;
         *)
             echo "internal error [$1]" >&2
             exit 1
