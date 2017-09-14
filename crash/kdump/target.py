@@ -106,7 +106,7 @@ class Target(gdb.Target):
             for task in list_for_each_entry(taskg['thread_group'], init_task.type, 'thread_group'):
                 tasks.append(task)
 
-        for task in list_for_each_entry(task_list, init_task.type, 'tasks'):
+        for task in tasks:
             cpu = None
             regs = None
             active = long(task.address) in rqscurrs
