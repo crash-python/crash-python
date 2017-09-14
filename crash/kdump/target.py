@@ -39,7 +39,7 @@ class SymbolCallback(object):
         if symtype == addrxlat.SYM_VALUE:
             ms = gdb.lookup_minimal_symbol(args[0])
             if ms is not None:
-                return long(ms.value())
+                return long(ms.value().address)
 
         raise addrxlat.NoDataError()
 
@@ -91,9 +91,6 @@ class Target(gdb.Target):
         task_list = init_task.value()['tasks']
         runqueues = gdb.lookup_global_symbol('runqueues')
 
-        print(init_task)
-        print(runqueues)
-
         rqs = get_percpu_var(runqueues)
         rqscurrs = {long(x["curr"]) : k for (k, x) in rqs.items()}
 
@@ -106,7 +103,8 @@ class Target(gdb.Target):
         tasks = []
         for taskg in list_for_each_entry(task_list, init_task.type, 'tasks'):
             tasks.append(taskg)
-            for task in list_for_each_entry(taskg['thread_group'], init_task.type, 'thread_group'):
+            for task in list_for_each_entry(taskg['thread_group'],
+                                            init_task.type, 'thread_group'):
                 tasks.append(task)
 
         for task in list_for_each_entry(task_list, init_task.type, 'tasks'):
@@ -164,6 +162,7 @@ class Target(gdb.Target):
             except AddressTranslationException as e:
                 if self.debug:
                     self.report_error(offset, ln, e)
+                print("{:x}".format(offset))
                 raise gdb.TargetXferUnavailable(str(e))
         else:
             raise IOError("Unknown obj type")

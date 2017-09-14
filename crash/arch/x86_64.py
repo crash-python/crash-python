@@ -21,8 +21,9 @@ class x86_64Architecture(CrashArchitecture):
         super(x86_64Architecture, self).__init__()
         # PC for blocked threads
         try:
-            self.rip = gdb.lookup_minimal_symbol("thread_return").value()
-        except MissingSymbolError:
+            thread_return = gdb.lookup_minimal_symbol("thread_return")
+            self.rip = thread_return.value().address
+        except Exception:
             raise RuntimeError("{} requires symbol 'thread_return'"
                                .format(self.__class__.__name__))
         self.ulong_type = gdb.lookup_type('unsigned long')
