@@ -26,7 +26,7 @@ class TestPerCPU(unittest.TestCase):
 
             gdb.execute("run", to_string=False)
             msym = gdb.lookup_minimal_symbol('__per_cpu_load')
-            self.baseaddr = msym.value()
+            self.baseaddr = msym.value().address
             self.test_struct = gdb.lookup_type("struct test_struct")
             self.ulong_type = gdb.lookup_type("long unsigned int")
             self.voidp = gdb.lookup_type("void").pointer()

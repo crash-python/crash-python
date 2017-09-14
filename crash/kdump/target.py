@@ -39,7 +39,7 @@ class SymbolCallback(object):
         if symtype == addrxlat.SYM_VALUE:
             ms = gdb.lookup_minimal_symbol(args[0])
             if ms is not None:
-                return long(ms.value())
+                return long(ms.value().address)
 
         raise addrxlat.NoDataError()
 
