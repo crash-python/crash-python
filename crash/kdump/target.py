@@ -162,7 +162,6 @@ class Target(gdb.Target):
             except AddressTranslationException as e:
                 if self.debug:
                     self.report_error(offset, ln, e)
-                print("{:x}".format(offset))
                 raise gdb.TargetXferUnavailable(str(e))
         else:
             raise IOError("Unknown obj type")
