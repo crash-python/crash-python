@@ -73,9 +73,11 @@ class Storage(CrashBaseClass):
         try:
             return cls.bio_decoders[long(bio['bi_end_io'])](bio)
         except KeyError:
-            print(cls.bio_decoders)
-            raise NotImplementedError("No handler for endio handler {}"
-                                      .format(bio['bi_end_io']))
+            chain = {
+                'description' : "{:x} bio: undecoded bio on {}".format(
+                    long(bio), block_device_name(bio['bi_bdev'])),
+            }
+            return chain
 
     @export
     def dev_to_gendisk(self, dev):
