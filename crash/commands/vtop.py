@@ -9,6 +9,48 @@ from crash.commands import CrashCommand, CrashCommandParser
 from crash.addrxlat import addrxlat_context, addrxlat_system
 import addrxlat
 
+class LinuxPGT(object):
+    table_names = ( 'PTE', 'PMD', 'PUD', 'PGD' )
+
+    def __init__(self, ctx, sys):
+        self.context = ctx
+        self.system = sys
+
+    def begin(self, addr):
+        meth = self.system.get_map(addrxlat.SYS_MAP_HW).search(addr)
+        if meth == addrxlat.SYS_METH_NONE:
+            meth = self.system.get_map(addrxlat.SYS_MAP_KV_PHYS).search(addr)
+        if meth == addrxlat.SYS_METH_NONE:
+            return False
+
+        self.step = addrxlat.Step(self.context, self.system)
+        self.step.meth = self.system.get_meth(meth)
+        self.step.launch(addr)
+        return True
+
+    def next(self):
+        if self.step.remain <= 1:
+            return False
+
+        level = self.step.remain - 1
+        self.table = self.table_names[level - 1]
+        self.ptr = self.step.base.copy()
+        self.ptr.addr += self.step.idx[level] * self.step.elemsz
+
+        self.note = ''
+        try:
+            self.step.step()
+        except addrxlat.NotPresentError:
+            self.note = ' (NOT PRESENT)'
+            self.step.remain = 0
+        return True
+
+    def address(self):
+        return '{:16x}'.format(self.ptr.addr)
+
+    def value(self):
+        return '{:16x}{}'.format(self.step.raw, self.note)
+
 class VTOPCommand(CrashCommand):
     """convert virtual address to physical
 
@@ -141,6 +183,8 @@ EXAMPLES
     def execute(self, argv):
         ctx = addrxlat_context()
         sys = addrxlat_system()
+        pgt = LinuxPGT(ctx, sys)
+
         for addr in argv.args:
             addr = int(addr, 16)
             fulladdr = addrxlat.FullAddress(addrxlat.KVADDR, addr)
@@ -151,5 +195,15 @@ EXAMPLES
             except addrxlat.BaseException:
                 phys = '---'
             print('{:<16x}  {:<16}\n'.format(addr, phys))
+
+            if pgt.begin(addr):
+                while pgt.next():
+                    print('{:>4}: {} => {}'.format(pgt.table, pgt.address(), pgt.value()))
+                if pgt.step.remain:
+                    print('PAGE: {:16x}'.format(pgt.step.base.addr))
+            else:
+                print('NO TRANSLATION')
+
+            print()
 
 VTOPCommand()
