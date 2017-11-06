@@ -50,11 +50,16 @@ class TranslationContext(addrxlat.Context):
 
 class CrashAddressTranslation(CrashBaseClass):
     def __init__(self):
-        self.context = TranslationContext()
-        self.system = addrxlat.System()
-        self.system.os_init(self.context,
-                            arch = utsname.machine,
-                            type = addrxlat.OS_LINUX)
+        try:
+            target = gdb.current_target()
+            self.context = target.kdump.get_addrxlat_ctx()
+            self.system = target.kdump.get_addrxlat_sys()
+        except AttributeError:
+            self.context = TranslationContext()
+            self.system = addrxlat.System()
+            self.system.os_init(self.context,
+                                arch = utsname.machine,
+                                type = addrxlat.OS_LINUX)
 
     @export
     def addrxlat_context(self):
