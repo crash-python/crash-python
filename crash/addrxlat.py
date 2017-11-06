@@ -61,6 +61,16 @@ class CrashAddressTranslation(CrashBaseClass):
                                 arch = utsname.machine,
                                 type = addrxlat.OS_LINUX)
 
+        self.is_non_auto = False
+        map = self.system.get_map(addrxlat.SYS_MAP_MACHPHYS_KPHYS)
+        for range in map:
+            if range.meth == addrxlat.SYS_METH_NONE:
+                continue
+            meth = self.system.get_meth(range.meth)
+            if meth.kind != addrxlat.LINEAR or meth.off != 0:
+                self.is_non_auto = True
+                break
+
     @export
     def addrxlat_context(self):
         return self.context
@@ -68,3 +78,7 @@ class CrashAddressTranslation(CrashBaseClass):
     @export
     def addrxlat_system(self):
         return self.system
+
+    @export
+    def addrxlat_is_non_auto(self):
+        return self.is_non_auto

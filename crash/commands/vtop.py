@@ -6,7 +6,7 @@ from __future__ import print_function
 import gdb
 import argparse
 from crash.commands import CrashCommand, CrashCommandParser
-from crash.addrxlat import addrxlat_context, addrxlat_system
+from crash.addrxlat import addrxlat_context, addrxlat_system, addrxlat_is_non_auto
 import addrxlat
 
 class LinuxPGT(object):
@@ -49,7 +49,17 @@ class LinuxPGT(object):
         return '{:16x}'.format(self.ptr.addr)
 
     def value(self):
-        return '{:16x}{}'.format(self.step.raw, self.note)
+        return '{:x}{}'.format(self.step.raw, self.note)
+
+class LinuxNonAutoPGT(LinuxPGT):
+    def address(self):
+        addr = super(LinuxNonAutoPGT, self).address() + ' [machine], '
+        tmp = self.ptr.copy()
+        try:
+            tmp.conv(addrxlat.KPHYSADDR, self.context, self.system)
+            return addr + '{:x} [phys]'.format(tmp.addr)
+        except (addrxlat.NotPresentError, addrxlat.NoDataError):
+            return addr + 'N/A'
 
 class VTOPCommand(CrashCommand):
     """convert virtual address to physical
@@ -183,7 +193,10 @@ EXAMPLES
     def execute(self, argv):
         ctx = addrxlat_context()
         sys = addrxlat_system()
-        pgt = LinuxPGT(ctx, sys)
+        if addrxlat_is_non_auto():
+            pgt = LinuxNonAutoPGT(ctx, sys)
+        else:
+            pgt = LinuxPGT(ctx, sys)
 
         for addr in argv.args:
             addr = int(addr, 16)
@@ -200,7 +213,8 @@ EXAMPLES
                 while pgt.next():
                     print('{:>4}: {} => {}'.format(pgt.table, pgt.address(), pgt.value()))
                 if pgt.step.remain:
-                    print('PAGE: {:16x}'.format(pgt.step.base.addr))
+                    pgt.ptr = pgt.step.base
+                    print('PAGE: {}'.format(pgt.address()))
             else:
                 print('NO TRANSLATION')
 
