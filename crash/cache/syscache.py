@@ -68,7 +68,6 @@ class CrashConfigCache(CrashCache):
     def decompress_config_buffer(self):
         MAGIC_START = 'IKCFG_ST'
         MAGIC_END = 'IKCFG_ED'
-        GZIP_HEADER_LEN = 10
 
         # Must cast it to char * to do the pointer arithmetic correctly
         data_addr = self.kernel_config_data.address.cast(self.char_p_type)
@@ -85,14 +84,9 @@ class CrashConfigCache(CrashCache):
             raise IOError("Missing MAGIC_END in kernel_config_data.")
 
         # Read the compressed data
-        #
-        # FIXME: We skip the gzip header (10 bytes) and decompress
-        #        the data directly using zlib. If we know how to map
-        #        the memory into a file/stream, it would be possible
-        #        to use gzip module.
-        buf_len = data_len - len(MAGIC_START) - len(MAGIC_END) - GZIP_HEADER_LEN
-        buf = self.read_buf(data_addr + len(MAGIC_START) + GZIP_HEADER_LEN, buf_len)
-        self.config_buffer = zlib.decompress(buf, -15, buf_len)
+        buf_len = data_len - len(MAGIC_START) - len(MAGIC_END)
+        buf = self.read_buf(data_addr + len(MAGIC_START), buf_len)
+        self.config_buffer = zlib.decompress(buf, 16 + zlib.MAX_WBITS)
         return self.config_buffer
 
     def __str__(self):

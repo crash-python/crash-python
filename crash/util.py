@@ -206,7 +206,7 @@ class TypesUtilClass(CrashBaseClass):
     @staticmethod
     def safe_lookup_type(name, block=None):
         try:
-            return gdb.lookup_type(name, block=None)
+            return gdb.lookup_type(name, block)
         except gdb.error:
             return None
 
