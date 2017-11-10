@@ -70,7 +70,6 @@ DESCRIPTION
 
             print("Checking done.")
             return
-
         elif args.o:
             crash.cache.objects.kmem_cache_types()
           
