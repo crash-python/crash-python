@@ -43,6 +43,8 @@ slab_free = 2
 
 BUFCTL_END = ~0 & 0xffffffff
 
+slab_pages = set()
+
 class Slab:
     @staticmethod
     def from_addr(slab_addr, kmem_cache):
@@ -199,12 +201,14 @@ class Slab:
                 page = Page.from_addr(obj).compound_head()
             except:
                 self.__error(": failed to get page for object %x" % obj)
-                continue
+                break
 
             if long(page.gdb_obj.address) == last_page_addr:
                 continue
 
             last_page_addr = long(page.gdb_obj.address)
+
+            slab_pages.add(last_page_addr)
 
             if page.get_nid() != nid:
                 self.__error(": obj %x is on nid %d instead of %d" %
@@ -223,6 +227,16 @@ class Slab:
             if slab_addr != self.gdb_obj.address:
                 self.__error(": obj %x is on page where pointer to slab wrongly points to %x" %
                                                                         (obj, slab_addr))
+
+        slab_addr = self.s_mem - long(self.gdb_obj["colouroff"])
+        order = long(self.kmem_cache.gdb_obj["gfporder"])
+        for i in range(1 << order):
+            try:
+                page = Page.from_addr(slab_addr)
+                slab_addr += 4096
+                slab_pages.add(long(page.gdb_obj.address))
+            except:
+                pass
         return num_free
 
     def __init__(self, gdb_obj, kmem_cache):
@@ -410,4 +424,14 @@ class KmemCache:
             if free_declared != free_counted:
                 print(("free objects mismatch on node %d: declared=%d counted=%d" %
                                                 (nid, free_declared, free_counted)))
-
+        for ac_obj in self.get_array_caches().keys():
+            slab = Slab.from_obj(ac_obj)
+            if not slab:
+                print("WARNING: object in array_cache not on slab")
+                continue
+            if slab.kmem_cache != self:
+                print("WARNING: cache mismatch")
+                continue
+            
+            
+            

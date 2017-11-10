@@ -59,8 +59,12 @@ class Node:
     def for_each_zone(self):
         node_zones = self.gdb_obj["node_zones"]
         (first, last) = node_zones.type.range()
+        node_zones = long(node_zones.address)
+        zone_type = gdb.lookup_type("struct zone")
         for zid in range(first, last + 1):
-            yield crash.types.zone.Zone(node_zones[zid], zid)
+            z = crash.types.util.addr_cast(node_zones + zid * zone_type.sizeof,
+zone_type)  
+            yield crash.types.zone.Zone(z, zid)
 
     def __init__(self, obj):
         self.gdb_obj = obj

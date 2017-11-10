@@ -48,9 +48,9 @@ class LinuxTask:
         if cpu is not None and not isinstance(cpu, int):
             raise TypeError("cpu must be integer or None")
 
-        if not isinstance(task_struct, gdb.Value) or \
-           not task_struct.type != self.task_struct_type:
-            raise TypeError("task_struct must be gdb.Value describing struct task_struct")
+#        if not isinstance(task_struct, gdb.Value) or \
+#           not task_struct.type != self.task_struct_type:
+#            raise TypeError("task_struct must be gdb.Value describing struct task_struct")
 
         self.task_struct = task_struct
         self.active = active
