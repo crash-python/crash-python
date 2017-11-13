@@ -76,7 +76,7 @@ class Mount(CrashBaseClass):
     @export
     @classmethod
     def mount_flags(cls, mnt, show_hidden=False):
-        flags = long(mnt['mnt_flags'])
+        flags = long(mnt['mnt']['mnt_flags'])
 
         if flags & MNT_READONLY:
             flagstr = "ro"
