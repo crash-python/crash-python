@@ -20,6 +20,7 @@ from crash.subsystem.filesystem.mount import MNT_SHARED, MNT_UNBINDABLE
 from crash.subsystem.filesystem.mount import d_path, for_each_mount
 from crash.subsystem.filesystem.mount import mount_device, mount_fstype
 from crash.subsystem.filesystem.mount import mount_super, mount_flags
+from crash.subsystem.filesystem.mount import mnt_root
 
 class MountCommand(CrashCommand):
     """display mounted file systems
@@ -63,7 +64,7 @@ NAME
         flags = ""
         if args.f:
             flags = " ({})".format(mount_flags(mnt))
-        path = d_path(mnt, mnt['mnt_root'])
+        path = d_path(mnt, mnt_root(mnt))
         if args.v:
             print("{:016x} {:016x}  {:<10} {:<16} {}"
                   .format(long(mnt.address), long(mount_super(mnt)),

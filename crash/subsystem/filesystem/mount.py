@@ -34,6 +34,8 @@ class Mount(CrashBaseClass):
     __type_callbacks__ = [ ('struct vfsmount', 'check_mount_type' ) ]
     __symbol_callbacks__ = [ ('init_task', 'check_task_interface' ) ]
 
+    has_mnt_root = True
+
     @classmethod
     def for_each_mount_impl(cls, task):
         raise NotImplementedError("Mount.for_each_mount is unhandled on this kernel version.")
@@ -42,6 +44,8 @@ class Mount(CrashBaseClass):
     def check_mount_type(cls, gdbtype):
         try:
             cls.mount_type = gdb.lookup_type('struct mount')
+            if not 'mnt_root' in cls.mount_type.fields():
+                cls.has_mnt_root = False
         except gdb.error:
             # Older kernels didn't separate mount from vfsmount
             cls.mount_type = cls.vfsmount_type
@@ -140,6 +144,14 @@ class Mount(CrashBaseClass):
 
     @export
     @classmethod
+    def mnt_root(cls, mnt):
+        if cls.has_mnt_root == False and mnt.type in [cls.mount_type, cls.mount_type.pointer()]:
+            return mnt['mnt']['mnt_root']
+        else:
+            return mnt['mnt_root']
+
+    @export
+    @classmethod
     def d_path(cls, mnt, dentry, root=None):
         if root is None:
             root = cls.init_task['fs']['root']
@@ -159,8 +171,8 @@ class Mount(CrashBaseClass):
         # Gone are the days where finding the root was as simple as
         # dentry == dentry->d_parent
         while dentry != root['dentry'] or mnt != root['mnt']:
-            if dentry == mnt['mnt_root'] or dentry == dentry['d_parent']:
-                if dentry != mnt['mnt_root']:
+            if dentry == mnt_root(mnt) or dentry == dentry['d_parent']:
+                if dentry != mnt_root(mnt):
                     return None
                 if mount != mount['mnt_parent']:
                     dentry = mount['mnt_mountpoint']
