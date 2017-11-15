@@ -30,7 +30,42 @@ class Session(object):
         if not kernel_exec:
             return
 
-        error = gdb.execute("file {}".format(kernel_exec), to_string=True)
+        try:
+            kdump = kdumpfile(vmcore)
+        except OSErrorException as e:
+            raise RuntimeError(str(e))
+
+        kaslr_off = long(
+            kdump.attr.get("linux.vmcoreinfo.lines.KERNELOFFSET", "0"),
+            base=16)
+
+        error = gdb.execute("exec-file {}".format(kernel_exec), to_string=True)
+        tinfo = gdb.execute("info target", to_string=True)
+        args=""
+        textaddr = 0
+        in_exec = False
+        for line in tinfo.splitlines():
+            if line.startswith((" ", "\t")):
+                if not in_exec:
+                    continue
+                try:
+                    (addrs, sect) = line.strip().split(" is ")
+                except ValueError:
+                    continue
+                (start, end) = addrs.split(" - ")
+                sect = sect.split(' ')[0]
+                startaddr = long(start, base=0) + kaslr_off
+                if sect == ".text":
+                    textaddr = startaddr
+                    args += " 0x{:x}".format(startaddr)
+                elif startaddr >= textaddr:
+                    args += " -s {} 0x{:x}".format(sect, startaddr)
+            elif line.startswith("Local exec file:"):
+                in_exec = True
+            elif not line.startswith("warning: "):
+                in_exec = False
+
+        error = gdb.execute("add-symbol-file {}{}".format(kernel_exec, args), to_string=True)
 
         try:
             list_type = gdb.lookup_type('struct list_head')
@@ -40,11 +75,6 @@ class Session(object):
                 list_type = gdb.lookup_type('struct list_head')
             except gdb.error as e:
                 raise RuntimeError("Couldn't locate debuginfo for {}".format(kernel_exec))
-
-        try:
-            kdump = kdumpfile(vmcore)
-        except OSErrorException as e:
-            raise RuntimeError(str(e))
 
         self.target = crash.kdump.target.Target(kdump, debug)
         load_modules(self.searchpath)
