@@ -147,7 +147,6 @@ EXAMPLES
 
     """
     def __init__(self, name):
-        self.charp = gdb.lookup_type('char').pointer()
         parser = CrashCommandParser(prog=name)
 
         parser.add_argument('-t', action='store_true', default=False)
@@ -157,7 +156,7 @@ EXAMPLES
         parser.format_usage = lambda: 'log [-tdm]\n'
         CrashCommand.__init__(self, name, parser)
 
-    __types__ = [ 'struct printk_log *' ]
+    __types__ = [ 'struct printk_log *' , 'char *' ]
     __symvals__ = [ 'log_buf', 'log_buf_len', 'log_first_idx', 'log_next_idx',
                     'clear_seq', 'log_first_seq', 'log_next_seq' ]
 
@@ -180,10 +179,8 @@ EXAMPLES
         msg = (logbuf + idx).cast(self.printk_log_p_type)
 
         try:
-            print(msg)
-            textval = (msg.cast(self.charp) +
+            textval = (msg.cast(self.char_p_type) +
                        self.printk_log_p_type.target().sizeof)
-            print(textval)
             text = textval.string(length=msg['text_len'])
         except UnicodeDecodeError as e:
             print(e)
@@ -208,7 +205,7 @@ EXAMPLES
 
         if dict_needed:
             dict_len = int(msg['dict_len'])
-            d = (msg.cast(self.charp) +
+            d = (msg.cast(self.char_p_type) +
                  self.printk_log_p_type.target().sizeof + textlen)
             s = ''
 
