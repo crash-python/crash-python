@@ -14,6 +14,7 @@ if sys.version_info.major >= 3:
 from crash.util import container_of
 from crash.infra import CrashBaseClass, export
 from crash.types.classdev import for_each_class_device
+import crash.exceptions
 
 class Storage(CrashBaseClass):
     __types__ = [ 'struct gendisk',
@@ -35,17 +36,17 @@ class Storage(CrashBaseClass):
     @classmethod
     def check_types(cls, result):
         try:
-            if cls.part_type.type != cls.device_type_type:
+            if cls.part_type.type.unqualified() != cls.device_type_type:
                 raise TypeError("part_type expected to be {} not {}"
                                 .format(cls.device_type_type,
                                         cls.part_type.type))
 
-            if cls.disk_type.type != cls.device_type_type:
+            if cls.disk_type.type.unqualified() != cls.device_type_type:
                 raise TypeError("disk_type expected to be {} not {}"
                                 .format(cls.device_type_type,
                                         cls.disk_type.type))
             cls.types_checked = True
-        except DelayedAttributeError:
+        except crash.exceptions.DelayedAttributeError:
             pass
 
     @export
