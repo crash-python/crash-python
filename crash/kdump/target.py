@@ -7,7 +7,7 @@ from __future__ import division
 
 import gdb
 import sys
-from kdumpfile import kdumpfile, KDUMP_KVADDR
+from kdumpfile import KDUMP_KVADDR
 from kdumpfile.exceptions import *
 import addrxlat
 from crash.types.list import list_for_each_entry
@@ -44,14 +44,10 @@ class SymbolCallback(object):
         raise addrxlat.NoDataError()
 
 class Target(gdb.Target):
-    def __init__(self, filename, debug=False):
-        self.filename = filename
+    def __init__(self, kdump, debug=False):
+        self.kdump = kdump
         self.arch = None
         self.debug = debug
-        try:
-            self.kdump = kdumpfile(filename)
-        except OSErrorException as e:
-            raise RuntimeError(str(e))
         ctx = self.kdump.get_addrxlat_ctx()
         ctx.cb_sym = SymbolCallback(ctx)
         self.kdump.attr['addrxlat.ostype'] = 'linux'

@@ -11,6 +11,7 @@ import sys
 from crash.infra import autoload_submodules
 from crash.kernel import load_debuginfo, load_modules
 import crash.kdump.target
+from kdumpfile import kdumpfile
 
 class Session(object):
     """crash.Session is the main driver component for crash-python"""
@@ -40,5 +41,10 @@ class Session(object):
             except gdb.error as e:
                 raise RuntimeError("Couldn't locate debuginfo for {}".format(kernel_exec))
 
-        self.target = crash.kdump.target.Target(vmcore, debug)
+        try:
+            kdump = kdumpfile(vmcore)
+        except OSErrorException as e:
+            raise RuntimeError(str(e))
+
+        self.target = crash.kdump.target.Target(kdump, debug)
         load_modules(self.searchpath)
