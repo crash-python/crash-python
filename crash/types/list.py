@@ -28,6 +28,8 @@ class TypesListClass(CrashBaseClass):
     @export
     def list_for_each(self, list_head):
         pending_exception = None
+        if isinstance(list_head, gdb.Symbol):
+            list_head = list_head.value()
         if not isinstance(list_head, gdb.Value):
             raise TypeError("list_head must be gdb.Value representing 'struct list_head' or a 'struct list_head *' not {}"
                             .format(type(list_head).__name__))
