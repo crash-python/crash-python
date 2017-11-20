@@ -101,7 +101,7 @@ class Target(gdb.Target):
 
         task_count = 0
         tasks = []
-        for taskg in list_for_each_entry(task_list, init_task.type, 'tasks'):
+        for taskg in list_for_each_entry(task_list, init_task.type, 'tasks', include_head=True):
             tasks.append(taskg)
             for task in list_for_each_entry(taskg['thread_group'], init_task.type, 'thread_group'):
                 tasks.append(task)
