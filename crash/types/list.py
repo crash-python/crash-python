@@ -26,7 +26,7 @@ class TypesListClass(CrashBaseClass):
     __types__ = [ 'struct list_head' ]
 
     @export
-    def list_for_each(self, list_head):
+    def list_for_each(self, list_head, include_head=False):
         pending_exception = None
         if isinstance(list_head, gdb.Symbol):
             list_head = list_head.value()
@@ -41,6 +41,9 @@ class TypesListClass(CrashBaseClass):
         fast = None
         if long(list_head.address) == 0:
             raise CorruptListError("list_head is NULL pointer.")
+
+        if include_head:
+            yield list_head.address
 
         try:
             nxt = list_head['next']
@@ -87,8 +90,8 @@ class TypesListClass(CrashBaseClass):
             raise pending_exception
 
     @export
-    def list_for_each_entry(self, list_head, gdbtype, member):
-        for node in list_for_each(list_head):
+    def list_for_each_entry(self, list_head, gdbtype, member, include_head=False):
+        for node in list_for_each(list_head, include_head=include_head):
             if node.type != self.list_head_type.pointer():
                 raise TypeError("Type {} found. Expected struct list_head *."
                                 .format(str(node.type)))
