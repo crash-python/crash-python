@@ -374,3 +374,10 @@ class TypesUtilClass(CrashBaseClass):
 
         return val
 
+    @export
+    @staticmethod
+    def array_for_each(value):
+        size = array_size(value)
+        for i in range(array_size(value)):
+            yield value[i]
+
