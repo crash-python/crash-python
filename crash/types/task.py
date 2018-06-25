@@ -136,7 +136,7 @@ class LinuxTask(object):
         if not cls.valid:
             t = gdb.lookup_type('struct task_struct')
             if task.type != t:
-                raise BadTaskError(task_struct)
+                raise BadTaskError(task)
 
             # Using a type within the same context makes things a *lot* faster
             # This works around a shortcoming in gdb.  A type lookup and
