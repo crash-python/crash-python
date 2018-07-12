@@ -62,8 +62,6 @@ class TypesListClass(CrashBaseClass):
                               .format(long(list_head.address), str(e)))
 
         while node.address != list_head.address:
-            yield node.address
-
             try:
                 if long(prev.address) != long(node[prev_]):
                     error = ("broken {} link {:#x} -{}-> {:#x} -{}-> {:#x}"
@@ -75,7 +73,14 @@ class TypesListClass(CrashBaseClass):
                     # cycles
                     fast = node
                 nxt = node[next_]
+                # only yield after trying to read something from the node, no
+                # point in giving out bogus list elements
+                yield node.address
+            except gdb.error as e:
+                raise BufferError("Failed to read list_head {:#x} in list {:#x}: {}"
+                                  .format(long(node.address), long(list_head.address), str(e)))
 
+            try:
                 if fast is not None:
                     # are we detecting cycles? advance fast 2 times and compare
                     # each with our current node (Floyd's Tortoise and Hare
@@ -84,14 +89,17 @@ class TypesListClass(CrashBaseClass):
                         fast = fast[next_].dereference()
                         if node.address == fast.address:
                             raise ListCycleError("Cycle in list detected.")
+            except gdb.error:
+                # we hit an unreadable element, so just stop detecting cycles
+                # and the slow iterator will hit it as well
+                fast = None
 
-                prev = node
-                if long(nxt) == 0:
-                    raise CorruptListError("{} pointer is NULL".format(next_))
-                node = nxt.dereference()
-            except gdb.error as e:
-                raise BufferError("Failed to read list_head {:#x} in list {:#x}: {}"
-                                  .format(long(node.address), long(list_head.address), str(e)))
+            prev = node
+            if long(nxt) == 0:
+                raise CorruptListError("{} -> {} pointer is NULL"
+                                       .format(node.address, next_))
+            node = nxt.dereference()
+
         if pending_exception is not None:
             raise pending_exception
 
