@@ -527,3 +527,59 @@ class TestDelayedLookup(unittest.TestCase):
         x = test()
         y = x.test_p_type
         self.assertTrue(isinstance(y, gdb.Type))
+
+    def type_callback_test(self):
+        class Test(CrashBaseClass):
+            __type_callbacks__ = [
+                ('unsigned long', 'check_ulong')
+                ]
+            ulong_valid = False
+            @classmethod
+            def check_ulong(cls, gdbtype):
+                cls.ulong_valid = True
+
+        return Test
+
+    def test_type_callback_nofile(self):
+        test = self.type_callback_test()
+        x = test()
+        self.assertFalse(test.ulong_valid)
+        with self.assertRaises(AttributeError):
+            y = x.unsigned_long_type
+
+    def test_type_callback(self):
+        test = self.type_callback_test()
+        x = test()
+        self.load_file()
+        self.assertTrue(test.ulong_valid)
+        with self.assertRaises(AttributeError):
+            y = x.unsigned_long_type
+
+    def type_callback_test_multi(self):
+        class Test(CrashBaseClass):
+            __types__ = [ 'unsigned long' ]
+            __type_callbacks__ = [
+                ('unsigned long', 'check_ulong')
+                ]
+            ulong_valid = False
+            @classmethod
+            def check_ulong(cls, gdbtype):
+                cls.ulong_valid = True
+
+        return Test
+
+    def test_type_callback_nofile_multi(self):
+        test = self.type_callback_test_multi()
+        x = test()
+        self.assertFalse(test.ulong_valid)
+        with self.assertRaises(DelayedAttributeError):
+            y = x.unsigned_long_type
+
+    def test_type_callback_multi(self):
+        test = self.type_callback_test_multi()
+        x = test()
+        self.load_file()
+        self.assertTrue(test.ulong_valid)
+        y = x.unsigned_long_type
+        self.assertTrue(isinstance(y, gdb.Type))
+        self.assertTrue(y.sizeof > 4)
