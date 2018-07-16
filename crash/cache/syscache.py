@@ -121,7 +121,10 @@ class CrashConfigCache(CrashCache):
         return self.ikconfig_cache
 
     def __getitem__(self, name):
-        return self.ikconfig_cache[name]
+        try:
+            return self.ikconfig_cache[name]
+        except KeyError:
+            return None
 
 class CrashKernelCache(CrashCache):
     __symvals__ = [ 'avenrun' ]
