@@ -25,8 +25,6 @@ class x86_64Architecture(CrashArchitecture):
             self.fetch_register_scheduled = \
                 self.fetch_register_scheduled_inactive
             self.inactive_task_frame_type = inactive
-#            self.__switch_to_asm = gdb.lookup_symbol
-            print("Using __switch_to_asm")
         except gdb.error as e:
             try:
                 thread_return = gdb.lookup_minimal_symbol("thread_return")
@@ -50,7 +48,6 @@ class x86_64Architecture(CrashArchitecture):
 
     def fetch_register_active(self, thread, register):
         task = thread.info
-        print(task.regs)
         for reg in task.regs:
             if reg == "rip" and (register != 16 and register != -1):
                 continue
@@ -63,14 +60,28 @@ class x86_64Architecture(CrashArchitecture):
         ulong_type = self.ulong_type
         task = thread.info.task_struct
 
+        rsp = task['thread']['sp'].cast(ulong_type.pointer())
+
+        frame = rsp.cast(self.inactive_task_frame_type.pointer()).dereference()
+
         # Only write rip when requested; It resets the frame cache
         if register == 16 or register == -1:
-            thread.registers['rip'].value = self.thread_return
+            thread.registers['rip'].value = frame['ret_addr']
             if register == 16:
                 return True
 
-        print("ok")
-        rsp = task['thread']['sp'].cast(ulong_type.pointer())
+        thread.registers['rsp'].value = rsp
+        thread.registers['rbp'].value = frame['bp']
+        thread.registers['rbx'].value = frame['bx']
+        thread.registers['r12'].value = frame['r12']
+        thread.registers['r13'].value = frame['r13']
+        thread.registers['r14'].value = frame['r14']
+        thread.registers['r15'].value = frame['r15']
+        thread.registers['cs'].value = 2*8
+        thread.registers['ss'].value = 3*8
+
+        thread.info.stack_pointer = rsp
+        thread.info.valid_stack = True
 
     def fetch_register_scheduled_thread_return(self, thread, register):
         ulong_type = self.ulong_type
