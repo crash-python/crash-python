@@ -126,6 +126,16 @@ class Mount(CrashBaseClass):
         return sb
 
     @export
+    @staticmethod
+    def mount_root(mnt):
+        try:
+            mnt = mnt['mnt']
+        except gdb.error:
+            pass
+
+        return mnt['mnt_root']
+
+    @export
     @classmethod
     def mount_fstype(cls, mnt):
         return super_fstype(cls.mount_super(mnt))
@@ -153,6 +163,11 @@ class Mount(CrashBaseClass):
         mount = cls.real_mount(mnt)
         if mount.type.code != gdb.TYPE_CODE_PTR:
             mount = mount.address
+
+        try:
+            mnt = mnt['mnt'].address
+        except gdb.error:
+            pass
 
         name = ""
 
