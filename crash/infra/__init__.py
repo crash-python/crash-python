@@ -38,6 +38,13 @@ class export_wrapper(object):
         else:
             return self.func(obj, *args, **kwargs)
 
+def register_singleton(mod, obj):
+    if not hasattr(mod, '_export_wrapper_singleton_dict'):
+        raise RuntimeError("Class {} has no exported members."
+                            .format(obj.__class__.__name__))
+
+    mod._export_wrapper_singleton_dict[obj.__class__] = obj
+
 def export(func):
     """This marks the function for export to the module namespace.
        The class must inherit from CrashBaseClass."""

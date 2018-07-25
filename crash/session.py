@@ -9,8 +9,7 @@ import gdb
 import sys
 
 from crash.infra import autoload_submodules
-from crash.kernel import load_debuginfo, load_modules
-import crash.kdump.target
+import crash.kernel
 
 class Session(object):
     """crash.Session is the main driver component for crash-python"""
@@ -24,21 +23,10 @@ class Session(object):
         autoload_submodules('crash.subsystem')
         autoload_submodules('crash.commands')
 
-        self.searchpath = searchpath
-
         if not kernel_exec:
             return
 
-        error = gdb.execute("file {}".format(kernel_exec), to_string=True)
-
-        try:
-            list_type = gdb.lookup_type('struct list_head')
-        except gdb.error as e:
-            load_debuginfo(searchpath, gdb.objfiles()[0], kernelpath)
-            try:
-                list_type = gdb.lookup_type('struct list_head')
-            except gdb.error as e:
-                raise RuntimeError("Couldn't locate debuginfo for {}".format(kernel_exec))
-
-        self.target = crash.kdump.target.Target(vmcore, debug)
-        load_modules(self.searchpath)
+        self.kernel = crash.kernel.CrashKernel(kernel_exec, searchpath)
+        self.kernel.attach_vmcore(vmcore, debug)
+        self.kernel.setup_tasks()
+        self.kernel.load_modules(searchpath)

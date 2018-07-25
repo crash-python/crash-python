@@ -10,17 +10,11 @@ import sys
 from kdumpfile import kdumpfile, KDUMP_KVADDR
 from kdumpfile.exceptions import *
 import addrxlat
-from crash.types.list import list_for_each_entry
-from crash.types.percpu import get_percpu_var
-from crash.types.task import LinuxTask
-import crash.cache.tasks
 import crash.arch
 import crash.arch.x86_64
 
 if sys.version_info.major >= 3:
     long = int
-
-LINUX_KERNEL_PID = 1
 
 class SymbolCallback(object):
     "addrxlat symbolic callback"
@@ -44,19 +38,15 @@ class SymbolCallback(object):
         raise addrxlat.NoDataError()
 
 class Target(gdb.Target):
-    def __init__(self, filename, debug=False):
-        self.filename = filename
+    def __init__(self, vmcore, debug=False):
+        if not isinstance(vmcore, kdumpfile):
+            raise TypeError("vmcore must be of type kdumpfile")
         self.arch = None
         self.debug = debug
-        try:
-            self.kdump = kdumpfile(filename)
-        except OSErrorException as e:
-            raise RuntimeError(str(e))
+        self.kdump = vmcore
         ctx = self.kdump.get_addrxlat_ctx()
         ctx.cb_sym = SymbolCallback(ctx)
         self.kdump.attr['addrxlat.ostype'] = 'linux'
-
-        gdb.execute('set print thread-events 0')
 
         self.setup_arch()
 
@@ -64,9 +54,6 @@ class Target(gdb.Target):
         # the architecture, we're ready to plumb into the target
         # infrastructure.
         super(Target, self).__init__()
-
-        # Now we're reading from the dump file
-        self.setup_tasks()
 
     def setup_arch(self):
         archname = self.kdump.attr.arch.name
@@ -85,57 +72,6 @@ class Target(gdb.Target):
                             .format(archname, archclass.ident))
 
         self.arch = archclass()
-
-    def setup_tasks(self):
-        init_task = gdb.lookup_global_symbol('init_task')
-        task_list = init_task.value()['tasks']
-        runqueues = gdb.lookup_global_symbol('runqueues')
-
-        rqs = get_percpu_var(runqueues)
-        rqscurrs = {long(x["curr"]) : k for (k, x) in rqs.items()}
-
-        self.pid_to_task_struct = {}
-
-        print("Loading tasks...", end='')
-        sys.stdout.flush()
-
-        task_count = 0
-        tasks = []
-        for taskg in list_for_each_entry(task_list, init_task.type, 'tasks'):
-            tasks.append(taskg)
-            for task in list_for_each_entry(taskg['thread_group'], init_task.type, 'thread_group'):
-                tasks.append(task)
-
-        for task in tasks:
-            cpu = None
-            regs = None
-            active = long(task.address) in rqscurrs
-            if active:
-                cpu = rqscurrs[long(task.address)]
-                regs = self.kdump.attr.cpu[cpu].reg
-
-            ltask = LinuxTask(task, active, cpu, regs)
-            ptid = (LINUX_KERNEL_PID, task['pid'], 0)
-            try:
-                thread = gdb.selected_inferior().new_thread(ptid, ltask)
-            except gdb.error as e:
-                print("Failed to setup task @{:#x}".format(long(task.address)))
-                continue
-            thread.name = task['comm'].string()
-
-            self.arch.setup_thread_info(thread)
-            ltask.attach_thread(thread)
-            ltask.set_get_stack_pointer(self.arch.get_stack_pointer)
-
-            crash.cache.tasks.cache_task(ltask)
-
-            task_count += 1
-            if task_count % 100 == 0:
-                print(".", end='')
-                sys.stdout.flush()
-        print(" done. ({} tasks total)".format(task_count))
-
-        gdb.selected_inferior().executing = False
 
     @classmethod
     def report_error(cls, addr, length, error):
