@@ -78,6 +78,19 @@ GDBINIT="$TMPDIR/gdbinit"
 
 set -e
 
+GDB=
+for gdb in crash-python-gdb gdb; do
+    if $gdb -v > /dev/null 2> /dev/null; then
+        GDB=$gdb
+        break
+    fi
+done
+
+if [ -z "$GDB" ]; then
+    echo "ERROR: gdb is not available." >&2
+    exit 1
+fi
+
 # If we're using crash.sh from the git repo, use the modules from the git repo
 DIR="$(dirname $0)"
 if [ -e "$DIR/setup.py" ]; then
@@ -121,9 +134,9 @@ if [ "$DEBUGMODE" = "gdb" ]; then
     RUN="run -nh -q -x $GDBINIT"
 
     echo $RUN > /tmp/gdbinit
-    gdb gdb -nh -q -x /tmp/gdbinit
+    gdb $GDB -nh -q -x /tmp/gdbinit
 elif [ "$DEBUGMODE" = "valgrind" ]; then
-    valgrind --keep-stacktraces=alloc-and-free gdb -nh -q -x $GDBINIT
+    valgrind --keep-stacktraces=alloc-and-free $GDB -nh -q -x $GDBINIT
 else
-    gdb -nh -q -x $GDBINIT
+    $GDB -nh -q -x $GDBINIT
 fi
