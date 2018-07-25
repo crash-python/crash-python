@@ -119,14 +119,24 @@ set height 0
 set print pretty on
 
 python
-import crash.session
+from __future__ import print_function
+import sys
+try:
+    import crash.session
+except RuntimeError, e:
+    print("crash-python: {}, exiting".format(str(e)), file=sys.stderr)
+    sys.exit(1)
 path = "$SEARCHDIRS".split(' ')
 try:
    x = crash.session.Session("$KERNEL", "$VMCORE", "$ZKERNEL", path)
+   print("The 'pyhelp' command will list the command extensions.")
 except gdb.error as e:
-    print(str(e))
+    print("crash-python: {}, exiting".format(str(e)), file=sys.stderr)
+    sys.exit(1)
 except RuntimeError as e:
-    print("Failed to open {}: {}".format("$VMCORE", str(e)))
+    print("crash-python: Failed to open {}.  {}".format("$VMCORE", str(e)),
+          file=sys.stderr)
+    sys.exit(1)
 EOF
 
 # This is how we debug gdb problems when running crash
