@@ -163,6 +163,12 @@ class LinuxTask(object):
     def get_thread_info(self):
         return self.thread_info
 
+    def get_last_cpu(self):
+        try:
+            return self.task_struct['cpu']
+        except gdb.error as e:
+            return self.thread_info['cpu']
+
     def task_state(self):
         state = long(self.task_struct['state'])
         if self.task_state_has_exit_state:

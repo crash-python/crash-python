@@ -461,7 +461,7 @@ EXAMPLES
     def task_header(cls, task):
         task_struct = task.task_struct
         template = "PID: {0:-5d}  TASK: {1:x}  CPU: {2:>2d}  COMMAND: \"{3}\""
-        cpu = int(task.get_thread_info()['cpu'])
+        cpu = task.get_last_cpu()
         if task.active:
             cpu = task.cpu
         return template.format(int(task_struct['pid']),
@@ -515,7 +515,7 @@ EXAMPLES
             width = 7
 
         print(line.format(active, int(task_struct['pid']), int(parent_pid),
-                          int(task.get_thread_info()['cpu']), long(pointer),
+                          int(task.get_last_cpu()), long(pointer),
                           width, self.task_state_string(task), 0,
                           task.total_vm * 4096 // 1024,
                           task.rss * 4096 // 1024,
