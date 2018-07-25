@@ -13,6 +13,7 @@ if sys.version_info.major >= 3:
     long = int
 
 from crash.commands import CrashCommand, CrashCommandParser
+from crash.commands import CrashCommandLineError
 from crash.types.task import LinuxTask, TaskStateFlags as TF
 
 class PSCommand(CrashCommand):
@@ -548,7 +549,7 @@ EXAMPLES
             try:
                 self.setup_task_states()
             except AttributeError:
-                raise CrashCommandError("The task subsystem is not available.")
+                raise CrashCommandLineError("The task subsystem is not available.")
 
         sort_by = sort_by_pid
         if argv.l:
