@@ -10,23 +10,29 @@ import sys
 
 from crash.infra import autoload_submodules
 import crash.kernel
+from kdumpfile import kdumpfile
 
 class Session(object):
     """crash.Session is the main driver component for crash-python"""
     def __init__(self, kernel_exec=None, vmcore=None, kernelpath=None,
                  searchpath=None, debug=False):
+        self.vmcore_filename = vmcore
+
         print("crash-python initializing...")
         if searchpath is None:
             searchpath = []
+
+        if kernel_exec:
+            self.kernel = crash.kernel.CrashKernel(kernel_exec, searchpath)
+            self.kernel.attach_vmcore(vmcore, debug)
+            self.kernel.open_kernel()
 
         autoload_submodules('crash.cache')
         autoload_submodules('crash.subsystem')
         autoload_submodules('crash.commands')
 
-        if not kernel_exec:
-            return
+        if kernel_exec:
+            self.kernel.setup_tasks()
+            self.kernel.load_modules(searchpath)
 
-        self.kernel = crash.kernel.CrashKernel(kernel_exec, searchpath)
-        self.kernel.attach_vmcore(vmcore, debug)
-        self.kernel.setup_tasks()
-        self.kernel.load_modules(searchpath)
+

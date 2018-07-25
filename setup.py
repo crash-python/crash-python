@@ -14,7 +14,7 @@ setup(
         '' : [ "*.dist" "*.txt" ],
     },
 
-    install_requires = [ 'future' ],
+    install_requires = [ 'future', 'pyelftools' ],
 
     author = "Jeff Mahoney",
     author_email = "jeffm@suse.com",

@@ -34,7 +34,6 @@ class SymbolCallback(object):
             ms = gdb.lookup_minimal_symbol(args[0])
             if ms is not None:
                 return long(ms.value().address)
-
         raise addrxlat.NoDataError()
 
 class Target(gdb.Target):
@@ -47,8 +46,6 @@ class Target(gdb.Target):
         ctx = self.kdump.get_addrxlat_ctx()
         ctx.cb_sym = SymbolCallback(ctx)
         self.kdump.attr['addrxlat.ostype'] = 'linux'
-
-        self.setup_arch()
 
         # So far we've read from the kernel image, now that we've setup
         # the architecture, we're ready to plumb into the target
