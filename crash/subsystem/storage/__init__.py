@@ -75,8 +75,9 @@ class Storage(CrashBaseClass):
             return cls.bio_decoders[long(bio['bi_end_io'])](bio)
         except KeyError:
             chain = {
-                'description' : "{:x} bio: undecoded bio on {}".format(
-                    long(bio), block_device_name(bio['bi_bdev'])),
+                'description' : "{:x} bio: undecoded bio on {} ({})".format(
+                    long(bio), block_device_name(bio['bi_bdev']),
+                    bio['bi_end_io']),
             }
             return chain
 
