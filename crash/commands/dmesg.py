@@ -181,7 +181,7 @@ EXAMPLES
         try:
             textval = (msg.cast(self.char_p_type) +
                        self.printk_log_p_type.target().sizeof)
-            text = textval.string(length=msg['text_len'])
+            text = textval.string(length=long(msg['text_len']))
         except UnicodeDecodeError as e:
             print(e)
 
