@@ -153,14 +153,18 @@ class CrashKernel(CrashBaseClass):
 
                 found = True
 
+                if 'module_core' in module.type:
+                    addr = long(module['module_core'])
+                else:
+                    addr = long(module['core_layout']['base'])
+
                 if verbose:
-                    print("Loading {} at {}"
-                          .format(modname, module['module_core']))
+                    print("Loading {} at {:#x}".format(modname, addr))
                 sections = self.get_module_sections(module)
-                gdb.execute("add-symbol-file {} {} {}"
-                            .format(modpath, module['module_core'], sections),
+                gdb.execute("add-symbol-file {} {:#x} {}"
+                            .format(modpath, addr, sections),
                             to_string=True)
-                sal = gdb.find_pc_line(long(module['module_core']))
+                sal = gdb.find_pc_line(addr)
                 if sal.symtab is None:
                     objfile = gdb.lookup_objfile(modpath)
                     self.load_debuginfo(objfile, modpath)
