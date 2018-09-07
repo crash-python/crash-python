@@ -214,3 +214,25 @@ class TypesUtilClass(CrashBaseClass):
     @staticmethod
     def array_size(value):
         return value.type.sizeof // value[0].type.sizeof
+
+    @export
+    @staticmethod
+    def get_typed_pointer(val, gdbtype):
+        if gdbtype.code != gdb.TYPE_CODE_PTR:
+            gdbtype = gdbtype.pointer()
+        if isinstance(val, gdb.Value):
+            if (val.type != gdbtype and
+                val.type != gdbtype.target()):
+                raise TypeError("gdb.Value must refer to {} not {}"
+                                .format(gdbtype, val.type))
+        elif isinstance(val, str):
+            try:
+                val = long(val, 16)
+            except TypeError as e:
+                print(e)
+                raise TypeError("string must describe hex address: ".format(e))
+        if isinstance(val, long):
+            val = gdb.Value(val).cast(gdbtype).dereference()
+
+        return val
+
