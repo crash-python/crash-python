@@ -99,12 +99,12 @@ class Storage(CrashBaseClass):
     @export
     def for_each_block_device(self, subtype=None):
         if subtype:
-            if subtype.type == self.device_type_type:
+            if subtype.type.unqualified() == self.device_type_type:
                 subtype = subtype.address
-            elif subtype.type != self.device_type_type.pointer():
+            elif subtype.type.unqualified() != self.device_type_type.pointer():
                 raise TypeError("subtype must be {} not {}"
                                 .format(self.device_type_type.pointer(),
-                                        subtype.type))
+                                        subtype.type.unqualified()))
         for dev in for_each_class_device(self.block_class, subtype):
             if dev['type'] == self.disk_type.address:
                 yield self.dev_to_gendisk(dev)
@@ -123,16 +123,16 @@ class Storage(CrashBaseClass):
         if gendisk.type.code == gdb.TYPE_CODE_PTR:
             gendisk = gendisk.dereference()
 
-        if gendisk.type == self.gendisk_type:
+        if gendisk.type.unqualified() == self.gendisk_type:
             return gendisk['disk_name'].string()
-        elif gendisk.type == self.hd_struct_type:
+        elif gendisk.type.unqualified() == self.hd_struct_type:
             parent = self.dev_to_gendisk(self.part_to_dev(gendisk)['parent'])
             return "{}{:d}".format(self.gendisk_name(parent),
                                    int(gendisk['partno']))
         else:
             raise TypeError("expected {} or {}, not {}"
                             .format(self.gendisk_type, self.hd_struct_type,
-                            gendisk.type))
+                            gendisk.type.unqualified()))
 
     @export
     def block_device_name(self, bdev):
