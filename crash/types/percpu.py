@@ -26,6 +26,14 @@ class TypesPerCPUClass(CrashBaseClass):
 
     dynamic_offset_cache = None
 
+    # TODO: put this somewhere else - arch?
+    @classmethod
+    def setup_kaslr_offset(cls):
+        offset = long(gdb.lookup_minimal_symbol("_text").value().address)
+        offset -= long(gdb.lookup_minimal_symbol("phys_startup_64").value().address)
+        offset -= 0xffffffff80000000
+        cls.kaslr_offset = offset
+
     @classmethod
     def setup_per_cpu_size(cls, symbol):
         try:
@@ -36,6 +44,13 @@ class TypesPerCPUClass(CrashBaseClass):
     @classmethod
     def setup_nr_cpus(cls, ignored):
         cls.nr_cpus = array_size(cls.__per_cpu_offset)
+        # piggyback on this as it seems those minsymbols at the time of
+        # their callback yield offset of 0
+        cls.setup_kaslr_offset()
+
+    @classmethod
+    def __add_to_offset_cache(cls, base, start, end):
+        cls.dynamic_offset_cache.append((base + start, base + end))
 
     @classmethod
     def __setup_dynamic_offset_cache(cls):
@@ -45,7 +60,11 @@ class TypesPerCPUClass(CrashBaseClass):
         used_is_negative = None
         for slot in range(cls.pcpu_nr_slots):
             for chunk in list_for_each_entry(cls.pcpu_slot[slot], cls.pcpu_chunk_type, 'list'):
-                chunk_base = long(chunk["base_addr"]) - long(cls.pcpu_base_addr) + long(cls.__per_cpu_start)
+                chunk_base = long(chunk["base_addr"]) - long(cls.pcpu_base_addr)
+                # __per_cpu_start is adjusted by KASLR, but dynamic offsets are
+                # not, so we have to subtract the offset
+                chunk_base += long(cls.__per_cpu_start) - cls.kaslr_offset
+
                 off = 0
                 start = None
                 _map = chunk['map']
@@ -127,16 +146,24 @@ class TypesPerCPUClass(CrashBaseClass):
             return True
         return False
 
-    def get_percpu_var_nocheck(self, var, cpu=None):
+    def get_percpu_var_nocheck(self, var, cpu=None, is_symbol=False):
         if cpu is None:
             vals = {}
             for cpu in range(0, self.nr_cpus):
-                vals[cpu] = self.get_percpu_var_nocheck(var, cpu)
+                vals[cpu] = self.get_percpu_var_nocheck(var, cpu, is_symbol)
             return vals
 
         addr = self.__per_cpu_offset[cpu]
         addr += var.cast(self.char_p_type)
         addr -= self.__per_cpu_start
+
+        # if we got var from symbol, it means KASLR relocation was applied to
+        # the offset, it was applied also to __per_cpu_start, which cancels out
+        # If var wasn't a symbol, we have to undo the adjustion to
+        # __per_cpu_start, otherwise we get a bogus address
+        if not is_symbol:
+            addr += self.kaslr_offset
+
         vartype = var.type
         return addr.cast(vartype).dereference()
 
@@ -147,8 +174,10 @@ class TypesPerCPUClass(CrashBaseClass):
         # - pointers to objects, where we'll need to use the target
         # - a pointer to a percpu object, where we'll need to use the
         #   address of the target
-        if isinstance(var, gdb.Symbol):
+        is_symbol = False
+        if isinstance(var, gdb.Symbol) or isinstance(var, gdb.MinSymbol):
             var = var.value()
+            is_symbol = True
         if not isinstance(var, gdb.Value):
             raise TypeError("Argument must be gdb.Symbol or gdb.Value")
         if var.type.code != gdb.TYPE_CODE_PTR:
@@ -156,5 +185,5 @@ class TypesPerCPUClass(CrashBaseClass):
         if not self.is_percpu_var(var):
             var = var.address
         if not self.is_percpu_var(var):
-            raise TypeError("Argument does not correspond to a percpu pointer.")
-        return self.get_percpu_var_nocheck(var, cpu)
+            raise TypeError("Argument {} does not correspond to a percpu pointer.".format(var))
+        return self.get_percpu_var_nocheck(var, cpu, is_symbol)
