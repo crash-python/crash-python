@@ -42,23 +42,62 @@ class TypesPerCPUClass(CrashBaseClass):
         # TODO: interval tree would be more efficient, but this adds no 3rd
         # party module dependency...
         cls.dynamic_offset_cache = list()
+        used_is_negative = None
         for slot in range(cls.pcpu_nr_slots):
             for chunk in list_for_each_entry(cls.pcpu_slot[slot], cls.pcpu_chunk_type, 'list'):
                 chunk_base = long(chunk["base_addr"]) - long(cls.pcpu_base_addr) + long(cls.__per_cpu_start)
                 off = 0
                 start = None
-                for i in range(chunk['map_used']):
-                    val = long(chunk['map'][i])
-                    if val < 0:
-                        if start is None:
-                            start = off
-                    else:
-                        if start is not None:
-                            cls.dynamic_offset_cache.append((chunk_base + start, chunk_base + off))
-                            start = None
-                    off += abs(val)
-                if start is not None:
-                    cls.dynamic_offset_cache.append((chunk_base + start, chunk_base + off))
+                _map = chunk['map']
+                map_used = long(chunk['map_used'])
+
+                # Prior to 3.14 commit 723ad1d90b56 ("percpu: store offsets
+                # instead of lengths in ->map[]"), negative values in map
+                # meant the area is used, and the absolute value is area size.
+                # After the commit, the value is area offset for unused, and
+                # offset | 1 for used (all offsets have to be even). The value
+                # at index 'map_used' is a 'sentry' which is the total size |
+                # 1. There is no easy indication of whether kernel includes
+                # the commit, unless we want to rely on version numbers and
+                # risk breakage in case of backport to older version. Instead
+                # employ a heuristic which scans the first chunk, and if no
+                # negative value is found, assume the kernel includes the
+                # commit.
+                if used_is_negative is None:
+                    used_is_negative = False
+                    for i in range(map_used):
+                        val = long(_map[i])
+                        if val < 0:
+                            used_is_negative = True
+                            break
+
+                if used_is_negative:
+                    for i in range(map_used):
+                        val = long(_map[i])
+                        if val < 0:
+                            if start is None:
+                                start = off
+                        else:
+                            if start is not None:
+                                cls.__add_to_offset_cache(chunk_base, start, off)
+                                start = None
+                        off += abs(val)
+                    if start is not None:
+                        cls.__add_to_offset_cache(chunk_base, start, off)
+                else:
+                    for i in range(map_used):
+                        off = long(_map[i])
+                        if off & 1 == 1:
+                            off -= 1
+                            if start is None:
+                                start = off
+                        else:
+                            if start is not None:
+                                cls.__add_to_offset_cache(chunk_base, start, off)
+                                start = None
+                    if start is not None:
+                        off = long(_map[map_used]) - 1
+                        cls.__add_to_offset_cache(chunk_base, start, off)
 
     def __is_percpu_var(self, var):
         if long(var) < self.__per_cpu_start:
