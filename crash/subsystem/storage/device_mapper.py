@@ -40,8 +40,6 @@ class DeviceMapper(CrashBaseClass):
         # while long(b) != 0:
         #    b = b['bi_next']
 
-        bio = info['orig']
-
         chain = {
             'bio' : bio,
             'next' : info['orig'],
