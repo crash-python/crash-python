@@ -24,10 +24,20 @@ class DeviceMapper(CrashBaseClass):
 
     @classmethod
     def _register_end_clone_bio(cls, sym):
+        if 'clone' in cls.dm_rq_clone_bio_info_p_type.target():
+            getter = cls._get_clone_bio_rq_info_3_7
+        else:
+            getter = cls._get_clone_bio_rq_info_old
+        cls._get_clone_bio_rq_info = getter
         block.register_bio_decoder(sym, cls.decode_clone_bio_rq)
 
     @classmethod
     def _register_clone_endio(cls, sym):
+        if 'clone' in cls.dm_target_io_p_type.target():
+            getter = cls._get_clone_bio_tio_3_15
+        else:
+            getter = cls._get_clone_bio_tio_old
+        cls._get_clone_bio_tio = getter
         block.register_bio_decoder(sym, cls.decode_clone_bio)
 
     @classmethod
@@ -46,14 +56,15 @@ class DeviceMapper(CrashBaseClass):
             dict: Contains the following items:
                 - description (str):  Human-readable description of the bio
                 - bio (gdb.Value<struct bio>): The provided bio
+                - tio (gdb.Value(<struct dm_target_io>): The struct
+                  dm_target_io for this bio
                 - next (gdb.Value<struct bio>): The original bio that was
                   the source of this one
                 - decoder (method(gdb.Value<struct bio>)): The decoder for
                   the original bio
         """
 
-        info = bio['bi_private'].cast(cls.dm_rq_clone_bio_info_p_type)
-        count = bio['bi_cnt']['counter']
+        info = cls._get_clone_bio_rq_info(bio)
 
         # We can pull the related bios together here if required
         # b = bio['bi_next']
@@ -62,6 +73,7 @@ class DeviceMapper(CrashBaseClass):
 
         chain = {
             'bio' : bio,
+            'tio' : info['tio'],
             'next' : info['orig'],
             'description' :
                 '{:x} bio: Request-based Device Mapper on {}'.format(
@@ -70,6 +82,14 @@ class DeviceMapper(CrashBaseClass):
         }
 
         return chain
+
+    @classmethod
+    def _get_clone_bio_rq_info_old(cls, bio):
+        return bio['bi_private'].cast(cls.dm_rq_clone_bio_info_p_type)
+
+    @classmethod
+    def _get_clone_bio_rq_info_3_7(cls, bio):
+        return container_of(bio, cls.dm_rq_clone_bio_info_p_type, 'clone')
 
     @classmethod
     def decode_clone_bio(cls, bio):
@@ -94,7 +114,7 @@ class DeviceMapper(CrashBaseClass):
                 - decoder (method(gdb.Value<struct bio>)): The decoder for the
                     original bio
         """
-        tio = bio['bi_private'].cast(cls.dm_target_io_p_type)
+        tio = cls._get_clone_bio_tio(bio)
 
         next_bio = tio['io']['bio']
 
@@ -107,8 +127,17 @@ class DeviceMapper(CrashBaseClass):
                             long(next_bio['bi_sector'])),
             'bio' : bio,
             'tio' : tio,
-            'next' : tio['io']['bio'],
+            'next' : next_bio,
             'decoder' : block.decode_bio,
         }
 
         return chain
+
+    @classmethod
+    def _get_clone_bio_tio_old(cls, bio):
+        return bio['bi_private'].cast(cls.dm_target_io_p_type)
+
+    @classmethod
+    def _get_clone_bio_tio_3_15(cls, bio):
+        return container_of(bio['bi_private'],
+                            cls.dm_clone_bio_info_p_type, 'clone')
