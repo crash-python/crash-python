@@ -30,21 +30,18 @@ class MinimalSymbolCallback(ObjfileEventCallback):
                         self.symbol_file, self.callback))
 
 class SymbolCallback(ObjfileEventCallback):
-    def __init__(self, name, callback, block=None,
-                 domain=gdb.SYMBOL_VAR_DOMAIN):
+    def __init__(self, name, callback, domain=gdb.SYMBOL_VAR_DOMAIN):
         self.name = name
-        self.block = block
         self.domain = domain
         self.callback = callback
         super(SymbolCallback, self).__init__()
 
     def check_ready(self):
-        return gdb.lookup_symbol(self.name, self.block, self.domain)[0]
+        return gdb.lookup_symbol(self.name, None, self.domain)[0]
 
     def __str__(self):
-        return ("<{}({}, {}, {})>"
-                .format(self.__class__.__name__, self.name,
-                        self.block, self.domain))
+        return ("<{}({}, {})>"
+                .format(self.__class__.__name__, self.name, self.domain))
 
 class SymvalCallback(SymbolCallback):
     def check_ready(self):
