@@ -132,17 +132,6 @@ class DelayedMinimalSymval(DelayedMinimalSymbol):
     def __str__(self):
         return "{} attached with {}".format(self.__class__, str(self.cb))
 
-def callback_wrapper(object):
-    def __init__(self, cls, func):
-        super(callback_wrapper, self).__init__()
-        self.cls = cls
-        self.func = func
-
-    def __call__(self, *args, **kwargs):
-        if isinstance(self.func, str):
-            self.func = getattr(self.cls, self.func)
-        return self.func(cls, *args, **kwargs)
-
 class ClassProperty(object):
     def __init__(self, get):
         self.get = get
