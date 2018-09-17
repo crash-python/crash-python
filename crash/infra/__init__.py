@@ -55,7 +55,8 @@ def export(func):
     return func
 
 class _CrashBaseMeta(type):
-    """This metaclass handles both exporting methods to the module namespace
+    """
+    This metaclass handles both exporting methods to the module namespace
     and handling asynchronous loading of types and symbols.  To enable it,
     all you need to do is define your class as follows:
 

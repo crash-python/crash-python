@@ -13,7 +13,25 @@ import crash.kernel
 from kdumpfile import kdumpfile
 
 class Session(object):
-    """crash.Session is the main driver component for crash-python"""
+    """
+    crash.Session is the main driver component for crash-python
+
+    The Session class loads the kernel, kernel modules, debuginfo,
+    and vmcore and auto loads any sub modules for autoinitializing
+    commands and subsystems.
+
+    Args:
+        kernel_exec (str, optional): The path to the kernel executable
+        vmcore (str, optional): The path to the vmcore
+        kernelpath (str, optional): The path the kernel name to use
+            when reporting errors
+        searchpath (list of str, optional): Paths to directory trees to
+            search for kernel modules and debuginfo
+        debug (bool, optional, default=False): Whether to enable verbose
+            debugging output
+    """
+
+
     def __init__(self, kernel_exec=None, vmcore=None, kernelpath=None,
                  searchpath=None, debug=False):
         self.vmcore_filename = vmcore

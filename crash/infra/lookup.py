@@ -16,7 +16,18 @@ from crash.infra.callback import ObjfileEventCallback
 from crash.exceptions import DelayedAttributeError
 
 class MinimalSymbolCallback(ObjfileEventCallback):
+    """
+    A callback that executes when the named minimal symbol is
+    discovered in the objfile and returns the gdb.MinimalSymbol.
+    """
     def __init__(self, name, callback, symbol_file=None):
+        """
+        Args:
+            name (str): The name of the minimal symbol to discover
+            callback (method): The callback to execute when the minimal
+                symbol is discovered
+            symbol_file (str, optional, default=None): Name of symbol file
+        """
         self.name = name
         self.symbol_file = symbol_file
         self.callback = callback
@@ -30,7 +41,19 @@ class MinimalSymbolCallback(ObjfileEventCallback):
                         self.symbol_file, self.callback))
 
 class SymbolCallback(ObjfileEventCallback):
+    """
+    A callback that executes when the named symbol is discovered in the
+    objfile and returns the gdb.Symbol.
+    """
     def __init__(self, name, callback, domain=gdb.SYMBOL_VAR_DOMAIN):
+        """
+        Args:
+            name (str): The name of the symbol to discover
+            callbacks (method): The callback to execute when the minimal
+                symbol is discover
+            domain (gdb.Symbol constant, i.e. SYMBOL_*_DOMAIN): The domain
+                to search for the symbol
+        """
         self.name = name
         self.domain = domain
         self.callback = callback
@@ -44,6 +67,10 @@ class SymbolCallback(ObjfileEventCallback):
                 .format(self.__class__.__name__, self.name, self.domain))
 
 class SymvalCallback(SymbolCallback):
+    """
+    A callback that executes when the named symbol is discovered in the
+    objfile and returns the gdb.Value associated with it.
+    """
     def check_ready(self):
         sym = super(SymvalCallback, self).check_ready()
         if sym is not None:
@@ -54,6 +81,10 @@ class SymvalCallback(SymbolCallback):
         return None
 
 class TypeCallback(ObjfileEventCallback):
+    """
+    A callback that executes when the named type is discovered in the
+    objfile and returns the gdb.Type associated with it.
+    """
     def __init__(self, name, callback, block=None):
         self.name = name
         self.block = block
@@ -71,6 +102,10 @@ class TypeCallback(ObjfileEventCallback):
                 .format(self.__class__.__name__, self.name, self.block))
 
 class DelayedValue(object):
+    """
+    A generic class for making class attributes available that describe
+    to-be-loaded symbols, minimal symbols, and types.
+    """
     def __init__(self, name):
         self.name = name
         self.value = None
@@ -86,21 +121,44 @@ class DelayedValue(object):
         self.value = value
 
 class DelayedMinimalSymbol(DelayedValue):
+    """
+    A DelayedValue that handles minimal symbols.
+    """
     def __init__(self, name):
+        """
+        Args:
+            name (str): The name of the minimal symbol
+        """
         super(DelayedMinimalSymbol, self).__init__(name)
         self.cb = MinimalSymbolCallback(name, self.callback)
     def __str__(self):
         return "{} attached with {}".format(self.__class__, str(self.cb))
 
 class DelayedSymbol(DelayedValue):
+    """
+    A DelayedValue that handles symbols.
+    """
     def __init__(self, name):
+        """
+        Args:
+            name (str): The name of the symbol
+        """
         super(DelayedSymbol, self).__init__(name)
         self.cb = SymbolCallback(name, self.callback)
     def __str__(self):
         return "{} attached with {}".format(self.__class__, str(self.cb))
 
 class DelayedType(DelayedValue):
+    """
+    A DelayedValue for types.
+    """
     def __init__(self, name, pointer=False):
+        """
+        Args:
+            name (str): The name of the type.  Must not be a pointer type.
+            pointer (bool, optional, default=False): Whether the requested
+                type should be returned as a pointer to that type.
+        """
         super(DelayedType, self).__init__(name)
         self.pointer = pointer
         self.cb = TypeCallback(name, self.callback)
@@ -114,6 +172,9 @@ class DelayedType(DelayedValue):
         self.value = value
 
 class DelayedSymval(DelayedSymbol):
+    """
+    A DelayedSymbol that returns the gdb.Value associated with the symbol.
+    """
     def callback(self, value):
         symval = value.value()
         if symval.type.code == gdb.TYPE_CODE_FUNC:
@@ -124,8 +185,10 @@ class DelayedSymval(DelayedSymbol):
         return "{} attached with {}".format(self.__class__, str(self.cb))
 
 class DelayedMinimalSymval(DelayedMinimalSymbol):
-    """Sets the property to contain the value of the address of the
-    minimal symbol as a long."""
+    """
+    A DelayedMinimalSymbol that returns the address of the
+    minimal symbol as a long.
+    """
     def callback(self, value):
         self.value = long(value.value().address)
 
@@ -140,6 +203,12 @@ class ClassProperty(object):
         return self.get(owner)
 
 class DelayedLookups(object):
+    """
+    A class for handling dynamic creation of class attributes that
+    contain delayed values.  The attributes are specified using
+    special names.  These are documented in the _CrashBaseMeta
+    documentation.
+    """
     @classmethod
     def _resolve_type(cls, name):
         pointer = False
