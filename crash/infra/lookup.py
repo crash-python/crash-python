@@ -16,20 +16,18 @@ from crash.infra.callback import ObjfileEventCallback
 from crash.exceptions import DelayedAttributeError
 
 class MinimalSymbolCallback(ObjfileEventCallback):
-    def __init__(self, name, callback, symbol_file=None, objfile=None):
+    def __init__(self, name, callback, symbol_file=None):
         self.name = name
         self.symbol_file = symbol_file
-        self.objfile = objfile
         self.callback = callback
         super(MinimalSymbolCallback, self).__init__()
 
     def check_ready(self):
-        return gdb.lookup_minimal_symbol(self.name, self.symbol_file,
-                                         self.objfile)
+        return gdb.lookup_minimal_symbol(self.name, self.symbol_file, None)
     def __str__(self):
-        return ("<{}({}, {}, {}, {})>"
+        return ("<{}({}, {}, {})>"
                 .format(self.__class__.__name__, self.name,
-                        self.symbol_file, self.objfile, self.callback))
+                        self.symbol_file, self.callback))
 
 class SymbolCallback(ObjfileEventCallback):
     def __init__(self, name, callback, block=None,
