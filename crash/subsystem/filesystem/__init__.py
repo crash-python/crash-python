@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Iterable, Union
+
 import gdb
-from crash.util import container_of, decode_flags
+from crash.util import container_of, get_typed_pointer, decode_flags
 from crash.infra import CrashBaseClass, export
 from crash.types.list import list_for_each_entry
 from crash.subsystem.storage import block_device_name
 from crash.subsystem.storage import Storage as block
+
+AddressSpecifier = Union[int, str, gdb.Value]
 
 MS_RDONLY       = 1
 MS_NOSUID       = 2
@@ -71,7 +75,9 @@ SB_FLAGS = {
 
 class FileSystem(CrashBaseClass):
     __types__ = [ 'struct dio *',
-                  'struct buffer_head *' ]
+                  'struct buffer_head *',
+                  'struct super_block' ]
+    __symvals__ = [ 'super_blocks' ]
     __symbol_callbacks__ = [
                     ('dio_bio_end_io', '_register_dio_bio_end'),
                     ('dio_bio_end_aio', '_register_dio_bio_end'),
@@ -319,5 +325,49 @@ class FileSystem(CrashBaseClass):
             'bh' : bh,
         }
         return chain
+
+    @export
+    @classmethod
+    def for_each_super_block(cls) -> Iterable[gdb.Value]:
+        """
+        Iterate over the list of super blocks and yield each one.
+
+        Args:
+            None
+
+        Yields:
+            gdb.Value<struct super_block>
+        """
+        for sb in list_for_each_entry(cls.super_blocks, cls.super_block_type,
+                                      's_list'):
+            yield sb
+
+    @export
+    @classmethod
+    def get_super_block(cls, desc: AddressSpecifier,
+                        force: bool=False) -> gdb.Value:
+        """
+        Given an address description return a gdb.Value that contains
+        a struct super_block at that address.
+
+        Args:
+            desc (gdb.Value, str, or int): The address for which to provide
+                a casted pointer
+            force (bool): Skip testing whether the value is available.
+
+        Returns:
+            gdb.Value<struct super_block>: The super_block at the requested
+                location
+
+        Raises:
+            gdb.NotAvailableError: The target value was not available.
+        """
+        sb = get_typed_pointer(desc, cls.super_block_type).dereference()
+        if not force:
+            try:
+                x = int(sb['s_dev'])
+            except gdb.NotAvailableError:
+                raise gdb.NotAvailableError(f"no superblock available at `{desc}'")
+        return sb
 
 inst = FileSystem()
