@@ -62,6 +62,11 @@ class Mount(CrashBaseClass):
     def real_mount(cls, vfsmnt):
         if (vfsmnt.type == cls.mount_type or
             vfsmnt.type == cls.mount_type.pointer()):
+            t = vfsmnt.type
+            if t.code == gdb.TYPE_CODE_PTR:
+                t = t.target()
+            if t is not cls.mount_type:
+                cls.mount_type = t
             return vfsmnt
         return container_of(vfsmnt, cls.mount_type, 'mnt')
 
