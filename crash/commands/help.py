@@ -28,7 +28,7 @@ DESCRIPTION
     def execute(self, argv):
         if not argv.args:
             print("Available commands:")
-            for cmd in self.commands:
+            for cmd in sorted(self.commands):
                 text = self.commands[cmd].__doc__
                 if text:
                     summary = text.split('\n')[0].strip()
