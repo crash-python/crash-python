@@ -31,6 +31,8 @@ class TypesListClass(CrashBaseClass):
         elif list_head.type != self.list_head_type:
             raise TypeError("Must be struct list_head not {}"
                             .format(str(list_head.type)))
+        if list_head.type is not self.list_head_type:
+            self.list_head_type = list_head.type
         fast = None
         if int(list_head.address) == 0:
             raise CorruptListError("list_head is NULL pointer.")
