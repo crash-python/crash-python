@@ -20,6 +20,8 @@ class TypesKlistClass(CrashBaseClass):
         elif klist.type != self.klist_type:
             raise TypeError("klist must be gdb.Value representing 'struct klist' or 'struct klist *' not {}"
                             .format(klist.type))
+        if klist.type is not self.klist_type:
+            self.klist_type = klist.type
 
         for node in list_for_each_entry(klist['k_list'],
                                         self.klist_node_type, 'n_node'):
@@ -32,4 +34,6 @@ class TypesKlistClass(CrashBaseClass):
         for node in klist_for_each(klist):
             if node.type != self.klist_node_type:
                 raise TypeError("Type {} found. Expected {}.".format(node.type), self.klist_node_type.pointer())
+            if node.type is not self.klist_node_type:
+                    self.klist_node_type = node.type
             yield container_of(node, gdbtype, member)
