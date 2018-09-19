@@ -16,9 +16,10 @@ class FileSystem(CrashBaseClass):
     __types__ = [ 'struct dio *',
                   'struct buffer_head *' ]
     __symbol_callbacks__ = [
-                    ('dio_bio_end', '_register_dio_bio_end'),
+                    ('dio_bio_end_io', '_register_dio_bio_end'),
                     ('dio_bio_end_aio', '_register_dio_bio_end'),
-                    ('mpage_end_io', '_register_mpage_end_io') ]
+                    ('mpage_end_io', '_register_mpage_end_io'),
+                    ('end_bio_bh_io_sync', '_register_end_bio_bh_io_sync') ]
 
     buffer_head_decoders = {}
 
@@ -33,6 +34,10 @@ class FileSystem(CrashBaseClass):
     @classmethod
     def _register_mpage_end_io(cls, sym):
         block.register_bio_decoder(sym, cls.decode_mpage)
+
+    @classmethod
+    def _register_end_bio_bh_io_sync(cls, sym):
+        block.register_bio_decoder(sym, cls.decode_bio_buffer_head)
 
     @export
     @staticmethod
