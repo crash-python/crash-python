@@ -8,7 +8,10 @@ from __future__ import division
 import unittest
 import gdb
 import sys
-from cStringIO import StringIO
+if sys.version_info.major >= 3:
+    from io import StringIO
+else:
+    from cStringIO import StringIO
 
 from crash.exceptions import MissingSymbolError
 from crash.commands import CrashCommandLineError
