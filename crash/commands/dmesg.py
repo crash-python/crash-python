@@ -223,7 +223,7 @@ EXAMPLES
     def get_log_msgs(self, dict_needed=False):
         try:
             idx = self.log_first_idx
-        except DelayedAttributeError, e:
+        except DelayedAttributeError as e:
             raise LogTypeException('not structured log')
 
         if self.clear_seq < self.log_first_seq:

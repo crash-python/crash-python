@@ -53,7 +53,7 @@ class x86_64Architecture(CrashArchitecture):
                 continue
             try:
                 thread.registers[reg].value = task.regs[reg]
-            except KeyError, e:
+            except KeyError as e:
                 pass
 
     def fetch_register_scheduled_inactive(self, thread, register):

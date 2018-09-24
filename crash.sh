@@ -123,7 +123,7 @@ from __future__ import print_function
 import sys
 try:
     import crash.session
-except RuntimeError, e:
+except RuntimeError as e:
     print("crash-python: {}, exiting".format(str(e)), file=sys.stderr)
     sys.exit(1)
 path = "$SEARCHDIRS".split(' ')
