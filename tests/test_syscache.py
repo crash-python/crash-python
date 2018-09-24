@@ -7,6 +7,9 @@ from __future__ import division
 
 import unittest
 import gdb
+import sys
+if sys.version_info >= (3, 4):
+    from importlib import reload
 
 from crash.exceptions import DelayedAttributeError
 fake_config = (
