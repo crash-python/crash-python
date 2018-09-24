@@ -92,7 +92,7 @@ class TypeCallback(ObjfileEventCallback):
         super(TypeCallback, self).__init__()
 
     def check_ready(self):
-	try:
+        try:
             return gdb.lookup_type(self.name, self.block)
         except gdb.error as e:
             return None
