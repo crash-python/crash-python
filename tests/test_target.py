@@ -15,7 +15,7 @@ class TestUtil(unittest.TestCase):
         self.do_real_tests = os.path.exists("tests/vmcore")
 
     def test_bad_file(self):
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(TypeError):
             x = Target("/does/not/exist")
 
     def test_real_open_with_no_kernel(self):
