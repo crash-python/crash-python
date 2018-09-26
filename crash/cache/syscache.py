@@ -63,7 +63,15 @@ class CrashConfigCache(CrashCache):
 
     @staticmethod
     def read_buf(address, size):
-        return str(gdb.selected_inferior().read_memory(address, size))
+        return gdb.selected_inferior().read_memory(address, size)
+
+    @staticmethod
+    def read_buf_str(address, size):
+        buf = gdb.selected_inferior().read_memory(address, size)
+        if isinstance(buf, memoryview):
+            return buf.tobytes().decode('utf-8')
+        else:
+            return str(buf)
 
     def decompress_config_buffer(self):
         MAGIC_START = 'IKCFG_ST'
@@ -74,12 +82,12 @@ class CrashConfigCache(CrashCache):
         data_len = self.kernel_config_data.type.sizeof
 
         buf_len = len(MAGIC_START)
-        buf = self.read_buf(data_addr, buf_len)
+        buf = self.read_buf_str(data_addr, buf_len)
         if buf != MAGIC_START:
             raise IOError("Missing MAGIC_START in kernel_config_data.")
 
         buf_len = len(MAGIC_END)
-        buf = self.read_buf(data_addr + data_len - buf_len - 1, buf_len)
+        buf = self.read_buf_str(data_addr + data_len - buf_len - 1, buf_len)
         if buf != MAGIC_END:
             raise IOError("Missing MAGIC_END in kernel_config_data.")
 
@@ -87,6 +95,10 @@ class CrashConfigCache(CrashCache):
         buf_len = data_len - len(MAGIC_START) - len(MAGIC_END)
         buf = self.read_buf(data_addr + len(MAGIC_START), buf_len)
         self.config_buffer = zlib.decompress(buf, 16 + zlib.MAX_WBITS)
+        if (isinstance(self.config_buffer, bytes)):
+            self.config_buffer = str(self.config_buffer.decode('utf-8'))
+        else:
+            self.config_buffer = str(self.config_buffer)
         return self.config_buffer
 
     def __str__(self):
