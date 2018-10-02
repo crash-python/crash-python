@@ -150,7 +150,7 @@ for thread in gdb.selected_inferior().threads():
             if fn.name == 'vfs_create':
                 try:
                     inode = f.read_var('dir')
-                except ValueError, e:
+                except ValueError as e:
                     print f
                     inode = None
                 checked += 1
@@ -159,7 +159,7 @@ for thread in gdb.selected_inferior().threads():
                     dead += 1
                 break
 
-    except gdb.error, e:
+    except gdb.error as e:
         pass
 
 print "Checked {} inodes in __fput or vfs_create".format(checked)
