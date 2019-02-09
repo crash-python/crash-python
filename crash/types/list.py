@@ -26,7 +26,8 @@ class TypesListClass(CrashBaseClass):
     __types__ = [ 'struct list_head' ]
 
     @export
-    def list_for_each(self, list_head, include_head=False, reverse=False):
+    def list_for_each(self, list_head, include_head=False, reverse=False,
+            print_broken_links=True, exact_cycles=False):
         pending_exception = None
         if isinstance(list_head, gdb.Symbol):
             list_head = list_head.value()
@@ -48,6 +49,9 @@ class TypesListClass(CrashBaseClass):
             next_ = 'prev'
             prev_ = 'next'
 
+        if exact_cycles:
+            visited = set()
+
         if include_head:
             yield list_head.address
 
@@ -62,16 +66,24 @@ class TypesListClass(CrashBaseClass):
                               .format(long(list_head.address), str(e)))
 
         while node.address != list_head.address:
+            if exact_cycles:
+                if long(node.address) in visited:
+                    raise ListCycleError("Cycle in list detected.")
+                else:
+                    visited.add(long(node.address))
             try:
                 if long(prev.address) != long(node[prev_]):
                     error = ("broken {} link {:#x} -{}-> {:#x} -{}-> {:#x}"
                              .format(prev_, long(prev.address), next_, long(node.address),
                                      prev_, long(node[prev_])))
                     pending_exception = CorruptListError(error)
+                    if print_broken_links:
+                        print(error)
                     # broken prev link means there might be a cycle that
                     # does not include the initial head, so start detecting
                     # cycles
-                    fast = node
+                    if not exact_cycles and fast is not None:
+                        fast = node
                 nxt = node[next_]
                 # only yield after trying to read something from the node, no
                 # point in giving out bogus list elements
