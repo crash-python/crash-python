@@ -6,6 +6,7 @@ from crash.infra import CrashBaseClass, export
 from crash.util import container_of, find_member_variant, array_for_each
 import crash.types.node
 from crash.types.percpu import get_percpu_var
+from crash.types.vmstat import VmStat
 from cpu import for_each_online_cpu
 from crash.types.list import list_for_each_entry
 
@@ -25,6 +26,27 @@ class Zone(CrashBaseClass):
             return True
         else:
             return False
+
+    def get_vmstat(self):
+        stats = [0L] * VmStat.nr_stat_items
+        vm_stat = self.gdb_obj["vm_stat"]
+
+        for item in range (0, VmStat.nr_stat_items):
+            # TODO abstract atomic?
+            stats[item] = long(vm_stat[item]["counter"])
+        return stats
+
+    def add_vmstat_diffs(self, diffs):
+        for cpu in for_each_online_cpu():
+            pageset = get_percpu_var(self.gdb_obj["pageset"], cpu)
+            vmdiff = pageset["vm_stat_diff"]
+            for item in range (0, VmStat.nr_stat_items):
+                diffs[item] += int(vmdiff[item])
+
+    def get_vmstat_diffs(self):
+        diffs = [0L] * VmStat.nr_stat_items
+        self.add_vmstat_diffs(diffs)
+        return diffs
 
     def _check_free_area(self, area, is_pcp):
         nr_free = 0
