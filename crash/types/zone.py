@@ -5,6 +5,7 @@ import gdb
 from crash.infra import CrashBaseClass, export
 from crash.util import container_of, find_member_variant, array_for_each
 import crash.types.node
+from crash.types.percpu import get_percpu_var
 from cpu import for_each_online_cpu
 from crash.types.list import list_for_each_entry
 
@@ -24,6 +25,30 @@ class Zone(CrashBaseClass):
             return True
         else:
             return False
+
+    def _check_free_area(self, area, is_pcp):
+        nr_free = 0
+        list_array_name = "lists" if is_pcp else "free_list"
+        for free_list in array_for_each(area[list_array_name]):
+            for page_obj in list_for_each_entry(free_list, self.page_type, "lru"):
+                page = crash.types.page.Page.from_obj(page_obj)
+                nr_free += 1
+                if page.get_nid() != self.nid or page.get_zid() != self.zid:
+                    print("page {:#x} misplaced on {} of zone {}:{}, has flags for zone {}:{}".
+                        format(long(page_obj.address), "pcplist" if is_pcp else "freelist",
+                                self.nid, self.zid, page.get_nid(), page.get_zid()))
+        nr_expected = area["count"] if is_pcp else area["nr_free"]
+        if nr_free != nr_expected:
+            print("nr_free mismatch in {} {}: expected {}, counted {}".
+                format("pcplist" if is_pcp else "area", area.address,
+                        nr_expected, nr_free))
+
+    def check_free_pages(self):
+        for area in array_for_each(self.gdb_obj["free_area"]):
+            self._check_free_area(area, False)
+        for cpu in for_each_online_cpu():
+            pageset = get_percpu_var(self.gdb_obj["pageset"], cpu)
+            self._check_free_area(pageset["pcp"], True)
 
 class Zones(CrashBaseClass):
 
