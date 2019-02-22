@@ -121,10 +121,12 @@ set print pretty on
 python
 from __future__ import print_function
 import sys
+import traceback
 try:
     import crash.session
 except RuntimeError as e:
     print("crash-python: {}, exiting".format(str(e)), file=sys.stderr)
+    traceback.print_exc()
     sys.exit(1)
 path = "$SEARCHDIRS".split(' ')
 try:
@@ -132,10 +134,12 @@ try:
    print("The 'pyhelp' command will list the command extensions.")
 except gdb.error as e:
     print("crash-python: {}, exiting".format(str(e)), file=sys.stderr)
+    traceback.print_exc()
     sys.exit(1)
 except RuntimeError as e:
     print("crash-python: Failed to open {}.  {}".format("$VMCORE", str(e)),
           file=sys.stderr)
+    traceback.print_exc()
     sys.exit(1)
 EOF
 
