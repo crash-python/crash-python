@@ -4,15 +4,15 @@
 import gdb
 import sys
 import os.path
+import crash.arch
+import crash.arch.x86_64
+import crash.arch.ppc64
 from crash.infra import CrashBaseClass, export
 from crash.types.list import list_for_each_entry
 from crash.types.percpu import get_percpu_var
 from crash.types.list import list_for_each_entry
 import crash.cache.tasks
 from crash.types.task import LinuxTask
-import crash.kdump
-import crash.kdump.target
-from kdumpfile import kdumpfile
 from elftools.elf.elffile import ELFFile
 
 LINUX_KERNEL_PID = 1
@@ -22,98 +22,29 @@ class CrashKernel(CrashBaseClass):
     __symvals__ = [ 'modules', 'init_task' ]
     __symbols__ = [ 'runqueues']
 
-    def __init__(self, vmlinux_filename, searchpath=None):
+    def __init__(self, searchpath=None):
         self.findmap = {}
-        self.vmlinux_filename = vmlinux_filename
         self.searchpath = searchpath
 
-        f = open(self.vmlinux_filename, 'rb')
+        sym = gdb.lookup_symbol('vsnprintf', None)[0]
+        if sym is None:
+            raise RuntimeError("Missing vsnprintf indicates that there is no kernel image loaded.")
+
+        f = open(gdb.objfiles()[0].filename, 'rb')
         self.elffile = ELFFile(f)
 
-        self.set_gdb_arch()
+        archname = sym.symtab.objfile.architecture.name()
+        archclass = crash.arch.get_architecture(archname)
+        self.arch = archclass()
 
-    def set_gdb_arch(self):
-        mach = self.elffile['e_machine']
-        e_class = self.elffile['e_ident']['EI_CLASS']
+        self.target = gdb.current_target()
+        self.vmcore = self.target.kdump
 
-        elf_to_gdb = {
-            ('EM_X86_64', 'ELFCLASS64') : 'i386:x86-64',
-            ('EM_386', 'ELFCLASS32')    : 'i386',
-            ('EM_S390', 'ELFCLASS64')   :  's390:64-bit',
-            ('EM_PPC64', 'ELFCLASS64')   :  'powerpc:common64'
-        }
+        self.target.fetch_registers = self.fetch_registers
 
-        try:
-            gdbarch = elf_to_gdb[(mach, e_class)]
-        except KeyError as e:
-            raise RuntimeError("no mapping for {}:{} to gdb architecture found.".format(mach, e_class))
-        gdb.execute("set arch {}".format(gdbarch), to_string=True)
-
-    def open_kernel(self):
-        if self.base_offset is None:
-            raise RuntimeError("Base offset is unconfigured.")
-
-        self.load_sections()
-
-        try:
-            list_type = gdb.lookup_type('struct list_head')
-        except gdb.error as e:
-            self.load_debuginfo(gdb.objfiles()[0], None)
-            try:
-                list_type = gdb.lookup_type('struct list_head')
-            except gdb.error as e:
-                raise RuntimeError("Couldn't locate debuginfo for {}"
-                                   .format(self.vmlinux_filename))
-
-        self.target.setup_arch()
-
-    def get_sections(self):
-        sections = {}
-
-        text = self.elffile.get_section_by_name('.text')
-
-        for section in self.elffile.iter_sections():
-            if (section['sh_addr'] < text['sh_addr'] and
-                section.name != '.data..percpu'):
-                continue
-            sections[section.name] = section['sh_addr']
-
-        return sections
-
-    def load_sections(self):
-        sections = self.get_sections()
-
-        line = ""
-
-        # .data..percpu shouldn't have relocation applied but it does.
-        # Perhaps it's due to the address being 0 and it being handled
-        # as unspecified in the parameter list.
-#        for section, addr in sections.items():
-#            if addr == 0:
-#                line += " -s {} {:#x}".format(section, addr)
-
-        # The gdb internals are subtle WRT how symbols are mapped.
-        # Minimal symbols are mapped using the offset for the section
-        # that contains them.  That means that using providing an address
-        # for .text here gives a base address with no offset and minimal
-        # symbols in .text (like __switch_to_asm) will not have the correct
-        # addresses after relocation.
-        cmd = "add-symbol-file {} -o {:#x} {} ".format(self.vmlinux_filename,
-                                                       self.base_offset, line)
-        gdb.execute(cmd, to_string=True)
-
-    def attach_vmcore(self, vmcore_filename, debug=False):
-        self.vmcore_filename = vmcore_filename
-        self.vmcore = kdumpfile(vmcore_filename)
-        self.target = crash.kdump.target.Target(self.vmcore, debug)
-
-        self.base_offset = 0
-        try:
-            KERNELOFFSET = "linux.vmcoreinfo.lines.KERNELOFFSET"
-            attr = self.vmcore.attr.get(KERNELOFFSET, "0")
-            self.base_offset = int(attr, base=16)
-        except Exception as e:
-            print(e)
+    def fetch_registers(self, register):
+        thread = gdb.selected_thread()
+        return self.arch.fetch_register(thread, register.regnum)
 
     def for_each_module(self):
         for module in list_for_each_entry(self.modules, self.module_type,
@@ -264,9 +195,9 @@ class CrashKernel(CrashBaseClass):
                 continue
             thread.name = task['comm'].string()
 
-            self.target.arch.setup_thread_info(thread)
+            self.arch.setup_thread_info(thread)
             ltask.attach_thread(thread)
-            ltask.set_get_stack_pointer(self.target.arch.get_stack_pointer)
+            ltask.set_get_stack_pointer(self.arch.get_stack_pointer)
 
             crash.cache.tasks.cache_task(ltask)
 
