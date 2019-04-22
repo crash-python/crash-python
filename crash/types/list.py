@@ -110,8 +110,11 @@ class TypesListClass(CrashBaseClass):
             raise pending_exception
 
     @export
-    def list_for_each_entry(self, list_head, gdbtype, member, include_head=False, reverse=False):
-        for node in list_for_each(list_head, include_head=include_head, reverse=reverse):
+    def list_for_each_entry(self, list_head, gdbtype, member,
+                            include_head=False, reverse=False,
+                            exact_cycles=False):
+        for node in list_for_each(list_head, include_head=include_head,
+                                  reverse=reverse, exact_cycles=exact_cycles):
             if node.type != self.list_head_type.pointer():
                 raise TypeError("Type {} found. Expected struct list_head *."
                                 .format(str(node.type)))
