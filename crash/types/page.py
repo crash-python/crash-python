@@ -52,7 +52,7 @@ class Page(CrashBaseClass):
     def setup_page_type(cls, gdbtype):
         # TODO: should check config, but that failed to work on ppc64, hardcode
         # 64k for now
-        if gdb.current_target().arch.ident == "powerpc:common64":
+        if gdb.current_target().arch.name() == "powerpc:common64":
             cls.PAGE_SHIFT = 16
             # also a config
             cls.directmap_base = 0xc000000000000000
