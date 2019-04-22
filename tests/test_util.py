@@ -21,6 +21,9 @@ class TestUtil(unittest.TestCase):
         self.ulongsize = self.ulong.sizeof
         self.test_struct = gdb.lookup_type("struct test")
 
+    def tearDown(self):
+        gdb.execute("file")
+
     def test_invalid_python_type(self):
         with self.assertRaises(InvalidArgumentError):
             offset = offsetof(self, 'dontcare')

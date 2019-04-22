@@ -11,6 +11,9 @@ class TestCallback(unittest.TestCase):
     def setUp(self):
         gdb.execute("file")
 
+    def tearDown(self):
+        gdb.execute("file")
+
     def load_file(self):
         gdb.execute("file tests/test-util")
 

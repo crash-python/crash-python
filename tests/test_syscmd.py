@@ -15,6 +15,9 @@ class TestSysCmd(unittest.TestCase):
         gdb.execute("file tests/test-syscache", to_string=True)
         self.cmd = SysCommand("pysys")
 
+    def tearDown(self):
+        gdb.execute("file")
+
     def test_sys(self):
         old_stdout = sys.stdout
         sys.stdout = StringIO()
