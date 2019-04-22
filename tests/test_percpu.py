@@ -31,6 +31,7 @@ class TestPerCPU(unittest.TestCase):
     def tearDown(self):
         try:
             gdb.execute("detach", to_string=True)
+            gdb.execute("file")
         except gdb.error:
             print()
             pass

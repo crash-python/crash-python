@@ -15,6 +15,9 @@ class TestList(unittest.TestCase):
         gdb.execute("file tests/test-list")
         self.list_head = gdb.lookup_type("struct list_head")
 
+    def tearDown(self):
+        gdb.execute("file")
+
     def test_none_list(self):
         count = 0
         with self.assertRaises(TypeError):
