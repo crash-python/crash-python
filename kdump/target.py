@@ -6,9 +6,6 @@ import sys
 from kdumpfile import kdumpfile, KDUMP_KVADDR
 from kdumpfile.exceptions import *
 import addrxlat
-import crash.arch
-import crash.arch.x86_64
-import crash.arch.ppc64
 
 class SymbolCallback(object):
     "addrxlat symbolic callback"
@@ -31,38 +28,50 @@ class SymbolCallback(object):
         raise addrxlat.NoDataError()
 
 class Target(gdb.Target):
-    def __init__(self, vmcore, debug=False):
-        if not isinstance(vmcore, kdumpfile):
-            raise TypeError("vmcore must be of type kdumpfile")
-        self.arch = None
+    def __init__(self, debug=False):
+        super().__init__()
         self.debug = debug
-        self.kdump = vmcore
+        self.shortname = "kdumpfile"
+        self.longname = "Use a Linux kernel kdump file as a target"
+
+        self.register()
+
+    def open(self, filename, from_tty):
+
+        if len(gdb.objfiles()) == 0:
+            raise gdb.GdbError("kdumpfile target requires kernel to be already loaded for symbol resolution")
+        try:
+            self.kdump = kdumpfile(file=filename)
+        except Exception as e:
+            raise gdb.GdbError("Failed to open `{}': {}"
+                                .format(filename, str(e)))
+
+        self.kdump.attr['addrxlat.ostype'] = 'linux'
         ctx = self.kdump.get_addrxlat_ctx()
         ctx.cb_sym = SymbolCallback(ctx)
-        self.kdump.attr['addrxlat.ostype'] = 'linux'
 
-        # So far we've read from the kernel image, now that we've setup
-        # the architecture, we're ready to plumb into the target
-        # infrastructure.
-        super().__init__()
+        KERNELOFFSET = "linux.vmcoreinfo.lines.KERNELOFFSET"
+        try:
+            attr = self.kdump.attr.get(KERNELOFFSET, "0")
+            self.base_offset = int(attr, base=16)
+        except Exception as e:
+            self.base_offset = 0
 
-    def setup_arch(self):
-        archname = self.kdump.attr.arch.name
-        archclass = crash.arch.get_architecture(archname)
-        if not archclass:
-            raise NotImplementedError("Architecture {} is not supported yet."
-                                      .format(archname))
+        vmlinux = gdb.objfiles()[0].filename
 
-        # Doesn't matter what symbol as long as it's everywhere
-        # Use vsnprintf since 'printk' can be dropped with CONFIG_PRINTK=n
-        sym = gdb.lookup_symbol('vsnprintf', None)[0]
-        if sym is None:
-            raise RuntimeError("Missing vsnprintf indicates there is no kernel image loaded.")
-        if sym.symtab.objfile.architecture.name() != archclass.ident:
-            raise TypeError("Dump file is for `{}' but provided kernel is for `{}'"
-                            .format(archname, archclass.ident))
+        # Load the kernel at the relocated address
+        gdb.execute("add-symbol-file {} -o {:#x} -s .data..percpu 0"
+                    .format(vmlinux, self.base_offset))
 
-        self.arch = archclass()
+        # Clear out the old symbol cache
+        gdb.execute("file {}".format(vmlinux))
+
+    def close(self):
+        try:
+            self.unregister()
+        except:
+            pass
+        del self.kdump
 
     @classmethod
     def report_error(cls, addr, length, error):
@@ -70,7 +79,7 @@ class Target(gdb.Target):
               .format(length, addr, str(error)),
               file=sys.stderr)
 
-    def to_xfer_partial(self, obj, annex, readbuf, writebuf, offset, ln):
+    def xfer_partial(self, obj, annex, readbuf, writebuf, offset, ln):
         ret = -1
         if obj == self.TARGET_OBJECT_MEMORY:
             try:
@@ -93,28 +102,21 @@ class Target(gdb.Target):
             raise IOError("Unknown obj type")
         return ret
 
-    @staticmethod
-    def to_thread_alive(ptid):
+    def thread_alive(self, ptid):
         return True
 
-    @staticmethod
-    def to_pid_to_str(ptid):
+    def pid_to_str(self, ptid):
         return "pid {:d}".format(ptid[1])
 
-    def to_fetch_registers(self, register):
-        thread = gdb.selected_thread()
-        self.arch.fetch_register(thread, register.regnum)
-        return True
+    def fetch_registers(self, register):
+        return False
 
-    @staticmethod
-    def to_prepare_to_store(thread):
+    def prepare_to_store(self, thread):
         pass
 
     # We don't need to store anything; The regcache is already written.
-    @staticmethod
-    def to_store_registers(thread):
+    def store_registers(self, thread):
         pass
 
-    @staticmethod
-    def to_has_execution(ptid):
+    def has_execution(self, ptid):
         return False

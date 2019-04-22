@@ -14,7 +14,7 @@ class TypesNodeUtilsClass(CrashBaseClass):
 
     @export
     def numa_node_id(self, cpu):
-        if gdb.current_target().arch.ident == "powerpc:common64":
+        if gdb.current_target().arch.name() == "powerpc:common64":
             return int(self.numa_cpu_lookup_table[cpu])
         else:
             return int(get_percpu_var(self.numa_node, cpu))
