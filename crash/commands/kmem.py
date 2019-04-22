@@ -117,12 +117,16 @@ DESCRIPTION
                                                 vmstat[i], diffs[i]))
 
     def print_vmstats(self):
+        try:
+            vm_stat = getValue("vm_stat")
+        except AttributeError:
+            raise gdb.GdbError("Support for new-style vmstat is unimplemented.")
+
         print "  VM_STAT:"
         #TODO put this... where?
         nr_items = VmStat.nr_stat_items
     
         stats = [0L] * nr_items
-        vm_stat = getValue("vm_stat")
 
         for item in range (0, nr_items):
             # TODO abstract atomic?
