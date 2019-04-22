@@ -1,21 +1,12 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import gdb
-import sys
-
-if sys.version_info.major >= 3:
-    long = int
-
 from crash.util import array_size
 from crash.infra import CrashBaseClass
 from crash.infra.lookup import DelayedValue, ClassProperty, get_delayed_lookup
 
-PF_EXITING = long(0x4)
+PF_EXITING = 0x4
 
 def get_value(symname):
     sym = gdb.lookup_symbol(symname, block=None, domain=gdb.SYMBOL_VAR_DOMAIN)
@@ -170,9 +161,9 @@ class LinuxTask(object):
             return self.thread_info['cpu']
 
     def task_state(self):
-        state = long(self.task_struct['state'])
+        state = int(self.task_struct['state'])
         if self.task_state_has_exit_state:
-            state |= long(self.task_struct['exit_state'])
+            state |= int(self.task_struct['exit_state'])
         return state
 
     def maybe_dead(self):
@@ -188,7 +179,7 @@ class LinuxTask(object):
         return (state & known) == 0
 
     def task_flags(self):
-        return long(self.task_struct['flags'])
+        return int(self.task_struct['flags'])
 
     def is_exiting(self):
         return self.task_flags() & PF_EXITING
@@ -209,8 +200,8 @@ class LinuxTask(object):
             return
 
         self.rss = self.get_rss()
-        self.total_vm = long(mm['total_vm'])
-        self.pgd_addr = long(mm['pgd'])
+        self.total_vm = int(mm['total_vm'])
+        self.pgd_addr = int(mm['pgd'])
         self.mem_valid = True
 
     def is_kernel_task(self):
@@ -240,17 +231,17 @@ class LinuxTask(object):
         return fn(self.thread)
 
     def get_rss_field(self):
-        return long(self.task_struct['mm']['rss'].value())
+        return int(self.task_struct['mm']['rss'].value())
 
     def get__rss_field(self):
-        return long(self.task_struct['mm']['_rss'].value())
+        return int(self.task_struct['mm']['_rss'].value())
 
     def get_rss_stat_field(self):
         stat = self.task_struct['mm']['rss_stat']['count']
         stat0 = self.task_struct['mm']['rss_stat']['count'][0]
         rss = 0
         for i in range(stat.type.sizeof // stat[0].type.sizeof):
-            rss += long(stat[i]['counter'])
+            rss += int(stat[i]['counter'])
         return rss
 
     def get_anon_file_rss_fields(self):
@@ -259,9 +250,9 @@ class LinuxTask(object):
         for name in ['_anon_rss', '_file_rss']:
             if name in mm_struct_fields:
                 if mm[name].type == self.atomic_long_type:
-                    rss += long(mm[name]['counter'])
+                    rss += int(mm[name]['counter'])
                 else:
-                    rss += long(mm[name])
+                    rss += int(mm[name])
         return rss
 
     # The Pythonic way to do this is by generating the LinuxTask class
@@ -285,13 +276,13 @@ class LinuxTask(object):
             raise RuntimeError("No method to retrieve RSS from task found.")
 
     def last_run__last_run(self):
-        return long(self.task_struct['last_run'])
+        return int(self.task_struct['last_run'])
 
     def last_run__timestamp(self):
-        return long(self.task_struct['timestamp'])
+        return int(self.task_struct['timestamp'])
 
     def last_run__last_arrival(self):
-        return long(self.task_struct['sched_info']['last_arrival'])
+        return int(self.task_struct['sched_info']['last_arrival'])
 
     @classmethod
     def pick_last_run(cls):

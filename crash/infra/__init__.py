@@ -1,12 +1,6 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
-from future.utils import with_metaclass
-
 import sys
 import glob
 import os.path
@@ -107,7 +101,7 @@ class _CrashBaseMeta(type):
                  hasattr(decl.__func__, "__export_to_module__"))):
                 setattr(mod, name, export_wrapper(mod, cls, decl))
 
-class CrashBaseClass(with_metaclass(_CrashBaseMeta)):
+class CrashBaseClass(metaclass=_CrashBaseMeta):
     pass
 
 def autoload_submodules(caller, callback=None):

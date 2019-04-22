@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
@@ -7,7 +7,7 @@ from crash.util import container_of, find_member_variant, array_for_each
 import crash.types.node
 from crash.types.percpu import get_percpu_var
 from crash.types.vmstat import VmStat
-from cpu import for_each_online_cpu
+from crash.types.cpu import for_each_online_cpu
 from crash.types.list import list_for_each_entry
 
 def getValue(sym):
@@ -19,7 +19,7 @@ class Zone(CrashBaseClass):
     def __init__(self, obj, zid):
         self.gdb_obj = obj
         self.zid = zid
-        self.nid = long(obj["node"])
+        self.nid = int(obj["node"])
 
     def is_populated(self):
         if self.gdb_obj["present_pages"] != 0:
@@ -28,12 +28,12 @@ class Zone(CrashBaseClass):
             return False
 
     def get_vmstat(self):
-        stats = [0L] * VmStat.nr_stat_items
+        stats = [0] * VmStat.nr_stat_items
         vm_stat = self.gdb_obj["vm_stat"]
 
         for item in range (0, VmStat.nr_stat_items):
             # TODO abstract atomic?
-            stats[item] = long(vm_stat[item]["counter"])
+            stats[item] = int(vm_stat[item]["counter"])
         return stats
 
     def add_vmstat_diffs(self, diffs):
@@ -44,7 +44,7 @@ class Zone(CrashBaseClass):
                 diffs[item] += int(vmdiff[item])
 
     def get_vmstat_diffs(self):
-        diffs = [0L] * VmStat.nr_stat_items
+        diffs = [0] * VmStat.nr_stat_items
         self.add_vmstat_diffs(diffs)
         return diffs
 
@@ -57,7 +57,7 @@ class Zone(CrashBaseClass):
                 nr_free += 1
                 if page.get_nid() != self.nid or page.get_zid() != self.zid:
                     print("page {:#x} misplaced on {} of zone {}:{}, has flags for zone {}:{}".
-                        format(long(page_obj.address), "pcplist" if is_pcp else "freelist",
+                        format(int(page_obj.address), "pcplist" if is_pcp else "freelist",
                                 self.nid, self.zid, page.get_nid(), page.get_zid()))
         nr_expected = area["count"] if is_pcp else area["nr_free"]
         if nr_free != nr_expected:

@@ -1,20 +1,12 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
 from builtins import round
 
 import gdb
 import re
 import zlib
-import sys
 from datetime import timedelta
-
-if sys.version_info.major >= 3:
-    long = int
 
 from crash.exceptions import DelayedAttributeError
 from crash.cache import CrashCache
@@ -141,7 +133,7 @@ class CrashKernelCache(CrashCache):
 
     def __getattr__(self, name):
         if name == 'hz':
-            self.hz = long(self.config['HZ'])
+            self.hz = int(self.config['HZ'])
             return self.hz
         elif name == 'uptime':
             return self.get_uptime()
@@ -153,7 +145,7 @@ class CrashKernelCache(CrashCache):
     def calculate_loadavg(metric):
         # The kernel needs to do fixed point trickery to calculate
         # a floating point average.  We can just return a float.
-        return round(long(metric) / (1 << 11), 2)
+        return round(int(metric) / (1 << 11), 2)
 
     @staticmethod
     def format_loadavg(metrics):
@@ -187,19 +179,19 @@ class CrashKernelCache(CrashCache):
 
         if jiffies_sym:
             try:
-                jiffies = long(jiffies_sym.value())
+                jiffies = int(jiffies_sym.value())
             except gdb.MemoryError:
                 return False
             cls.adjust_jiffies = True
         else:
-            jiffies = long(gdb.lookup_global_symbol('jiffies').value())
+            jiffies = int(gdb.lookup_global_symbol('jiffies').value())
             cls.adjust_jiffies = False
 
         delayed = get_delayed_lookup(cls, 'jiffies').callback(jiffies)
 
     def adjusted_jiffies(self):
         if self.adjust_jiffies:
-            return self.jiffies -(long(0x100000000) - 300 * self.hz)
+            return self.jiffies -(int(0x100000000) - 300 * self.hz)
         else:
             return self.jiffies
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 # bsc#1031358
 
@@ -21,12 +21,12 @@ for b in for_each_disk():
     count = 0
     for r in for_each_request_in_queue(b['queue']):
         age_in_jiffies = kernel.jiffies - r['start_time']
-        age = float(long(kernel.jiffies_to_msec(age_in_jiffies))) / 1000
+        age = float(int(kernel.jiffies_to_msec(age_in_jiffies))) / 1000
         if count == 0:
             print name
         if r['bio']:
             print "{}: {:x} request: age={}s, bio chain".format(
-                    count, long(r.address), age, long(r['bio']))
+                    count, int(r.address), age, int(r['bio']))
             n=0
             for entry in for_each_bio_in_stack(r['bio']):
                 print "  {}: {}".format(n, entry['description'])
@@ -34,10 +34,10 @@ for b in for_each_disk():
         else:
             if r['end_io'] == flush_end_io:
                 print "{}: {:x} request: age={}s, pending flush request".format(
-                        count, long(r.address), age)
+                        count, int(r.address), age)
             else:
                 print "{}: {:x} request: start={}, undecoded".format(
-                        count, long(r.address), age)
+                        count, int(r.address), age)
         count += 1
         print
 

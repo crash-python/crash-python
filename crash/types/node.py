@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
 from crash.infra import CrashBaseClass, export
 from crash.util import container_of, find_member_variant, get_symbol_value
 from crash.types.percpu import get_percpu_var
-from bitmap import for_each_set_bit
+from crash.types.bitmap import for_each_set_bit
 import crash.types.zone
 
 class TypesNodeUtilsClass(CrashBaseClass):
@@ -15,9 +15,9 @@ class TypesNodeUtilsClass(CrashBaseClass):
     @export
     def numa_node_id(self, cpu):
         if gdb.current_target().arch.ident == "powerpc:common64":
-            return long(self.numa_cpu_lookup_table[cpu])
+            return int(self.numa_cpu_lookup_table[cpu])
         else:
-            return long(get_percpu_var(self.numa_node, cpu))
+            return int(get_percpu_var(self.numa_node, cpu))
 
 class Node(CrashBaseClass):
     __types__ = [ 'pg_data_t', 'struct zone' ]
@@ -30,7 +30,7 @@ class Node(CrashBaseClass):
     def for_each_zone(self):
         node_zones = self.gdb_obj["node_zones"]
 
-        ptr = long(node_zones[0].address)
+        ptr = int(node_zones[0].address)
 
         (first, last) = node_zones.type.range()
         for zid in range(first, last + 1):

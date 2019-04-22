@@ -1,15 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import gdb
-import sys
-
-if sys.version_info.major >= 3:
-    long = int
 
 import crash.infra
 from crash.infra.callback import ObjfileEventCallback
@@ -187,10 +179,10 @@ class DelayedSymval(DelayedSymbol):
 class DelayedMinimalSymval(DelayedMinimalSymbol):
     """
     A DelayedMinimalSymbol that returns the address of the
-    minimal symbol as a long.
+    minimal symbol as a int.
     """
     def callback(self, value):
-        self.value = long(value.value().address)
+        self.value = int(value.value().address)
 
     def __str__(self):
         return "{} attached with {}".format(self.__class__, str(self.cb))

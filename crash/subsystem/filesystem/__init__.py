@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
 import gdb
 from crash.util import container_of
 from crash.infra import CrashBaseClass, export
@@ -105,7 +101,7 @@ class FileSystem(CrashBaseClass):
                     this bio
                 - inode (gdb.Value<struct inode>): The struct inode, if any,
                     that owns the file associated with this bio
-                - offset (long): The offset within the file, in bytes
+                - offset (int): The offset within the file, in bytes
                 - devname (str): The device name associated with this bio
         """
         dio = bio['bi_private'].cast(cls.dio_p_type)
@@ -115,7 +111,7 @@ class FileSystem(CrashBaseClass):
 
         chain = {
             'description' : "{:x} bio: Direct I/O for {} inode {} on {}".format(
-                            long(bio), fstype, dio['inode']['i_ino'], dev),
+                            int(bio), fstype, dio['inode']['i_ino'], dev),
             'bio' : bio,
             'dio' : dio,
             'fstype' : fstype,
@@ -151,7 +147,7 @@ class FileSystem(CrashBaseClass):
         chain = {
             'description' :
                 "{:x} bio: Multipage I/O: inode {}, type {}, dev {}".format(
-                        long(bio), inode['i_ino'], fstype,
+                        int(bio), inode['i_ino'], fstype,
                         block_device_name(bio['bi_bdev'])),
             'bio' : bio,
             'fstype' : fstype,
@@ -182,7 +178,7 @@ class FileSystem(CrashBaseClass):
         bh = bio['bi_private'].cast(cls.buffer_head_p_type)
         chain = {
             'description' :
-                "{:x} bio: Bio representation of buffer head".format(long(bio)),
+                "{:x} bio: Bio representation of buffer head".format(int(bio)),
             'bio' : bio,
             'next' : bh,
             'decoder' : cls.decode_buffer_head,
@@ -215,7 +211,7 @@ class FileSystem(CrashBaseClass):
         except KeyError:
             pass
         desc = "{:x} buffer_head: for dev {}, block {}, size {} (undecoded)".format(
-                    long(bh), block_device_name(bh['b_bdev']),
+                    int(bh), block_device_name(bh['b_bdev']),
                     bh['b_blocknr'], bh['b_size'])
         chain = {
             'description' : desc,

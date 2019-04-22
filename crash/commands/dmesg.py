@@ -1,21 +1,13 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
 import gdb
-import sys
 import os.path
 import argparse
 import re
 
 from crash.commands import CrashCommand, CrashCommandParser
 from crash.exceptions import DelayedAttributeError
-
-if sys.version_info.major >= 3:
-    long = int
 
 class LogTypeException(Exception):
     pass
@@ -181,7 +173,7 @@ EXAMPLES
         try:
             textval = (msg.cast(self.char_p_type) +
                        self.printk_log_p_type.target().sizeof)
-            text = textval.string(length=long(msg['text_len']))
+            text = textval.string(length=int(msg['text_len']))
         except UnicodeDecodeError as e:
             print(e)
 
@@ -197,7 +189,7 @@ EXAMPLES
 
         msgdict = {
             'text' : text[0:textlen],
-            'timestamp' : long(msg['ts_nsec']),
+            'timestamp' : int(msg['ts_nsec']),
             'level' : int(msg['level']),
             'next' : nextidx,
             'dict' : [],
@@ -243,7 +235,7 @@ EXAMPLES
         for msg in self.get_log_msgs(args.d):
             timestamp = ''
             if not args.t:
-                usecs = long(msg['timestamp'])
+                usecs = int(msg['timestamp'])
                 timestamp = ('[{:5d}.{:06d}] '
                              .format(usecs // 1000000000,
                                      (usecs % 1000000000) // 1000))

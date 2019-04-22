@@ -35,7 +35,7 @@ man-install: man
 	$(INSTALL) -m 644 $(GZ_MAN1) $(DESTDIR)$(man1dir)
 
 install: man-install
-	python setup.py install
+	python3 setup.py install
 
 lint: lint3
 	pylint --rcfile tests/pylintrc -r n crash

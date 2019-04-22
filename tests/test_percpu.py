@@ -1,19 +1,11 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import unittest
 import gdb
-import sys
 
 import crash
 import crash.types.percpu
-
-if sys.version_info.major >= 3:
-    long = int
 
 class TestPerCPU(unittest.TestCase):
     def setUp(self):
@@ -71,7 +63,7 @@ class TestPerCPU(unittest.TestCase):
         for cpu, val in list(crash.types.percpu.get_percpu_var(var).items()):
             self.assertTrue(val is not None)
             self.assertTrue(val.type == self.voidp)
-            self.assertTrue(long(val) == 0xdeadbeef)
+            self.assertTrue(int(val) == 0xdeadbeef)
 
     def test_struct_test_ptr(self):
         var = gdb.lookup_symbol('ptr_to_struct_test', None)[0]

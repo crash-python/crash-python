@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
 import gdb
 import sys
 import os.path
@@ -18,9 +14,6 @@ import crash.kdump
 import crash.kdump.target
 from kdumpfile import kdumpfile
 from elftools.elf.elffile import ELFFile
-
-if sys.version_info.major >= 3:
-    long = int
 
 LINUX_KERNEL_PID = 1
 
@@ -116,7 +109,7 @@ class CrashKernel(CrashBaseClass):
         try:
             KERNELOFFSET = "linux.vmcoreinfo.lines.KERNELOFFSET"
             attr = self.vmcore.attr.get(KERNELOFFSET, "0")
-            self.base_offset = long(attr, base=16)
+            self.base_offset = int(attr, base=16)
         except Exception as e:
             print(e)
 
@@ -133,7 +126,7 @@ class CrashKernel(CrashBaseClass):
             name = attr['name'].string()
             if name == '.text':
                 continue
-            out.append("-s {} {:#x}".format(name, long(attr['address'])))
+            out.append("-s {} {:#x}".format(name, int(attr['address'])))
 
         return " ".join(out)
 
@@ -154,9 +147,9 @@ class CrashKernel(CrashBaseClass):
                 found = True
 
                 if 'module_core' in module.type:
-                    addr = long(module['module_core'])
+                    addr = int(module['module_core'])
                 else:
-                    addr = long(module['core_layout']['base'])
+                    addr = int(module['core_layout']['base'])
 
                 if verbose:
                     print("Loading {} at {:#x}".format(modname, addr))
@@ -237,7 +230,7 @@ class CrashKernel(CrashBaseClass):
         runqueues = gdb.lookup_global_symbol('runqueues')
 
         rqs = get_percpu_var(runqueues)
-        rqscurrs = {long(x["curr"]) : k for (k, x) in rqs.items()}
+        rqscurrs = {int(x["curr"]) : k for (k, x) in rqs.items()}
 
         self.pid_to_task_struct = {}
 
@@ -254,9 +247,9 @@ class CrashKernel(CrashBaseClass):
         for task in tasks:
             cpu = None
             regs = None
-            active = long(task.address) in rqscurrs
+            active = int(task.address) in rqscurrs
             if active:
-                cpu = rqscurrs[long(task.address)]
+                cpu = rqscurrs[int(task.address)]
                 regs = self.vmcore.attr.cpu[cpu].reg
 
             ltask = LinuxTask(task, active, cpu, regs)
@@ -264,7 +257,7 @@ class CrashKernel(CrashBaseClass):
             try:
                 thread = gdb.selected_inferior().new_thread(ptid, ltask)
             except gdb.error as e:
-                print("Failed to setup task @{:#x}".format(long(task.address)))
+                print("Failed to setup task @{:#x}".format(int(task.address)))
                 continue
             thread.name = task['comm'].string()
 

@@ -1,17 +1,9 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
 import gdb
-import sys
 from crash.util import container_of
 from crash.infra import CrashBaseClass, export
-
-if sys.version_info.major >= 3:
-    long = int
 
 class ListError(Exception):
     pass
@@ -40,7 +32,7 @@ class TypesListClass(CrashBaseClass):
             raise TypeError("Must be struct list_head not {}"
                             .format(str(list_head.type)))
         fast = None
-        if long(list_head.address) == 0:
+        if int(list_head.address) == 0:
             raise CorruptListError("list_head is NULL pointer.")
 
         next_ = 'next'
@@ -58,24 +50,24 @@ class TypesListClass(CrashBaseClass):
         try:
             nxt = list_head[next_]
             prev = list_head
-            if long(nxt) == 0:
+            if int(nxt) == 0:
                 raise CorruptListError("{} pointer is NULL".format(next_))
             node = nxt.dereference()
         except gdb.error as e:
             raise BufferError("Failed to read list_head {:#x}: {}"
-                              .format(long(list_head.address), str(e)))
+                              .format(int(list_head.address), str(e)))
 
         while node.address != list_head.address:
             if exact_cycles:
-                if long(node.address) in visited:
+                if int(node.address) in visited:
                     raise ListCycleError("Cycle in list detected.")
                 else:
-                    visited.add(long(node.address))
+                    visited.add(int(node.address))
             try:
-                if long(prev.address) != long(node[prev_]):
+                if int(prev.address) != int(node[prev_]):
                     error = ("broken {} link {:#x} -{}-> {:#x} -{}-> {:#x}"
-                             .format(prev_, long(prev.address), next_, long(node.address),
-                                     prev_, long(node[prev_])))
+                             .format(prev_, int(prev.address), next_, int(node.address),
+                                     prev_, int(node[prev_])))
                     pending_exception = CorruptListError(error)
                     if print_broken_links:
                         print(error)
@@ -90,7 +82,7 @@ class TypesListClass(CrashBaseClass):
                 yield node.address
             except gdb.error as e:
                 raise BufferError("Failed to read list_head {:#x} in list {:#x}: {}"
-                                  .format(long(node.address), long(list_head.address), str(e)))
+                                  .format(int(node.address), int(list_head.address), str(e)))
 
             try:
                 if fast is not None:
@@ -107,7 +99,7 @@ class TypesListClass(CrashBaseClass):
                 fast = None
 
             prev = node
-            if long(nxt) == 0:
+            if int(nxt) == 0:
                 raise CorruptListError("{} -> {} pointer is NULL"
                                        .format(node.address, next_))
             node = nxt.dereference()

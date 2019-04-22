@@ -1,15 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import gdb
-import sys
-
-if sys.version_info.major >= 3:
-    long = int
 
 from crash.util import container_of
 from crash.infra import CrashBaseClass, export
@@ -85,7 +77,7 @@ class Storage(CrashBaseClass):
             sym = sym.value().address
         elif not isinstance(sym, gdb.Value):
             raise TypeError("register_bio_decoder expects gdb.Symbol or gdb.Value")
-        cls.bio_decoders[long(sym)] = decoder
+        cls.bio_decoders[int(sym)] = decoder
 
     @export
     @classmethod
@@ -110,7 +102,7 @@ class Storage(CrashBaseClass):
                   Additional items may be available based on the
                   implmentation-specific decoder.
         """
-        first = cls.bio_decoders[long(bio['bi_end_io'])](bio)
+        first = cls.bio_decoders[int(bio['bi_end_io'])](bio)
         if first:
             yield first
             while 'decoder' in first:
@@ -140,11 +132,11 @@ class Storage(CrashBaseClass):
         """
 
         try:
-            return cls.bio_decoders[long(bio['bi_end_io'])](bio)
+            return cls.bio_decoders[int(bio['bi_end_io'])](bio)
         except KeyError:
             chain = {
                 'description' : "{:x} bio: undecoded bio on {} ({})".format(
-                    long(bio), block_device_name(bio['bi_bdev']),
+                    int(bio), block_device_name(bio['bi_bdev']),
                     bio['bi_end_io']),
             }
             return chain

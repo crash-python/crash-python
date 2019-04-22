@@ -96,7 +96,7 @@ DIR="$(dirname $0)"
 if [ -e "$DIR/setup.py" ]; then
     pushd $DIR > /dev/null
     rm -rf build/lib/crash
-    python setup.py build > /dev/null
+    python3 setup.py build > /dev/null
     echo "python sys.path.insert(0, '$DIR/build/lib')" >> $GDBINIT
     popd > /dev/null
 fi
@@ -119,7 +119,6 @@ set height 0
 set print pretty on
 
 python
-from __future__ import print_function
 import sys
 import traceback
 try:

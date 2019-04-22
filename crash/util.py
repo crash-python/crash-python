@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
 import gdb
 from crash.infra import CrashBaseClass, export
 from crash.exceptions import MissingTypeError, MissingSymbolError
@@ -228,7 +224,7 @@ class TypesUtilClass(CrashBaseClass):
 
         Returns:
             Tuple of:
-                long: The offset of the resolved member
+                int: The offset of the resolved member
                 gdb.Type: The type of the resolved member
 
         Raises:
@@ -276,7 +272,7 @@ class TypesUtilClass(CrashBaseClass):
                 failures an error
 
         Returns:
-            long: The offset of the resolved member
+            int: The offset of the resolved member
             None: The member could not be resolved
 
         Raises:
@@ -349,7 +345,7 @@ class TypesUtilClass(CrashBaseClass):
         Returns a pointer to the requested type at the given address
 
         Args:
-            val (gdb.Value, str, or long): The address for which to provide
+            val (gdb.Value, str, or int): The address for which to provide
                 a casted pointer
             gdbtype (gdb.Type): The type of the pointer to return
 
@@ -365,11 +361,11 @@ class TypesUtilClass(CrashBaseClass):
                                 .format(gdbtype, val.type))
         elif isinstance(val, str):
             try:
-                val = long(val, 16)
+                val = int(val, 16)
             except TypeError as e:
                 print(e)
                 raise TypeError("string must describe hex address: ".format(e))
-        if isinstance(val, long):
+        if isinstance(val, int):
             val = gdb.Value(val).cast(gdbtype).dereference()
 
         return val
@@ -380,4 +376,3 @@ class TypesUtilClass(CrashBaseClass):
         size = array_size(value)
         for i in range(array_size(value)):
             yield value[i]
-

@@ -1,19 +1,11 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
 import gdb
 from crash.util import container_of
 from crash.types.list import list_for_each_entry
 from crash.exceptions import CorruptedError
 from crash.infra import CrashBaseClass, export
-import sys
-
-if sys.version_info.major >= 3:
-    long = int
 
 class KlistCorruptedError(CorruptedError):
     pass

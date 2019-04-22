@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
@@ -6,7 +6,7 @@ from crash.infra import CrashBaseClass, export
 from crash.util import container_of, find_member_variant
 import crash.types.node
 from crash.types.percpu import get_percpu_var
-from cpu import for_each_online_cpu
+from crash.types.cpu import for_each_online_cpu
 
 class VmStat(CrashBaseClass):
     __types__ = ['enum zone_stat_item', 'enum vm_event_item']
@@ -62,12 +62,12 @@ class VmStat(CrashBaseClass):
     def get_events():
         states_sym = gdb.lookup_global_symbol("vm_event_states")
         nr = VmStat.nr_event_items
-        events = [0L] * nr
+        events = [0] * nr
 
         for cpu in for_each_online_cpu():
             states = get_percpu_var(states_sym, cpu)
             for item in range(0, nr):
-                events[item] += long(states["event"][item])
+                events[item] += int(states["event"][item])
 
         return events
 

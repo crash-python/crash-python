@@ -1,19 +1,11 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
 import gdb
-import sys
 from crash.infra import CrashBaseClass, export
 from crash.util import array_size
 from crash.types.list import list_for_each_entry
 from crash.exceptions import DelayedAttributeError
-
-if sys.version_info.major >= 3:
-    long = int
 
 class TypesPerCPUClass(CrashBaseClass):
     __types__ = [ 'char *', 'struct pcpu_chunk' ]
@@ -29,8 +21,8 @@ class TypesPerCPUClass(CrashBaseClass):
     # TODO: put this somewhere else - arch?
     @classmethod
     def setup_kaslr_offset(cls):
-        offset = long(gdb.lookup_minimal_symbol("_text").value().address)
-        offset -= long(gdb.lookup_minimal_symbol("phys_startup_64").value().address)
+        offset = int(gdb.lookup_minimal_symbol("_text").value().address)
+        offset -= int(gdb.lookup_minimal_symbol("phys_startup_64").value().address)
         offset -= 0xffffffff80000000
         cls.kaslr_offset = offset
 
@@ -60,15 +52,15 @@ class TypesPerCPUClass(CrashBaseClass):
         used_is_negative = None
         for slot in range(cls.pcpu_nr_slots):
             for chunk in list_for_each_entry(cls.pcpu_slot[slot], cls.pcpu_chunk_type, 'list'):
-                chunk_base = long(chunk["base_addr"]) - long(cls.pcpu_base_addr)
+                chunk_base = int(chunk["base_addr"]) - int(cls.pcpu_base_addr)
                 # __per_cpu_start is adjusted by KASLR, but dynamic offsets are
                 # not, so we have to subtract the offset
-                chunk_base += long(cls.__per_cpu_start) - cls.kaslr_offset
+                chunk_base += int(cls.__per_cpu_start) - cls.kaslr_offset
 
                 off = 0
                 start = None
                 _map = chunk['map']
-                map_used = long(chunk['map_used'])
+                map_used = int(chunk['map_used'])
 
                 # Prior to 3.14 commit 723ad1d90b56 ("percpu: store offsets
                 # instead of lengths in ->map[]"), negative values in map
@@ -85,14 +77,14 @@ class TypesPerCPUClass(CrashBaseClass):
                 if used_is_negative is None:
                     used_is_negative = False
                     for i in range(map_used):
-                        val = long(_map[i])
+                        val = int(_map[i])
                         if val < 0:
                             used_is_negative = True
                             break
 
                 if used_is_negative:
                     for i in range(map_used):
-                        val = long(_map[i])
+                        val = int(_map[i])
                         if val < 0:
                             if start is None:
                                 start = off
@@ -105,7 +97,7 @@ class TypesPerCPUClass(CrashBaseClass):
                         cls.__add_to_offset_cache(chunk_base, start, off)
                 else:
                     for i in range(map_used):
-                        off = long(_map[i])
+                        off = int(_map[i])
                         if off & 1 == 1:
                             off -= 1
                             if start is None:
@@ -115,20 +107,20 @@ class TypesPerCPUClass(CrashBaseClass):
                                 cls.__add_to_offset_cache(chunk_base, start, off)
                                 start = None
                     if start is not None:
-                        off = long(_map[map_used]) - 1
+                        off = int(_map[map_used]) - 1
                         cls.__add_to_offset_cache(chunk_base, start, off)
 
     def __is_percpu_var(self, var):
-        if long(var) < self.__per_cpu_start:
+        if int(var) < self.__per_cpu_start:
             return False
         v = var.cast(self.char_p_type) - self.__per_cpu_start
-        return long(v) < self.per_cpu_size
+        return int(v) < self.per_cpu_size
 
     def __is_percpu_var_dynamic(self, var):
         if self.dynamic_offset_cache is None:
             self.__setup_dynamic_offset_cache()
 
-        var = long(var)
+        var = int(var)
         # TODO: we could sort the list...
         for (start, end) in self.dynamic_offset_cache:
             if var >= start and var < end:

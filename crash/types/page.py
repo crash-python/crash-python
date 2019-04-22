@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 from math import log, ceil
@@ -87,7 +87,7 @@ class Page(CrashBaseClass):
             offset = section_nr & (cls.SECTIONS_PER_ROOT - 1)
             section = cls.mem_section[root_idx][offset]
 
-            pagemap = section["section_mem_map"] & ~3L
+            pagemap = section["section_mem_map"] & ~3
             return (pagemap.cast(cls.page_type.pointer()) + pfn).dereference()
         else:
             return cls.vmemmap[pfn]
@@ -101,12 +101,12 @@ class Page(CrashBaseClass):
         if cls.setup_page_type_done and not cls.setup_pageflags_finish_done:
             cls.setup_pageflags_finish()
 
-        cls.PG_slab = 1L << cls.pageflags['PG_slab']
-        cls.PG_lru = 1L << cls.pageflags['PG_lru']
+        cls.PG_slab = 1 << cls.pageflags['PG_slab']
+        cls.PG_lru = 1 << cls.pageflags['PG_lru']
 
     @classmethod
     def setup_vmemmap_base(cls, symbol):
-        cls.vmemmap_base = long(symbol.value())
+        cls.vmemmap_base = int(symbol.value())
         # setup_page_type() was first and used the hardcoded initial value,
         # we have to update
         if cls.vmemmap is not None:
@@ -114,7 +114,7 @@ class Page(CrashBaseClass):
 
     @classmethod
     def setup_directmap_base(cls, symbol):
-        cls.directmap_base = long(symbol.value())
+        cls.directmap_base = int(symbol.value())
 
     @classmethod
     def setup_zone_type(cls, gdbtype):
@@ -138,13 +138,13 @@ class Page(CrashBaseClass):
     def setup_pageflags_finish(cls):
         cls.setup_pageflags_finish_done = True
         if 'PG_tail' in cls.pageflags.keys():
-            cls.PG_tail = 1L << cls.pageflags['PG_tail']
+            cls.PG_tail = 1 << cls.pageflags['PG_tail']
             cls.is_tail = cls.__is_tail_flag
 
         if cls.compound_head_name == 'first_page':
             cls.__compound_head = cls.__compound_head_first_page
             if cls.PG_tail is None:
-                cls.PG_tail = 1L << cls.pageflags['PG_compound'] | 1L << cls.pageflags['PG_reclaim']
+                cls.PG_tail = 1 << cls.pageflags['PG_compound'] | 1 << cls.pageflags['PG_reclaim']
                 cls.is_tail = cls.__is_tail_flagcombo
 
     @staticmethod
@@ -169,7 +169,7 @@ class Page(CrashBaseClass):
         return bool(self.flags & self.PG_lru)
 
     def is_anon(self):
-        mapping = long(self.gdb_obj["mapping"])
+        mapping = int(self.gdb_obj["mapping"])
         return (mapping & PAGE_MAPPING_ANON) != 0
 
     def get_slab_cache(self):
@@ -191,10 +191,10 @@ class Page(CrashBaseClass):
         return zid
 
     def __compound_head_first_page(self):
-        return long(self.gdb_obj['first_page'])
+        return int(self.gdb_obj['first_page'])
 
     def __compound_head(self):
-        return long(self.gdb_obj['compound_head']) - 1
+        return int(self.gdb_obj['compound_head']) - 1
 
     def compound_head(self):
         if not self.is_tail():
@@ -205,7 +205,7 @@ class Page(CrashBaseClass):
     def __init__(self, obj, pfn):
         self.gdb_obj = obj
         self.pfn = pfn
-        self.flags = long(obj["flags"])
+        self.flags = int(obj["flags"])
 
 class Pages(CrashBaseClass):
 
@@ -220,17 +220,17 @@ class Pages(CrashBaseClass):
 
     @export
     def page_from_gdb_obj(cls, gdb_obj):
-        pfn = (long(gdb_obj.address) - Page.vmemmap_base) / Page.page_type.sizeof
+        pfn = (int(gdb_obj.address) - Page.vmemmap_base) / Page.page_type.sizeof
         return Page(gdb_obj, pfn)
 
     @export
     def for_each_page():
         # TODO works only on x86?
-        max_pfn = long(gdb.lookup_global_symbol("max_pfn").value())
+        max_pfn = int(gdb.lookup_global_symbol("max_pfn").value())
         for pfn in range(max_pfn):
             try:
                 yield Page.pfn_to_page(pfn)
-            except gdb.error, e:
+            except gdb.error:
                 # TODO: distinguish pfn_valid() and report failures for those?
                 pass
 

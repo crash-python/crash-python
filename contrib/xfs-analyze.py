@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 # bsc#1025860
 
@@ -20,9 +20,9 @@ print ail
 RWSEM_ACTIVE_MASK = 0xffffffffL
 RWSEM_UNLOCKED_VALUE = 0
 RWSEM_ACTIVE_BIAS = 1
-RWSEM_WAITING_BIAS = 0xffffffff00000000L
+RWSEM_WAITING_BIAS = 0xffffffff00000000
 RWSEM_ACTIVE_READ_BIAS = 1
-RWSEM_ACTIVE_WRITE_BIAS = 0xffffffff00000001L
+RWSEM_ACTIVE_WRITE_BIAS = 0xffffffff00000001
 
 def inode_paths(inode):
     for dentry in list_for_each_entry(inode['i_dentry'], dentry_type, ''):
@@ -35,7 +35,7 @@ def inode_paths(inode):
         yield '/'.join(names)
 
 def rwsem_read_trylock(rwsem):
-    count = long(rwsem['count']) & 0xffffffffffffffffL
+    count = int(rwsem['count']) & 0xffffffffffffffffL
     if count == 0:
         return True
     if count & RWSEM_ACTIVE_WRITE_BIAS:
@@ -55,10 +55,10 @@ def check_item(item):
             inode = iitem['ili_inode']['i_vnode'].address
 #            print "<locked {}>".format(inode)
             print oct(int(inode['i_mode']))
-            if long(inode) in locked_inodes:
+            if int(inode) in locked_inodes:
                 print "in AIL multiple times"
             else:
-                locked_inodes[long(inode)] = iitem['ili_inode']
+                locked_inodes[int(inode)] = iitem['ili_inode']
 #            for path in inode_paths(inode):
 #                print path
             return 2
@@ -154,8 +154,8 @@ for thread in gdb.selected_inferior().threads():
                     print f
                     inode = None
                 checked += 1
-                if long(inode) in locked_inodes:
-                    print "PID {} inode {}".format(thread.ptid, hex(long(inode)))
+                if int(inode) in locked_inodes:
+                    print "PID {} inode {}".format(thread.ptid, hex(int(inode)))
                     dead += 1
                 break
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
@@ -52,43 +52,43 @@ DESCRIPTION
         elif args.s:
             if args.arg:
                 cache_name = args.arg[0]
-                print "Checking kmem cache " + cache_name
+                print("Checking kmem cache {}".format(cache_name))
                 cache = kmem_cache_from_name(cache_name)
                 if cache is None:
-                    print "Cache {} not found.".format(cache_name)
+                    print("Cache {} not found.".format(cache_name))
                     return
                 cache.check_all()
             else:
-                print "Checking all kmem caches..."  
+                print("Checking all kmem caches...")
                 for cache in kmem_cache_get_all():
-                    print cache.name
+                    print(cache.name)
                     cache.check_all()
 
-            print "Checking done."
+            print("Checking done.")
             return
           
         if not args.arg:
-            print "Nothing to do."
+            print("Nothing to do.")
             return
 
-        addr = long(args.arg[0], 0)
+        addr = int(args.arg[0], 0)
         slab = slab_from_obj_addr(addr)
 
         if not slab:
-            print "Address not found in any kmem cache."
+            print("Address not found in any kmem cache.")
             return
 
         obj = slab.contains_obj(addr)
         name = slab.kmem_cache.name
 
         if obj[0]:
-            print ("ALLOCATED object %x from slab %s" % (obj[1], name))
+            print("ALLOCATED object %x from slab %s" % (obj[1], name))
         else:
-            if obj[1] == 0L:
-                print ("Address on slab %s but not within valid object slot"
+            if obj[1] == 0:
+                print("Address on slab %s but not within valid object slot"
                                 % name)
             elif not obj[2]:
-                print ("FREE object %x from slab %s" % (obj[1], name))
+                print("FREE object %x from slab %s" % (obj[1], name))
             else:
                 ac = obj[2]
                 if ac["ac_type"] == "percpu":
@@ -98,11 +98,11 @@ DESCRIPTION
                 elif ac["ac_type"] == "alien":
                     ac_desc = "alien cache of node %d for node %d" % (ac["nid_src"], ac["nid_tgt"])
                 else:
-                    print "unexpected array cache type"
-                    print ac
+                    print("unexpected array cache type")
+                    print(ac)
                     return
                     
-                print ("FREE object %x from slab %s (in %s)" %
+                print("FREE object %x from slab %s (in %s)" %
                                            (obj[1], name, ac_desc))
 
     def __print_vmstat(self, vmstat, diffs):
@@ -122,25 +122,25 @@ DESCRIPTION
         except AttributeError:
             raise gdb.GdbError("Support for new-style vmstat is unimplemented.")
 
-        print "  VM_STAT:"
+        print("  VM_STAT:")
         #TODO put this... where?
         nr_items = VmStat.nr_stat_items
     
-        stats = [0L] * nr_items
+        stats = [0] * nr_items
 
         for item in range (0, nr_items):
             # TODO abstract atomic?
-            stats[item] = long(vm_stat[item]["counter"])
+            stats[item] = int(vm_stat[item]["counter"])
 
-        diffs = [0L] * nr_items
+        diffs = [0] * nr_items
 
         for zone in for_each_populated_zone():
             zone.add_vmstat_diffs(diffs)
 
         self.__print_vmstat(stats, diffs)
 
-        print
-        print "  VM_EVENT_STATES:"
+        print()
+        print("  VM_EVENT_STATES:")
 
         vm_events = VmStat.get_events()
         names = VmStat.get_event_names()
@@ -158,15 +158,15 @@ DESCRIPTION
                                     zone_struct["name"].string()))
 
             if not zone.is_populated():
-                print "  [unpopulated]"
-                print
+                print("  [unpopulated]")
+                print()
                 continue
 
-            print "  VM_STAT:"
+            print("  VM_STAT:")
             vmstat = zone.get_vmstat()
             diffs = zone.get_vmstat_diffs()
             self.__print_vmstat(vmstat, diffs)
 
-            print
+            print()
                 
 KmemCommand("kmem")

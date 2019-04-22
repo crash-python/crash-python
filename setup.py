@@ -1,8 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import print_function
-from __future__ import absolute_import
+import sys
 
 from setuptools import setup, find_packages
 
@@ -13,8 +12,9 @@ setup(
     package_data = {
         '' : [ "*.dist" "*.txt" ],
     },
+    python_requires='>=3.6',
 
-    install_requires = [ 'future', 'pyelftools' ],
+    install_requires = [ 'pyelftools' ],
 
     author = "Jeff Mahoney",
     author_email = "jeffm@suse.com",

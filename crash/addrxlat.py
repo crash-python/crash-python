@@ -1,16 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
 import gdb
-import sys
-
-if sys.version_info.major >= 3:
-    long = int
-
 import addrxlat
 from crash.infra import CrashBaseClass, export
 from crash.cache.syscache import utsname
@@ -27,7 +18,7 @@ class TranslationContext(addrxlat.Context):
         if symtype == addrxlat.SYM_VALUE:
             ms = gdb.lookup_minimal_symbol(args[0])
             if ms is not None:
-                return long(ms.value().address)
+                return int(ms.value().address)
         elif symtype == addrxlat.SYM_SIZEOF:
             sym = gdb.lookup_symbol(args[0], None)[0]
             if sym is not None:
@@ -43,10 +34,10 @@ class TranslationContext(addrxlat.Context):
         return super(TranslationContext, self).cb_sym(symtype, *args)
 
     def cb_read32(self, faddr):
-        return long(gdb.Value(faddr.addr).cast(self.uint32_ptr).dereference())
+        return int(gdb.Value(faddr.addr).cast(self.uint32_ptr).dereference())
 
     def cb_read64(self, faddr):
-        return long(gdb.Value(faddr.addr).cast(self.uint64_ptr).dereference())
+        return int(gdb.Value(faddr.addr).cast(self.uint64_ptr).dereference())
 
 class CrashAddressTranslation(CrashBaseClass):
     def __init__(self):

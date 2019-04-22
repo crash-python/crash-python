@@ -1,15 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
 import gdb
-import sys
-
-if sys.version_info.major >= 3:
-    long = int
 
 from crash.infra import CrashBaseClass, export
 from crash.subsystem.filesystem import super_fstype
@@ -76,7 +68,7 @@ class Mount(CrashBaseClass):
     @export
     @classmethod
     def mount_flags(cls, mnt, show_hidden=False):
-        flags = long(mnt['mnt_flags'])
+        flags = int(mnt['mnt_flags'])
 
         if flags & MNT_READONLY:
             flagstr = "ro"

@@ -1,15 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import gdb
-import sys
-
-if sys.version_info.major >= 3:
-    long = int
 
 from crash.commands import CrashCommand, CrashCommandParser
 from crash.subsystem.filesystem.mount import MNT_NOSUID, MNT_NODEV, MNT_NOEXEC
@@ -67,7 +59,7 @@ NAME
         path = d_path(mnt, mount_root(mnt))
         if args.v:
             print("{:016x} {:016x}  {:<10} {:<16} {}"
-                  .format(long(mnt.address), long(mount_super(mnt)),
+                  .format(int(mnt.address), int(mount_super(mnt)),
                           mount_fstype(mnt), mount_device(mnt), path))
         else:
             print("{} on {} type {}{}"

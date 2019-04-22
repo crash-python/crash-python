@@ -1,6 +1,6 @@
 #!/bin/sh
 
 rm -rf build/lib/crash
-python setup.py build
+python3 setup.py build
 make -C tests
-gdb -batch -ex "source tests/unittest-bootstrap.py"
+crash-python-gdb -batch -ex "source tests/unittest-bootstrap.py"

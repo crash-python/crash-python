@@ -1,16 +1,8 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import gdb
 import argparse
-import sys
-
-if sys.version_info.major >= 3:
-    long = int
 
 from crash.commands import CrashCommand, CrashCommandParser
 from crash.commands import CrashCommandLineError
@@ -465,7 +457,7 @@ EXAMPLES
         if task.active:
             cpu = task.cpu
         return template.format(int(task_struct['pid']),
-                               long(task_struct.address), cpu,
+                               int(task_struct.address), cpu,
                                task_struct['comm'].string())
 
     def print_last_run(self, task):
@@ -515,7 +507,7 @@ EXAMPLES
             width = 7
 
         print(line.format(active, int(task_struct['pid']), int(parent_pid),
-                          int(task.get_last_cpu()), long(pointer),
+                          int(task.get_last_cpu()), int(pointer),
                           width, self.task_state_string(task), 0,
                           task.total_vm * 4096 // 1024,
                           task.rss * 4096 // 1024,

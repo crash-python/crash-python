@@ -1,15 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
 import gdb
-import sys
-
-if sys.version_info.major >= 3:
-    long = int
 
 from crash.arch import CrashArchitecture, register, KernelFrameFilter
 
@@ -123,6 +115,6 @@ class x86_64Architecture(CrashArchitecture):
 
     @classmethod
     def get_stack_pointer(cls, thread):
-        return long(thread.registers['rsp'].value)
+        return int(thread.registers['rsp'].value)
 
 register(x86_64Architecture)

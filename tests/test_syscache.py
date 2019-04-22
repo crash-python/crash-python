@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import unittest
 import gdb
 import sys
-if sys.version_info >= (3, 4):
-    from importlib import reload
+from importlib import reload
 
 from crash.exceptions import DelayedAttributeError
 fake_config = (

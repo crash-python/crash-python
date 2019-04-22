@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 from crash.types.list import list_for_each_entry
 from crash.util import container_of
@@ -44,7 +44,7 @@ xfs_qoff_logitem_type = gdb.lookup_type('struct xfs_qoff_logitem')
 
 def xfs_for_each_ail_log_item_typed(mp):
     for item in for_each_xfs_ail_item(mp):
-        li_type = long(item['li_type'])
+        li_type = int(item['li_type'])
         if li_type == XFS_LI_BUF:
             yield container_of(item, xfs_buf_log_item_type, 'bli_item')
         elif li_type == XFS_LI_INODE:
@@ -68,9 +68,9 @@ mp = gdb.Value(0xffff880bf34a1800).cast(xfs_mount).dereference()
 for item in xfs_for_each_ail_log_item_typed(mp):
     if item.type == xfs_buf_log_item_type:
         buf = item['bli_buf']
-        print "xfs_buf @ {:x} blockno={}".format(long(buf), buf['b_bn'])
+        print "xfs_buf @ {:x} blockno={}".format(int(buf), buf['b_bn'])
     elif item.type == xfs_inode_log_item_type:
         xfs_inode = item['ili_inode']
-        print "inode @ {:x}".format(long(xfs_inode['i_vnode'].address))
+        print "inode @ {:x}".format(int(xfs_inode['i_vnode'].address))
     else:
-        print "{} @ {:x}".format(item.type, long(item.address))
+        print "{} @ {:x}".format(item.type, int(item.address))

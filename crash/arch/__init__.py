@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
 import gdb
 
 class CrashArchitecture(object):
@@ -48,7 +44,7 @@ class KernelAddressIterator(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         frame = next(self.input_iterator)
 
         if frame.inferior_frame().pc() < self.address:

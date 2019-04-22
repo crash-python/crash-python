@@ -1,15 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-
 import gdb
-import sys
-
-if sys.version_info.major >= 3:
-    long = int
 
 from crash.infra import CrashBaseClass
 from crash.subsystem.storage import Storage as block
@@ -68,7 +60,7 @@ class DeviceMapper(CrashBaseClass):
 
         # We can pull the related bios together here if required
         # b = bio['bi_next']
-        # while long(b) != 0:
+        # while int(b) != 0:
         #    b = b['bi_next']
 
         chain = {
@@ -77,7 +69,7 @@ class DeviceMapper(CrashBaseClass):
             'next' : info['orig'],
             'description' :
                 '{:x} bio: Request-based Device Mapper on {}'.format(
-                        long(bio), block_device_name(bio['bi_bdev'])),
+                        int(bio), block_device_name(bio['bi_bdev'])),
             'decoder' : block.decode_bio,
         }
 
@@ -120,11 +112,11 @@ class DeviceMapper(CrashBaseClass):
 
         chain = {
             'description' : "{:x} bio: device mapper clone: {}[{}] -> {}[{}]".format(
-                            long(bio),
+                            int(bio),
                             block_device_name(bio['bi_bdev']),
-                            long(bio['bi_sector']),
+                            int(bio['bi_sector']),
                             block_device_name(next_bio['bi_bdev']),
-                            long(next_bio['bi_sector'])),
+                            int(next_bio['bi_sector'])),
             'bio' : bio,
             'tio' : tio,
             'next' : next_bio,

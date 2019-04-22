@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 path = "/lib/modules/4.4.20-6.gd2e08c5-default/kernel/fs/btrfs/btrfs.ko"
@@ -37,7 +37,7 @@ class LSBtrfs(CrashCommand):
             if sb['s_type']['name'].string() == "btrfs":
                 fs_info = gdb.Value(sb['s_fs_info']).cast(btrfs_fs_info_type.pointer())
 
-                u = long(0)
+                u = 0
                 for i in range(0, 16):
                     u <<= 8
                     u += int(fs_info['fsid'][i])

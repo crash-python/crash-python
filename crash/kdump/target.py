@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
 import gdb
 import sys
 from kdumpfile import kdumpfile, KDUMP_KVADDR
@@ -12,9 +8,6 @@ from kdumpfile.exceptions import *
 import addrxlat
 import crash.arch
 import crash.arch.x86_64
-
-if sys.version_info.major >= 3:
-    long = int
 
 class SymbolCallback(object):
     "addrxlat symbolic callback"
@@ -33,7 +26,7 @@ class SymbolCallback(object):
         if symtype == addrxlat.SYM_VALUE:
             ms = gdb.lookup_minimal_symbol(args[0])
             if ms is not None:
-                return long(ms.value().address)
+                return int(ms.value().address)
         raise addrxlat.NoDataError()
 
 class Target(gdb.Target):

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
@@ -7,7 +7,7 @@ import sys
 import traceback
 from crash.util import container_of, find_member_variant, get_symbol_value
 from crash.util import safe_get_symbol_value
-from percpu import get_percpu_var
+from crash.types.percpu import get_percpu_var
 from crash.infra import CrashBaseClass, export
 from crash.types.list import list_for_each, list_for_each_entry
 from crash.types.page import Page, page_from_gdb_obj, page_from_addr
@@ -74,12 +74,12 @@ class Slab(CrashBaseClass):
 
     @classmethod
     def from_page(cls, page):
-        kmem_cache_addr = long(page.get_slab_cache())
+        kmem_cache_addr = int(page.get_slab_cache())
         kmem_cache = kmem_cache_from_addr(kmem_cache_addr)
         if cls.page_slab:
             return Slab(page.gdb_obj, kmem_cache)
         else:
-            slab_addr = long(page.get_slab_page())
+            slab_addr = int(page.get_slab_page())
             return Slab.from_addr(slab_addr, kmem_cache)
 
     @classmethod
@@ -143,10 +143,10 @@ class Slab(CrashBaseClass):
         bufsize = self.kmem_cache.buffer_size
         objs_per_slab = self.kmem_cache.objs_per_slab
         
-        if long(addr) < self.s_mem:
+        if int(addr) < self.s_mem:
             return None
 
-        idx = (long(addr) - self.s_mem) / bufsize
+        idx = (int(addr) - self.s_mem) / bufsize
         if idx >= objs_per_slab:
             return None
 
@@ -156,7 +156,7 @@ class Slab(CrashBaseClass):
         obj_addr = self.find_obj(addr)
 
         if not obj_addr:
-            return (False, 0L, None)
+            return (False, 0, None)
 
         self.__populate_free()
         if obj_addr in self.free:
@@ -171,7 +171,7 @@ class Slab(CrashBaseClass):
     
     def __error(self, msg, misplaced = False):
         msg = col_error("cache %s slab %x%s" % (self.kmem_cache.name,
-                    long(self.gdb_obj.address), msg))
+                    int(self.gdb_obj.address), msg))
         self.error = True
         if misplaced:
             self.misplaced_error = msg
@@ -202,7 +202,7 @@ class Slab(CrashBaseClass):
         max_free = self.kmem_cache.objs_per_slab
 
         if self.kmem_cache.off_slab and not Slab.page_slab:
-            struct_slab_slab = slab_from_obj_addr(long(self.gdb_obj.address))
+            struct_slab_slab = slab_from_obj_addr(int(self.gdb_obj.address))
             if not struct_slab_slab:
                 self.__error(": OFF_SLAB struct slab is not a slab object itself")
             else:
@@ -221,9 +221,9 @@ class Slab(CrashBaseClass):
                 if not struct_slab_obj[0]:
                     self.__error(": OFF_SLAB struct slab is not allocated")
                     print(struct_slab_obj)
-                elif struct_slab_obj[1] != long(self.gdb_obj.address):
+                elif struct_slab_obj[1] != int(self.gdb_obj.address):
                     self.__error(": OFF_SLAB struct slab at wrong offset{}".format(
-                                    long(self.gdb_obj.address) - struct_slab_obj[1]))
+                                    int(self.gdb_obj.address) - struct_slab_obj[1]))
 
         if self.inuse + num_free != max_free:
             self.__error(": inuse=%d free=%d adds up to %d (should be %d)" %
@@ -244,7 +244,7 @@ class Slab(CrashBaseClass):
             if nid != slab_nid:
                 self.__error(": slab is on nid %d instead of %d" % 
                                                         (slab_nid, nid))
-                print "free objects %d" % num_free
+                print("free objects %d" % num_free)
 
         ac = self.kmem_cache.get_array_caches()
         last_page_addr = 0
@@ -258,25 +258,25 @@ class Slab(CrashBaseClass):
                 self.__error(": failed to get page for object %x" % obj)
                 continue
 
-            if long(page.gdb_obj.address) == last_page_addr:
+            if int(page.gdb_obj.address) == last_page_addr:
                 continue
 
-            last_page_addr = long(page.gdb_obj.address)
+            last_page_addr = int(page.gdb_obj.address)
 
             if page.get_nid() != nid:
                 self.__error(": obj %x is on nid %d instead of %d" % 
                                                (obj, page.get_nid(), nid))
             if not page.is_slab():
                 self.__error(": obj %x is not on PageSlab page" % obj)
-            kmem_cache_addr = long(page.get_slab_cache())
-            if kmem_cache_addr != long(self.kmem_cache.gdb_obj.address):
+            kmem_cache_addr = int(page.get_slab_cache())
+            if kmem_cache_addr != int(self.kmem_cache.gdb_obj.address):
                 self.__error(": obj %x is on page where pointer to kmem_cache points to %x instead of %x" %
-                                            (obj, kmem_cache_addr, long(self.kmem_cache.gdb_obj.address)))
+                                            (obj, kmem_cache_addr, int(self.kmem_cache.gdb_obj.address)))
 
             if self.page_slab:
                 continue
 
-            slab_addr = long(page.get_slab_page())
+            slab_addr = int(page.get_slab_page())
             if slab_addr != self.gdb_obj.address:
                 self.__error(": obj %x is on page where pointer to slab wrongly points to %x" %
                                                                         (obj, slab_addr))
@@ -298,7 +298,7 @@ class Slab(CrashBaseClass):
             self.page = page_from_gdb_obj(gdb_obj)
         else:
             self.inuse = int(gdb_obj["inuse"])
-        self.s_mem = long(gdb_obj["s_mem"])
+        self.s_mem = int(gdb_obj["s_mem"])
 
 class KmemCache(CrashBaseClass):
     __types__ = [ 'struct kmem_cache', 'struct alien_cache' ]
@@ -330,7 +330,7 @@ class KmemCache(CrashBaseClass):
     def __get_nodelists(self):
         for nid in for_each_nid():
             node = self.__get_nodelist(nid)
-            if long(node) == 0L:
+            if int(node) == 0:
                 continue
             yield (nid, node.dereference())
 
@@ -349,7 +349,7 @@ class KmemCache(CrashBaseClass):
         self.objs_per_slab = int(gdb_obj["num"])
         self.buffer_size = int(gdb_obj[KmemCache.buffer_size_name])
 
-        if long(gdb_obj["flags"]) & 0x80000000:
+        if int(gdb_obj["flags"]) & 0x80000000:
             self.off_slab = True
             self.off_slab_cache = None
         else:
@@ -371,10 +371,10 @@ class KmemCache(CrashBaseClass):
             nid_tgt = numa_node_id(nid_tgt)
 
         for i in range(avail):
-            ptr = long(acache["entry"][i])
+            ptr = int(acache["entry"][i])
 #            print(hex(ptr))
             if ptr in self.array_caches:
-                print (col_error("WARNING: array cache duplicity detected!"))
+                print(col_error("WARNING: array cache duplicity detected!"))
             else:
                 self.array_caches[ptr] = cache_dict
             
@@ -382,14 +382,14 @@ class KmemCache(CrashBaseClass):
             obj_nid = page.get_nid()
 
             if obj_nid != nid_tgt:
-                print (col_error("Object {:#x} in cache {} is on wrong nid {} instead of {}".format(
+                print(col_error("Object {:#x} in cache {} is on wrong nid {} instead of {}".format(
                             ptr, cache_dict, obj_nid, nid_tgt)))
 
     def __fill_alien_caches(self, node, nid_src):
         alien_cache = node["alien"]
 
         # TODO check that this only happens for single-node systems?
-        if long(alien_cache) == 0L:
+        if int(alien_cache) == 0:
             return
 
         for nid in for_each_nid():
@@ -428,7 +428,7 @@ class KmemCache(CrashBaseClass):
         # TODO check and report collisions
         for (nid, node) in self.__get_nodelists():
             shared_cache = node["shared"]
-            if long(shared_cache) != 0:
+            if int(shared_cache) != 0:
                 self.__fill_array_cache(shared_cache.dereference(), AC_SHARED, nid, nid)
             
             self.__fill_alien_caches(node, nid)
@@ -455,13 +455,13 @@ class KmemCache(CrashBaseClass):
         wrong_list_nodes = dict()
         for stype in range(3):
             if stype != slabtype:
-                wrong_list_nodes[long(node[slab_list_fullname[stype]].address)] = stype
+                wrong_list_nodes[int(node[slab_list_fullname[stype]].address)] = stype
 
         slab_list = node[slab_list_fullname[slabtype]]
         for list_head in list_for_each(slab_list, reverse=reverse, exact_cycles=exact_cycles):
             try:
-                if long(list_head) in wrong_list_nodes.keys():
-                    wrong_type = wrong_list_nodes[long(list_head)]
+                if int(list_head) in wrong_list_nodes.keys():
+                    wrong_type = wrong_list_nodes[int(list_head)]
                     print(col_error("Encountered head of {} slab list while traversing {} slab list, skipping".
                             format(slab_list_name[wrong_type], slab_list_name[slabtype])))
                     continue
@@ -470,14 +470,14 @@ class KmemCache(CrashBaseClass):
             except:
                 traceback.print_exc()
                 print("failed to initialize slab object from list_head {:#x}: {}".format(
-                            long(list_head), sys.exc_info()[0]))
+                            int(list_head), sys.exc_info()[0]))
                 continue
                 slab = Slab(gdb_slab, kmem_cache, error = True)
             yield slab
 
 
     def __check_slab(self, slab, slabtype, nid, errors):
-        addr = long(slab.gdb_obj.address)
+        addr = int(slab.gdb_obj.address)
         free = 0
 
         if slab.error == False:
@@ -525,7 +525,7 @@ class KmemCache(CrashBaseClass):
                     free += self.__check_slab(slab, slabtype, nid, errors)
                 except Exception as e:
                     print(col_error("Exception when checking slab {:#x}:{}".
-                            format(long(slab.gdb_obj.address), e)))
+                            format(int(slab.gdb_obj.address), e)))
                     traceback.print_exc()
                 slabs += 1
 
@@ -549,7 +549,7 @@ class KmemCache(CrashBaseClass):
         slab_list = node[slab_list_fullname[slabtype]]
 
         print("checking {} slab list {:#x}".format(slab_list_name[slabtype],
-                                                long(slab_list.address)))
+                                                int(slab_list.address)))
 
         errors = {'first_ok': None, 'last_ok': None, 'num_ok': 0,
                     'first_misplaced': None, 'last_misplaced': None, 'num_misplaced': 0}
@@ -591,18 +591,18 @@ class KmemCache(CrashBaseClass):
         for (nid, node) in self.__get_nodelists():
             try:
                 # This is version and architecture specific
-                lock = long(node["list_lock"]["rlock"]["raw_lock"]["slock"])
+                lock = int(node["list_lock"]["rlock"]["raw_lock"]["slock"])
                 if lock != 0:
                    print(col_error("unexpected lock value in kmem_list3 {:#x}: {:#x}".
-                        format(long(node.address), lock)))
+                        format(int(node.address), lock)))
             except gdb.error:
                 print("Can't check lock state -- locking implementation unknown.")
-            free_declared = long(node["free_objects"])
+            free_declared = int(node["free_objects"])
             free_counted = self.__check_slabs(node, slab_partial, nid)
             free_counted += self.__check_slabs(node, slab_full, nid)
             free_counted += self.__check_slabs(node, slab_free, nid)
             if free_declared != free_counted:
-                print (col_error("free objects mismatch on node %d: declared=%d counted=%d" %
+                print(col_error("free objects mismatch on node %d: declared=%d counted=%d" %
                                                 (nid, free_declared, free_counted)))
         self.check_array_caches()
 
@@ -628,7 +628,7 @@ class KmemCaches(CrashBaseClass):
             kmem_cache = KmemCache(name, cache)
 
             cls.kmem_caches[name] = kmem_cache
-            cls.kmem_caches_by_addr[long(cache.address)] = kmem_cache
+            cls.kmem_caches_by_addr[int(cache.address)] = kmem_cache
 
     @export
     def kmem_cache_from_addr(cls, addr):
