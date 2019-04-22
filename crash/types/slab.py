@@ -617,8 +617,9 @@ class KmemCaches(CrashBaseClass):
 
         list_caches = slab_caches.value()
 
-        for cache in list_for_each_entry(list_caches, KmemCache.kmem_cache_type,
-                                                                KmemCache.head_name):
+        for cache in list_for_each_entry(list_caches,
+                                         KmemCache.kmem_cache_type,
+                                         KmemCache.head_name):
             name = cache["name"].string()
             kmem_cache = KmemCache(name, cache)
 
@@ -627,11 +628,17 @@ class KmemCaches(CrashBaseClass):
 
     @export
     def kmem_cache_from_addr(cls, addr):
-        return cls.kmem_caches_by_addr[addr]
+        try:
+            return cls.kmem_caches_by_addr[addr]
+        except KeyError:
+            return None
 
     @export
     def kmem_cache_from_name(cls, name):
-        return cls.kmem_caches[name]
+        try:
+            return cls.kmem_caches[name]
+        except KeyError:
+            return None
 
     @export
     def kmem_cache_get_all(cls):

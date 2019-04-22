@@ -54,6 +54,9 @@ DESCRIPTION
                 cache_name = args.arg[0]
                 print "Checking kmem cache " + cache_name
                 cache = kmem_cache_from_name(cache_name)
+                if cache is None:
+                    print "Cache {} not found.".format(cache_name)
+                    return
                 cache.check_all()
             else:
                 print "Checking all kmem caches..."  
