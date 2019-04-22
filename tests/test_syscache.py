@@ -23,6 +23,9 @@ class TestSysCache(unittest.TestCase):
         gdb.execute("file tests/test-syscache")
         self.cycle_namespace()
 
+    def tearDown(self):
+        gdb.execute("file")
+
     def cycle_namespace(self):
         import crash.cache.syscache
         reload(crash.cache.syscache)
