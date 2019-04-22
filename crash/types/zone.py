@@ -76,7 +76,7 @@ class Zones(CrashBaseClass):
 
     @export
     def for_each_zone(cls):
-        for node in crash.types.node,for_each_node():
+        for node in crash.types.node.for_each_node():
             for zone in node.for_each_zone():
                 yield zone
 
