@@ -589,10 +589,14 @@ class KmemCache(CrashBaseClass):
 
     def check_all(self):
         for (nid, node) in self.__get_nodelists():
-            lock = long(node["list_lock"]["rlock"]["raw_lock"]["slock"])
-            if lock != 0:
-               print(col_error("unexpected lock value in kmem_list3 {:#x}: {:#x}".
-                    format(long(node.address), lock)))
+            try:
+                # This is version and architecture specific
+                lock = long(node["list_lock"]["rlock"]["raw_lock"]["slock"])
+                if lock != 0:
+                   print(col_error("unexpected lock value in kmem_list3 {:#x}: {:#x}".
+                        format(long(node.address), lock)))
+            except gdb.error:
+                print("Can't check lock state -- locking implementation unknown.")
             free_declared = long(node["free_objects"])
             free_counted = self.__check_slabs(node, slab_partial, nid)
             free_counted += self.__check_slabs(node, slab_full, nid)
