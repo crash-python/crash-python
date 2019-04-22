@@ -19,7 +19,8 @@ LINUX_KERNEL_PID = 1
 
 class CrashKernel(CrashBaseClass):
     __types__ = [ 'struct module' ]
-    __symvals__ = [ 'modules' ]
+    __symvals__ = [ 'modules', 'init_task' ]
+    __symbols__ = [ 'runqueues']
 
     def __init__(self, vmlinux_filename, searchpath=None):
         self.findmap = {}
@@ -225,11 +226,9 @@ class CrashKernel(CrashBaseClass):
     def setup_tasks(self):
         gdb.execute('set print thread-events 0')
 
-        init_task = gdb.lookup_global_symbol('init_task')
-        task_list = init_task.value()['tasks']
-        runqueues = gdb.lookup_global_symbol('runqueues')
+        task_list = self.init_task['tasks']
 
-        rqs = get_percpu_var(runqueues)
+        rqs = get_percpu_var(self.runqueues)
         rqscurrs = {int(x["curr"]) : k for (k, x) in rqs.items()}
 
         self.pid_to_task_struct = {}
@@ -239,9 +238,12 @@ class CrashKernel(CrashBaseClass):
 
         task_count = 0
         tasks = []
-        for taskg in list_for_each_entry(task_list, init_task.type, 'tasks', include_head=True):
+        for taskg in list_for_each_entry(task_list, self.init_task.type,
+                                         'tasks', include_head=True):
             tasks.append(taskg)
-            for task in list_for_each_entry(taskg['thread_group'], init_task.type, 'thread_group'):
+            for task in list_for_each_entry(taskg['thread_group'],
+                                            self.init_task.type,
+                                            'thread_group'):
                 tasks.append(task)
 
         for task in tasks:
