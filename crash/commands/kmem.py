@@ -116,7 +116,7 @@ DESCRIPTION
     def print_vmstats(self):
         print "  VM_STAT:"
         #TODO put this... where?
-        snr_items = VmStat.nr_stat_items
+        nr_items = VmStat.nr_stat_items
     
         stats = [0L] * nr_items
         vm_stat = getValue("vm_stat")
