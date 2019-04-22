@@ -39,7 +39,8 @@ class CrashKernel(CrashBaseClass):
         elf_to_gdb = {
             ('EM_X86_64', 'ELFCLASS64') : 'i386:x86-64',
             ('EM_386', 'ELFCLASS32')    : 'i386',
-            ('EM_S390', 'ELFCLASS64')   :  's390:64-bit'
+            ('EM_S390', 'ELFCLASS64')   :  's390:64-bit',
+            ('EM_PPC64', 'ELFCLASS64')   :  'powerpc:common64'
         }
 
         try:

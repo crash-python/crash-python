@@ -8,6 +8,7 @@ from kdumpfile.exceptions import *
 import addrxlat
 import crash.arch
 import crash.arch.x86_64
+import crash.arch.ppc64
 
 class SymbolCallback(object):
     "addrxlat symbolic callback"
