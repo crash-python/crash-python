@@ -15,6 +15,7 @@ from crash.types.module import for_each_module, for_each_module_section
 import crash.cache.tasks
 from crash.types.task import LinuxTask
 from elftools.elf.elffile import ELFFile
+from crash.util import get_symbol_value
 
 LINUX_KERNEL_PID = 1
 
@@ -41,6 +42,7 @@ class CrashKernel(CrashBaseClass):
         self.vmcore = self.target.kdump
 
         self.target.fetch_registers = self.fetch_registers
+        self.crashing_thread = None
 
     def fetch_registers(self, register):
         thread = gdb.selected_thread()
@@ -167,6 +169,11 @@ class CrashKernel(CrashBaseClass):
                                             'thread_group'):
                 tasks.append(task)
 
+        try:
+            crashing_cpu = int(get_symbol_value('crashing_cpu'))
+        except Exception as e:
+            crashing_cpu = None
+
         for task in tasks:
             cpu = None
             regs = None
@@ -177,12 +184,15 @@ class CrashKernel(CrashBaseClass):
 
             ltask = LinuxTask(task, active, cpu, regs)
             ptid = (LINUX_KERNEL_PID, task['pid'], 0)
+
             try:
                 thread = gdb.selected_inferior().new_thread(ptid, ltask)
             except gdb.error as e:
                 print("Failed to setup task @{:#x}".format(int(task.address)))
                 continue
             thread.name = task['comm'].string()
+            if active and crashing_cpu is not None and cpu == crashing_cpu:
+                self.crashing_thread = thread
 
             self.arch.setup_thread_info(thread)
             ltask.attach_thread(thread)

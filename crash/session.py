@@ -38,3 +38,19 @@ class Session(object):
         self.kernel.setup_tasks()
         self.kernel.load_modules(searchpath)
 
+        if self.kernel.crashing_thread:
+            try:
+                result = gdb.execute("thread {}"
+                                      .format(self.kernel.crashing_thread.num),
+                                     to_string=True)
+                if debug:
+                    print(result)
+            except gdb.error as e:
+                print("Error while switching to crashed thread: {}"
+                                                                .format(str(e)))
+                print("Further debugging may not be possible.")
+                return
+
+            print("Backtrace from crashing task (PID {:d}):"
+                  .format(self.kernel.crashing_thread.ptid[1]))
+            gdb.execute("where")
