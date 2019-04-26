@@ -6,6 +6,8 @@ from typing import Union
 import gdb
 import uuid
 
+from typing import Dict
+
 from crash.infra import CrashBaseClass, export
 from crash.exceptions import MissingTypeError, MissingSymbolError
 
@@ -413,6 +415,47 @@ class TypesUtilClass(CrashBaseClass):
         size = array_size(value)
         for i in range(array_size(value)):
             yield value[i]
+
+    @export
+    @staticmethod
+    def decode_flags(value: gdb.Value, names: Dict[int, str],
+                     separator: str="|") -> str:
+        """
+        Present a bitfield of individual flags in a human-readable format.
+
+        Args:
+            value (gdb.Value<integer type>):
+                The value containing the flags to be decoded.
+            names (dict of int->str):
+                A dictionary containing mappings for each bit number to
+                a human-readable name.  Any flags found that do not have
+                a matching value in the dict will be displayed as FLAG_<number>.
+            separator (str, defaults to "|"):
+                The string to use as a separator between each flag name in the
+                output.
+
+        Returns:
+            str: A human-readable string displaying the flag values.
+
+        Raises:
+            TypeError: value is not gdb.Value or names is not dict.
+        """
+        if not isinstance(value, gdb.Value):
+            raise TypeError("value must be gdb.Value")
+
+        if not isinstance(names, dict):
+            raise TypeError("names must be a dictionary of int -> str")
+
+        flags_val = int(value)
+        flags = []
+        for n in range(0, value.type.sizeof << 3):
+            if flags_val & (1 << n):
+                try:
+                    flags.append(names[1 << n])
+                except KeyError:
+                    flags.append("FLAG_{}".format(n))
+
+        return separator.join(flags)
 
     @export
     @classmethod
