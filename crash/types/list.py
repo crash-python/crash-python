@@ -116,3 +116,12 @@ class TypesListClass(CrashBaseClass):
                 raise TypeError("Type {} found. Expected struct list_head *."
                                 .format(str(node.type)))
             yield container_of(node, gdbtype, member)
+
+    @export
+    def list_empty(self, list_head):
+        addr = int(list_head.address)
+        if list_head.type.code == gdb.TYPE_CODE_PTR:
+            addr = int(list_head)
+
+        return addr == int(list_head['next'])
+
