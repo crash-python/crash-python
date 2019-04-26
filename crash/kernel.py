@@ -25,6 +25,29 @@ class CrashKernelError(RuntimeError):
 class NoMatchingFileError(FileNotFoundError):
     pass
 
+class ModinfoMismatchError(ValueError):
+    def __init__(self, attribute, path, value, expected_value):
+        self.path = path
+        self.value = value
+        self.expected_value = expected_value
+        self.attribute = attribute
+
+    def __str__(self):
+        return "module {} has mismatched {} (got `{}' expected `{}')".format(
+                    self.path, self.attribute, self.value, self.expected_value)
+
+class ModVersionMismatchError(ModinfoMismatchError):
+    def __init__(self, path, module_value, expected_value):
+        super(ModVersionMismatchError, self).__init__('vermagic',
+                                                   path, module_value,
+                                                   expected_value)
+
+class ModSourceVersionMismatchError(ModinfoMismatchError):
+    def __init__(self, path, module_value, expected_value):
+        super(ModSourceVersionMismatchError, self).__init__('srcversion',
+                                                   path, module_value,
+                                                   expected_value)
+
 LINUX_KERNEL_PID = 1
 
 PathSpecifier = Union[List[str], str]
@@ -268,8 +291,7 @@ class CrashKernel(CrashBaseClass):
             raise CrashKernelError("Couldn't locate debuginfo for {}"
                                     .format(kernel))
 
-        f = open(gdb.objfiles()[0].filename, 'rb')
-        self.elffile = ELFFile(f)
+        self.vermagic = self.extract_vermagic()
 
         archname = obj.architecture.name()
         archclass = crash.arch.get_architecture(archname)
@@ -299,6 +321,38 @@ class CrashKernel(CrashBaseClass):
 
         return banner.split(' ')[2]
 
+    def extract_vermagic(self) -> str:
+        try:
+            magic = get_symbol_value('vermagic')
+            return magic.string()
+        except (AttributeError, NameError):
+            pass
+
+        return self.get_minsymbol_as_string('vermagic')
+
+    def extract_modinfo_from_module(self, modpath: str) -> Dict[str, str]:
+        f = open(modpath, 'rb')
+
+        d = None
+        try:
+            elf = ELFFile(f)
+            modinfo = elf.get_section_by_name('.modinfo')
+
+            d = {}
+            for line in modinfo.data().split(b'\x00'):
+                val = line.decode('utf-8')
+                if val:
+                    eq = val.index('=')
+                    d[val[0:eq]] = val[eq + 1:]
+        except Exception as e:
+            print(e)
+            del d
+            d = dict()
+
+        del elf
+        f.close()
+        return d
+
     def fetch_registers(self, register: gdb.Register) -> None:
         thread = gdb.selected_thread()
         self.arch.fetch_register(thread, register.regnum)
@@ -308,6 +362,28 @@ class CrashKernel(CrashBaseClass):
         for (name, addr) in for_each_module_section(module):
             out.append("-s {} {:#x}".format(name, addr))
         return " ".join(out)
+
+    def check_module_version(self, modpath: str, module: gdb.Value) -> None:
+        modinfo = self.extract_modinfo_from_module(modpath)
+
+        vermagic = None
+        if 'vermagic' in modinfo:
+            vermagic = modinfo['vermagic']
+
+        if vermagic != self.vermagic:
+            raise ModVersionMismatchError(modpath, vermagic, self.vermagic)
+
+        mi_srcversion = None
+        if 'srcversion' in modinfo:
+            mi_srcversion = modinfo['srcversion']
+
+        mod_srcversion = None
+        if 'srcversion' in module.type:
+            mod_srcversion = module['srcversion'].string()
+
+        if mi_srcversion != mod_srcversion:
+            raise ModSourceVersionMismatchError(modpath, mi_srcversion,
+                                                mod_srcversion)
 
     def load_modules(self, verbose: bool=False, debug: bool=False) -> None:
         import crash.cache.syscache
@@ -326,6 +402,13 @@ class CrashKernel(CrashBaseClass):
                 try:
                     modpath = self.find_module_file(modfname, path)
                 except NoMatchingFileError:
+                    continue
+
+                try:
+                    self.check_module_version(modpath, module)
+                except ModinfoMismatchError as e:
+                    if verbose:
+                        print(str(e))
                     continue
 
                 found = True
@@ -365,8 +448,6 @@ class CrashKernel(CrashBaseClass):
                 elif debug:
                     print(" + has debug symbols")
 
-                # We really should check the version, but GDB doesn't export
-                # a way to lookup sections.
                 break
 
             if not found:
