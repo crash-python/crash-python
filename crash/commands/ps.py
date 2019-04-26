@@ -3,6 +3,8 @@
 
 import gdb
 import argparse
+import fnmatch
+import re
 
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandLineError
@@ -558,18 +560,27 @@ EXAMPLES
                 width = 16
             print(self.header_template.format(width, col4name))
 
-        if not argv.args:
-            for thread in sorted(gdb.selected_inferior().threads(), key=sort_by):
-                task = thread.info
-                if task:
-                    if argv.k and not task.is_kernel_task():
-                        continue
-                    if argv.u and task.is_kernel_task():
+        regex = None
+        if argv.args:
+            regex = re.compile(fnmatch.translate(argv.args[0]))
+
+        for thread in sorted(gdb.selected_inferior().threads(), key=sort_by):
+            task = thread.info
+            if task:
+                if argv.k and not task.is_kernel_task():
+                    continue
+                if argv.u and task.is_kernel_task():
+                    continue
+
+                if regex is not None:
+                    m = regex.match(task.task_struct['comm'].string())
+                    if m is None:
                         continue
 
-                    # Only show thread group leaders
+
+                # Only show thread group leaders
 #                    if argv.G and task.pid != int(task.task_struct['tgid']):
 
-                    task.update_mem_usage()
-                    self.print_one(argv, thread)
+                task.update_mem_usage()
+                self.print_one(argv, thread)
 PSCommand()
