@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Union
+
 import gdb
 from crash.infra import CrashBaseClass, export
 from crash.exceptions import MissingTypeError, MissingSymbolError
+
+TypeSpecifier = Union [ gdb.Type, gdb.Value, str, gdb.Symbol ]
 
 class OffsetOfError(Exception):
     """Generic Exception for offsetof errors"""
@@ -95,6 +99,37 @@ class TypesUtilClass(CrashBaseClass):
         gdbtype = resolve_type(gdbtype)
         offset = offsetof(gdbtype, member)
         return (val.cast(charp) - offset).cast(gdbtype.pointer()).dereference()
+
+    @export
+    @staticmethod
+    def struct_has_member(gdbtype: TypeSpecifier, name: str) -> bool:
+        """
+        Returns whether a structure has a given member name.
+
+        A typical method of determining whether a structure has a member is just
+        to check the fields list.  That generally works but falls apart when
+        the structure contains an anonymous union or substructure since
+        it will push the members one level deeper in the namespace.
+
+        This routine provides a simple interface that covers those details.
+
+        Args:
+            val (gdb.Type, gdb.Value, str, gdb.Symbol): The object for which
+                to resolve the type to search for the member
+            name (str): The name of the member to query
+
+        Returns:
+            bool: Whether the member is present in the specified type
+
+        Raises:
+            TypeError: An invalid argument has been provided.
+
+        """
+        try:
+            x = TypesUtilClass.offsetof(gdbtype, name)
+            return True
+        except InvalidComponentError:
+            return False
 
     @export
     @staticmethod
