@@ -437,7 +437,7 @@ EXAMPLES
             pass
 
         buf = '??'
-        if hasattr(TF, 'TASK_DEAD'):
+        if TF.has_flag('TASK_DEAD'):
             try:
                 buf = self.task_states[state & ~TF.TASK_DEAD]
             except KeyError:
@@ -522,17 +522,15 @@ EXAMPLES
             TF.TASK_RUNNING         : "RU",
             TF.TASK_INTERRUPTIBLE   : "IN",
             TF.TASK_UNINTERRUPTIBLE : "UN",
-            TF.TASK_ZOMBIE          : "ZO",
+            TF.EXIT_ZOMBIE          : "ZO",
             TF.TASK_STOPPED         : "ST",
         }
 
-        if hasattr(TF, 'TASK_EXCLUSIVE'):
-            self.task_states[TF.TASK_EXCLUSIVE] = "EX"
-        if hasattr(TF, 'TASK_SWAPPING'):
+        if TF.has_flag('TASK_SWAPPING'):
             self.task_states[TF.TASK_SWAPPING] = "SW"
-        if hasattr(TF, 'TASK_DEAD'):
+        if TF.has_flag('TASK_DEAD'):
             self.task_states[TF.TASK_DEAD] = "DE"
-        if hasattr(TF, 'TASK_TRACING_STOPPED'):
+        if TF.has_flag('TASK_TRACING_STOPPED'):
             self.task_states[TF.TASK_TRACING_STOPPED] = "TR"
 
     def execute(self, argv):
@@ -540,10 +538,7 @@ EXAMPLES
         sort_by_last_run = lambda x: -x.info.last_run()
 
         if not hasattr(self, 'task_states'):
-            try:
-                self.setup_task_states()
-            except AttributeError:
-                raise CommandLineError("The task subsystem is not available.")
+            self.setup_task_states()
 
         sort_by = sort_by_pid
         if argv.l:
