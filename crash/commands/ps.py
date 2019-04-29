@@ -436,18 +436,20 @@ EXAMPLES
         except AttributeError:
             pass
 
-        buf = '??'
-        if TF.has_flag('TASK_DEAD'):
-            try:
-                buf = self.task_states[state & ~TF.TASK_DEAD]
-            except KeyError:
-                pass
+        buf = None
 
-            if state & TF.TASK_DEAD and task.maybe_dead():
-                buf = self.task_states[TF.TASK_DEAD]
+        for bits in sorted(self.task_states.keys(), reverse=True):
+            if (state & bits) == bits:
+                buf = self.task_states[bits]
+                break
+        if state & TF.TASK_DEAD and task.maybe_dead():
+            buf = self.task_states[TF.TASK_DEAD]
 
         if buf is not None and exclusive:
             buf += "EX"
+
+        if buf is None:
+            print(f"Unknown state {state} found")
 
         return buf
 
@@ -532,6 +534,8 @@ EXAMPLES
             self.task_states[TF.TASK_DEAD] = "DE"
         if TF.has_flag('TASK_TRACING_STOPPED'):
             self.task_states[TF.TASK_TRACING_STOPPED] = "TR"
+        if TF.has_flag('TASK_IDLE'):
+            self.task_states[TF.TASK_IDLE] = "ID"
 
     def execute(self, argv):
         sort_by_pid = lambda x: x.info.task_struct['pid']
