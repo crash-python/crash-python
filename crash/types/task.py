@@ -2,7 +2,7 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from crash.util import array_size
+from crash.util import array_size, struct_has_member
 from crash.infra import CrashBaseClass
 from crash.infra.lookup import DelayedValue, ClassProperty, get_delayed_lookup
 
@@ -212,7 +212,7 @@ class LinuxTask(object):
             cls.task_struct_type = task.type
             fields = cls.task_struct_type.fields()
             cls.task_state_has_exit_state = 'exit_state' in fields
-            cls.mm_struct_fields = gdb.lookup_type('struct mm_struct').keys()
+            cls.mm_struct_type = gdb.lookup_type('struct mm_struct')
             cls.pick_get_rss()
             cls.pick_last_run()
             cls.init_mm = get_value('init_mm')
@@ -322,12 +322,11 @@ class LinuxTask(object):
     def get_anon_file_rss_fields(self):
         mm = self.task_struct['mm']
         rss = 0
-        for name in ['_anon_rss', '_file_rss']:
-            if name in mm_struct_fields:
-                if mm[name].type == self.atomic_long_type:
-                    rss += int(mm[name]['counter'])
-                else:
-                    rss += int(mm[name])
+        for name in cls.anon_file_rss_fields:
+            if mm[name].type == self.atomic_long_type:
+                rss += int(mm[name]['counter'])
+            else:
+                rss += int(mm[name])
         return rss
 
     # The Pythonic way to do this is by generating the LinuxTask class
@@ -335,20 +334,28 @@ class LinuxTask(object):
     # select the proper function and assign it to the class.
     @classmethod
     def pick_get_rss(cls):
-        if 'rss' in cls.mm_struct_fields:
+        if struct_has_member(cls.mm_struct_type, 'rss'):
             cls.get_rss = cls.get_rss_field
-        elif '_rss' in cls.mm_struct_fields:
+        elif struct_has_member(cls.mm_struct_type, '_rss'):
             cls.get_rss = cls.get__rss_field
-        elif 'rss_stat' in cls.mm_struct_fields:
+        elif struct_has_member(cls.mm_struct_type, 'rss_stat'):
             cls.MM_FILEPAGES = get_value('MM_FILEPAGES')
             cls.MM_ANONPAGES = get_value('MM_ANONPAGES')
             cls.get_rss = cls.get_rss_stat_field
-        elif '_anon_rss' in cls.mm_struct_fields or \
-             '_file_rss' in cls.mm_struct_fields:
+        else:
+            cls.anon_file_rss_fields = []
+
+            if struct_has_member(cls.mm_struct_type, '_file_rss'):
+                cls.anon_file_rss_fields.append('_file_rss')
+
+            if struct_has_member(cls.mm_struct_type, '_anon_rss'):
+                cls.anon_file_rss_fields.append('_anon_rss')
+
             cls.atomic_long_type = gdb.lookup_type('atomic_long_t')
             cls.get_rss = cls.get_anon_file_rss_fields
-        else:
-            raise RuntimeError("No method to retrieve RSS from task found.")
+
+            if len(cls.anon_file_rss_fields):
+                raise RuntimeError("No method to retrieve RSS from task found.")
 
     def last_run__last_run(self):
         return int(self.task_struct['last_run'])
