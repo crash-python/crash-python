@@ -13,16 +13,44 @@ def get_value(symname):
     if sym[0]:
         return sym[0].value()
 
+# This is pretty painful.  These are all #defines so none of them end
+# up with symbols in the kernel.  The best approximation we have is
+# task_state_array which doesn't include all of them.  All we can do
+# is make some assumptions based on the changes upstream.  This will
+# be fragile.
 class TaskStateFlags(CrashBaseClass):
     __types__ = [ 'char *', 'struct task_struct' ]
     __symvals__ = [ 'task_state_array' ]
-    __symbol_callbacks__ = [ ('task_state_array', 'task_state_flags_callback') ]
-    __delayed_values__ = [ 'TASK_RUNNING', 'TASK_INTERRUPTIBLE',
-                           'TASK_UNINTERRUPTIBLE', 'TASK_ZOMBIE',
-                           'TASK_STOPPED', 'TASK_SWAPPING', 'TASK_EXCLUSIVE' ]
+    __symbol_callbacks__ = [ ('task_state_array', '_task_state_flags_callback') ]
+
+    TASK_RUNNING = 0
+
+    TASK_FLAG_UNINITIALIZED = -1
+
+    TASK_INTERRUPTIBLE: int=TASK_FLAG_UNINITIALIZED
+    TASK_UNINTERRUPTIBLE: int=TASK_FLAG_UNINITIALIZED
+    TASK_STOPPED: int=TASK_FLAG_UNINITIALIZED
+    EXIT_ZOMBIE: int=TASK_FLAG_UNINITIALIZED
+    TASK_DEAD: int=TASK_FLAG_UNINITIALIZED
+    EXIT_DEAD: int=TASK_FLAG_UNINITIALIZED
+    TASK_SWAPPING: int=TASK_FLAG_UNINITIALIZED
+    TASK_TRACING_STOPPED: int=TASK_FLAG_UNINITIALIZED
+    TASK_WAKEKILL: int=TASK_FLAG_UNINITIALIZED
+    TASK_WAKING: int=TASK_FLAG_UNINITIALIZED
+    TASK_PARKED: int=TASK_FLAG_UNINITIALIZED
+    __TASK_IDLE: int=TASK_FLAG_UNINITIALIZED
+
+    TASK_NOLOAD: int=TASK_FLAG_UNINITIALIZED
+    TASK_NEW: int=TASK_FLAG_UNINITIALIZED
+    TASK_IDLE: int=TASK_FLAG_UNINITIALIZED
 
     @classmethod
-    def task_state_flags_callback(cls, symbol):
+    def has_flag(cls, flagname):
+        v = getattr(cls, flagname)
+        return v != cls.TASK_FLAG_UNINITIALIZED
+
+    @classmethod
+    def _task_state_flags_callback(cls, symbol):
         count = array_size(cls.task_state_array)
 
         bit = 0
@@ -33,45 +61,92 @@ class TaskStateFlags(CrashBaseClass):
                 '(sleeping)'     : 'TASK_INTERRUPTIBLE',
                 '(disk sleep)'   : 'TASK_UNINTERRUPTIBLE',
                 '(stopped)'      : 'TASK_STOPPED',
-                '(zombie)'       : 'TASK_ZOMBIE',
-                #'(dead)'        : 'TASK_DEAD',
+                '(zombie)'       : 'EXIT_ZOMBIE',
+                'x (dead)'       : 'TASK_DEAD',
+                'X (dead)'       : 'EXIT_DEAD',
                 '(swapping)'     : 'TASK_SWAPPING',
-                #'(tracing stop)' : 'TASK_TRACING_STOPPED',
+                '(tracing stop)' : 'TASK_TRACING_STOPPED',
                 '(wakekill)'     : 'TASK_WAKEKILL',
                 '(waking)'       : 'TASK_WAKING',
+                '(parked)'       : 'TASK_PARKED',
+                '(idle)'         : '__TASK_IDLE',
             }
 
             for key in state_strings:
                 if key in state:
-                    try:
-                        dv = get_delayed_lookup(cls, state_strings[key])
-                        dv.callback(bit)
-                    except KeyError:
-                        setattr(cls, state_strings[key], bit)
-                if '(dead)' in state:
-                    cls.TASK_DEAD = bit
-                if '(tracing stop)' in state:
-                    cls.TASK_TRACING_STOPPED = bit
+                    setattr(cls, state_strings[key], bit)
+
             if bit == 0:
                 bit = 1
             else:
                 bit <<= 1
-        cls.check_state_bits()
+
+        # Linux 4.14 re-introduced TASK_PARKED into task_state_array
+        # which renumbered some bits
+        if not cls.has_flag('TASK_PARKED') and cls.has_flag('TASK_DEAD'):
+            newbits = cls.TASK_PARKED << 1
+            cls.TASK_DEAD = newbits
+            cls.TASK_WAKEKILL = newbits << 1
+            cls.TASK_WAKING = newbits << 2
+            cls.TASK_NOLOAD = newbits << 3
+            cls.TASK_NEW = newbits << 4
+
+            assert(cls.TASK_PARKED   == 0x0040)
+            assert(cls.TASK_DEAD     == 0x0080)
+            assert(cls.TASK_WAKEKILL == 0x0100)
+            assert(cls.TASK_WAKING   == 0x0200)
+
+        # Linux 3.14 removed several elements from task_state_array
+        # so we'll have to make some assumptions.
+        # TASK_NOLOAD wasn't introduced until 4.2 and wasn't added
+        # to task_state_array until v4.14.  There's no way to
+        # detect whether the use of the flag is valid for a particular
+        # kernel release.
+        elif not cls.has_flag('TASK_DEAD'):
+            if cls.EXIT_ZOMBIE > cls.EXIT_DEAD:
+                newbits = cls.EXIT_ZOMBIE << 1
+            else:
+                newbits = cls.EXIT_DEAD << 1
+            cls.TASK_DEAD = newbits
+            cls.TASK_WAKEKILL = newbits << 1
+            cls.TASK_WAKING = newbits << 2
+            cls.TASK_PARKED = newbits << 3
+            cls.TASK_NOLOAD = newbits << 4
+            cls.TASK_NEW = newbits << 5
+
+            assert(cls.TASK_DEAD     == 0x0040)
+            assert(cls.TASK_WAKEKILL == 0x0080)
+            assert(cls.TASK_WAKING   == 0x0100)
+            assert(cls.TASK_PARKED   == 0x0200)
+        else:
+            assert(cls.TASK_DEAD     == 64)
+            assert(cls.TASK_WAKEKILL == 128)
+            assert(cls.TASK_WAKING   == 256)
+            assert(cls.TASK_PARKED   == 512)
+
+        if cls.has_flag('TASK_NOLOAD'):
+            assert(cls.TASK_NOLOAD == 1024)
+            cls.TASK_IDLE = cls.TASK_NOLOAD | cls.TASK_UNINTERRUPTIBLE
+            assert(cls.TASK_IDLE == 1026)
+        if cls.has_flag('TASK_NEW'):
+            assert(cls.TASK_NEW == 2048)
+
+        cls._check_state_bits()
 
     @classmethod
-    def check_state_bits(cls):
+    def _check_state_bits(cls):
         required = [
             'TASK_RUNNING',
             'TASK_INTERRUPTIBLE',
             'TASK_UNINTERRUPTIBLE',
-            'TASK_ZOMBIE',
+            'EXIT_ZOMBIE',
             'TASK_STOPPED',
         ]
 
         missing = []
 
         for bit in required:
-            if not hasattr(cls, bit):
+            if not cls.has_flag(bit):
                 missing.append(bit)
 
         if len(missing):
@@ -156,9 +231,9 @@ class LinuxTask(object):
 
     def get_last_cpu(self):
         try:
-            return self.task_struct['cpu']
+            return int(self.task_struct['cpu'])
         except gdb.error as e:
-            return self.thread_info['cpu']
+            return int(self.thread_info['cpu'])
 
     def task_state(self):
         state = int(self.task_struct['state'])
@@ -171,10 +246,10 @@ class LinuxTask(object):
 
         known = TF.TASK_INTERRUPTIBLE
         known |= TF.TASK_UNINTERRUPTIBLE
-        known |= TF.TASK_ZOMBIE
+        known |= TF.EXIT_ZOMBIE
         known |= TF.TASK_STOPPED
 
-        if hasattr(TF, 'TASK_SWAPPING'):
+        if TF.has_flag('TASK_SWAPPING'):
             known |= TF.TASK_SWAPPING
         return (state & known) == 0
 
@@ -185,7 +260,7 @@ class LinuxTask(object):
         return self.task_flags() & PF_EXITING
 
     def is_zombie(self):
-        return self.task_state() & TF.TASK_ZOMBIE
+        return self.task_state() & TF.EXIT_ZOMBIE
 
     def update_mem_usage(self):
         if self.mem_valid:
