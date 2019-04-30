@@ -342,3 +342,31 @@ class TypesPerCPUClass(CrashBaseClass):
         for cpu in range(0, nr_cpus):
             vals[cpu] = self._get_percpu_var(var, cpu)
         return vals
+
+    @export
+    def percpu_counter_sum(self, var: SymbolOrValue) -> int:
+        """
+        Returns the sum of a percpu counter
+
+        Args:
+            var (gdb.Value or gdb.Symbol): The percpu counter to sum
+
+        Returns:
+            int: the sum of all components of the percpu counter
+        """
+        if isinstance(var, gdb.Symbol):
+            var = var.value()
+
+        if not (var.type == self.percpu_counter_type or
+                (var.type.code == gdb.TYPE_CODE_PTR and
+                 var.type.target() == self.percpu_counter_type)):
+            raise TypeError("var must be gdb.Symbol or gdb.Value describing `{}' not `{}'"
+                                .format(self.percpu_counter_type, var.type))
+
+        total = int(var['count'])
+
+        v = get_percpu_vars(var['counters'])
+        for cpu in v:
+            total += int(v[cpu])
+
+        return total
