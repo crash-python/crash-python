@@ -29,15 +29,17 @@ class CrashKernel(CrashBaseClass):
     def __init__(self, searchpath=None):
         self.findmap = {}
         self.searchpath = searchpath
+        obj = gdb.objfiles()[0]
+        kernel = os.path.basename(obj.filename)
 
-        sym = gdb.lookup_symbol('vsnprintf', None)[0]
-        if sym is None:
-            raise CrashKernelError("Missing vsnprintf indicates that there is no kernel image loaded.")
+        if not obj.has_symbols():
+            raise CrashKernelError("Couldn't locate debuginfo for {}"
+                                    .format(kernel))
 
         f = open(gdb.objfiles()[0].filename, 'rb')
         self.elffile = ELFFile(f)
 
-        archname = sym.symtab.objfile.architecture.name()
+        archname = obj.architecture.name()
         archclass = crash.arch.get_architecture(archname)
         self.arch = archclass()
 
@@ -90,10 +92,12 @@ class CrashKernel(CrashBaseClass):
                 gdb.execute("add-symbol-file {} {:#x} {}"
                             .format(modpath, addr, sections),
                             to_string=True)
-                sal = gdb.find_pc_line(addr)
-                if sal.symtab is None:
-                    objfile = gdb.lookup_objfile(modpath)
+
+                objfile = gdb.lookup_objfile(modpath)
+                if not objfile.has_symbols():
                     self.load_debuginfo(objfile, modpath)
+                elif debug:
+                    print(" + has debug symbols")
 
                 # We really should check the version, but GDB doesn't export
                 # a way to lookup sections.
