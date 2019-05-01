@@ -57,7 +57,7 @@ class CrashKernel(CrashBaseClass):
             out.append("-s {} {:#x}".format(name, addr))
         return " ".join(out)
 
-    def load_modules(self, verbose=False):
+    def load_modules(self, verbose=False, debug=False):
         print("Loading modules...", end='')
         sys.stdout.flush()
         failed = 0
@@ -78,8 +78,14 @@ class CrashKernel(CrashBaseClass):
                 else:
                     addr = int(module['core_layout']['base'])
 
-                if verbose:
+                if debug:
+                    print("Loading {} at {:#x}".format(modpath, addr))
+                elif verbose:
                     print("Loading {} at {:#x}".format(modname, addr))
+                else:
+                    print(".", end='')
+                    sys.stdout.flush()
+
                 sections = self.get_module_sections(module)
                 gdb.execute("add-symbol-file {} {:#x} {}"
                             .format(modpath, addr, sections),
