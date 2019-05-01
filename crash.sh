@@ -158,8 +158,8 @@ EOF
 if [ "$DEBUGMODE" = "gdb" ]; then
     RUN="run -nx -q -x $GDBINIT"
 
-    echo $RUN > /tmp/gdbinit
-    gdb $GDB -nx -q -x /tmp/gdbinit
+    echo $RUN > $TMPDIR/gdbinit-debug
+    gdb $GDB -nx -q -x $TMPDIR/gdbinit-debug
 elif [ "$DEBUGMODE" = "valgrind" ]; then
     valgrind --keep-stacktraces=alloc-and-free $GDB -nh -q -x $GDBINIT
 else
