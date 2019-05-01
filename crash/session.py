@@ -5,32 +5,26 @@ import gdb
 import sys
 
 from crash.infra import autoload_submodules
-import crash.kernel
-from crash.kernel import CrashKernelError
-from kdumpfile import kdumpfile
+from crash.kernel import CrashKernel, CrashKernelError
 
 class Session(object):
     """
     crash.Session is the main driver component for crash-python
 
-    The Session class loads the kernel, kernel modules, debuginfo,
-    and vmcore and auto loads any sub modules for autoinitializing
-    commands and subsystems.
+    The Session class loads the kernel modules, sets up tasks, and auto loads
+    any sub modules for autoinitializing commands and subsystems.
 
     Args:
-        searchpath (list of str, optional): Paths to directory trees to
-            search for kernel modules and debuginfo
+        kernel (CrashKernel): The kernel to debug during this session
+        verbose (bool, optional, default=False): Whether to enable verbose
+            output
         debug (bool, optional, default=False): Whether to enable verbose
             debugging output
     """
-
-
-    def __init__(self, searchpath=None, debug=False):
+    def __init__(self, kernel: CrashKernel, verbose: bool=False,
+                 debug: bool=False) -> None:
         print("crash-python initializing...")
-        if searchpath is None:
-            searchpath = []
-
-        self.kernel = crash.kernel.CrashKernel(searchpath)
+        self.kernel = kernel
 
         autoload_submodules('crash.cache')
         autoload_submodules('crash.subsystem')
@@ -38,7 +32,7 @@ class Session(object):
 
         try:
             self.kernel.setup_tasks()
-            self.kernel.load_modules(searchpath)
+            self.kernel.load_modules(verbose=verbose, debug=debug)
         except CrashKernelError as e:
             print(str(e))
             print("Further debugging may not be possible.")
