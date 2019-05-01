@@ -193,8 +193,9 @@ class FileSystem(CrashBaseClass):
         offset = dio['block_in_file'] << dio['blkbits']
 
         chain = {
-            'description' : "{:x} bio: Direct I/O for {} inode {} on {}".format(
-                            int(bio), fstype, dio['inode']['i_ino'], dev),
+            'description' : "{:x} bio: Direct I/O for {} inode {}, sector {} on {}".format(
+                            int(bio), fstype, dio['inode']['i_ino'],
+                            bio['bi_sector'], dev),
             'bio' : bio,
             'dio' : dio,
             'fstype' : fstype,
