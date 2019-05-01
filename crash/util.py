@@ -4,6 +4,8 @@
 from typing import Union
 
 import gdb
+import uuid
+
 from crash.infra import CrashBaseClass, export
 from crash.exceptions import MissingTypeError, MissingSymbolError
 
@@ -70,7 +72,7 @@ class _InvalidComponentNameError(_InvalidComponentBaseError):
         self.type = gdbtype
 
 class TypesUtilClass(CrashBaseClass):
-    __types__ = [ 'char *' ]
+    __types__ = [ 'char *', 'uuid_t' ]
 
     @export
     def container_of(self, val, gdbtype, member):
@@ -411,3 +413,67 @@ class TypesUtilClass(CrashBaseClass):
         size = array_size(value)
         for i in range(array_size(value)):
             yield value[i]
+
+    @export
+    @classmethod
+    def decode_uuid(cls, value: gdb.Value) -> uuid.UUID:
+        """
+        Decode an array of bytes that describes a UUID into a Python-style
+        UUID object
+
+        Args:
+            value (gdb.Value<uint8_t[16] or char[16]>): The UUID to decode
+
+        Returns:
+            uuid.UUID: The UUID object that describes the value
+
+        Raises:
+            TypeError: value is not gdb.Value or does not describe a 16-byte array.
+
+        """
+        if not isinstance(value, gdb.Value):
+            raise TypeError("value must be gdb.Value")
+
+        if (value.type.code != gdb.TYPE_CODE_ARRAY or
+            value[0].type.sizeof != 1 or
+            value.type.sizeof != 16):
+                raise TypeError("value must describe an array of 16 bytes")
+
+        u = 0
+        for i in range(0, 16):
+            u <<= 8
+            u += int(value[i])
+
+        return uuid.UUID(int=u)
+
+    @export
+    @classmethod
+    def decode_uuid_t(cls, value: gdb.Value) -> uuid.UUID:
+        """
+        Decode a Linux kernel uuid_t into a Python-style UUID object
+
+        Args:
+            value (gdb.Value): The uuid_t to be decoded
+
+        Returns:
+            uuid.UUID: The UUID object that describes the value
+
+        Raises:
+            TypeError: value is not gdb.Value<uuid_t>
+        """
+        if not isinstance(value, gdb.Value):
+            raise TypeError("value must be gdb.Value")
+
+        if value.type != self.uuid_t_type:
+            if (value.type.code == gdb.TYPE_CODE_PTR and
+                value.type.target() == self.uuid_t_type):
+                value = value.dereference()
+            else:
+                raise TypeError("value must describe a uuid_t")
+
+        if 'b' in cls.uuid_t_type:
+            member = 'b'
+        else:
+            member = '__u_bits'
+
+        return cls.decode_uuid(value[member])
