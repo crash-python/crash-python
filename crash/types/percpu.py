@@ -18,14 +18,6 @@ class TypesPerCPUClass(CrashBaseClass):
 
     dynamic_offset_cache = None
 
-    # TODO: put this somewhere else - arch?
-    @classmethod
-    def setup_kaslr_offset(cls):
-        offset = int(gdb.lookup_minimal_symbol("_text").value().address)
-        offset -= int(gdb.lookup_minimal_symbol("phys_startup_64").value().address)
-        offset -= 0xffffffff80000000
-        cls.kaslr_offset = offset
-
     @classmethod
     def setup_per_cpu_size(cls, symbol):
         try:
@@ -36,9 +28,6 @@ class TypesPerCPUClass(CrashBaseClass):
     @classmethod
     def setup_nr_cpus(cls, ignored):
         cls.nr_cpus = array_size(cls.__per_cpu_offset)
-        # piggyback on this as it seems those minsymbols at the time of
-        # their callback yield offset of 0
-        cls.setup_kaslr_offset()
 
     @classmethod
     def __add_to_offset_cache(cls, base, start, end):
@@ -53,9 +42,6 @@ class TypesPerCPUClass(CrashBaseClass):
         for slot in range(cls.pcpu_nr_slots):
             for chunk in list_for_each_entry(cls.pcpu_slot[slot], cls.pcpu_chunk_type, 'list'):
                 chunk_base = int(chunk["base_addr"]) - int(cls.pcpu_base_addr)
-                # __per_cpu_start is adjusted by KASLR, but dynamic offsets are
-                # not, so we have to subtract the offset
-                chunk_base += int(cls.__per_cpu_start) - cls.kaslr_offset
 
                 off = 0
                 start = None
@@ -148,13 +134,6 @@ class TypesPerCPUClass(CrashBaseClass):
         addr = self.__per_cpu_offset[cpu]
         addr += var.cast(self.char_p_type)
         addr -= self.__per_cpu_start
-
-        # if we got var from symbol, it means KASLR relocation was applied to
-        # the offset, it was applied also to __per_cpu_start, which cancels out
-        # If var wasn't a symbol, we have to undo the adjustion to
-        # __per_cpu_start, otherwise we get a bogus address
-        if not is_symbol:
-            addr += self.kaslr_offset
 
         vartype = var.type
         return addr.cast(vartype).dereference()

@@ -59,9 +59,16 @@ class Target(gdb.Target):
 
         vmlinux = gdb.objfiles()[0].filename
 
+
         # Load the kernel at the relocated address
-        gdb.execute("add-symbol-file {} -o {:#x} -s .data..percpu 0"
-                    .format(vmlinux, self.base_offset))
+        # Unfortunately, the percpu section has an offset of 0 and
+        # ends up getting placed at the offset base.  This is easy
+        # enough to handle in the percpu code.
+        result = gdb.execute("add-symbol-file {} -o {:#x}"
+                             .format(vmlinux, self.base_offset),
+                             to_string=True)
+        if self.debug:
+            print(result)
 
         # Clear out the old symbol cache
         gdb.execute("file {}".format(vmlinux))
