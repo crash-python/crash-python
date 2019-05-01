@@ -7,6 +7,7 @@ import gdb
 from crash.infra import CrashBaseClass, export
 from crash.util import array_size, struct_has_member
 from crash.types.list import list_for_each_entry
+from crash.types.module import for_each_module
 from crash.exceptions import DelayedAttributeError
 from crash.types.bitmap import find_first_set_bit, find_last_set_bit
 from crash.types.bitmap import find_next_set_bit, find_next_zero_bit
@@ -44,6 +45,7 @@ class TypesPerCPUClass(CrashBaseClass):
 
     dynamic_offset_cache: List[Tuple[int, int]] = list()
     static_ranges: Dict[int, int] = dict()
+    module_ranges: Dict[int, int] = dict()
     last_cpu = -1
     nr_cpus = 0
 
@@ -73,6 +75,16 @@ class TypesPerCPUClass(CrashBaseClass):
             cls.last_cpu = cls.nr_cpus
 
     @classmethod
+    def _setup_module_ranges(cls, modules: gdb.Symbol) -> None:
+        for module in for_each_module():
+            start = int(module['percpu'])
+            if start == 0:
+                continue
+
+            size = int(module['percpu_size'])
+            cls.module_ranges[start] = size
+
+    @classmethod
     def _add_to_offset_cache(cls, base: int, start: int, end: int) -> None:
         cls.dynamic_offset_cache.append((base + start, base + end))
 
@@ -83,6 +95,8 @@ class TypesPerCPUClass(CrashBaseClass):
         """
         for (start, size) in cls.static_ranges.items():
             print(f"static start={start:#x}, size={size:#x}")
+        for (start, size) in cls.module_ranges.items():
+            print(f"module start={start:#x}, size={size:#x}")
         if cls.dynamic_offset_cache:
             for (start, end) in cls.dynamic_offset_cache:
                 print(f"dynamic start={start:#x}, end={end:#x}")
@@ -225,6 +239,24 @@ class TypesPerCPUClass(CrashBaseClass):
             return addr - start
         return addr
 
+    def is_module_percpu_var(self, addr: int) -> bool:
+        """
+        Returns whether the provided value or symbol falls within
+        any of the percpu ranges for modules
+
+        Args:
+            addr (int): The address to query
+
+        Returns:
+            bool: whether this address belongs to a module range
+        """
+        for start in self.module_ranges:
+            for cpu in range(0, self.last_cpu):
+                size = self.module_ranges[start]
+                if addr >= start and addr < start + size:
+                    return True
+        return False
+
     @export
     def is_percpu_var(self, var: SymbolOrValue) -> bool:
         """
@@ -242,6 +274,8 @@ class TypesPerCPUClass(CrashBaseClass):
 
         var = int(var)
         if self.is_static_percpu_var(var):
+            return True
+        if self.is_module_percpu_var(var):
             return True
         if self._is_percpu_var_dynamic(var):
             return True
