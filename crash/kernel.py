@@ -89,6 +89,11 @@ class CrashKernel(CrashBaseClass):
                     sys.stdout.flush()
 
                 sections = self.get_module_sections(module)
+
+                percpu = int(module['percpu'])
+                if percpu > 0:
+                    sections += " -s .data..percpu {:#x}".format(percpu)
+
                 gdb.execute("add-symbol-file {} {:#x} {}"
                             .format(modpath, addr, sections),
                             to_string=True)
