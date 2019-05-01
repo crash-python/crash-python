@@ -3,38 +3,114 @@
 
 usage() {
 cat <<END >&2
-usage: $(basename $0) [-d|--search-dir <debuginfo/module dir>] <vmlinux> <vmcore>
+usage: $(basename $0) [options] <vmlinux> <vmcore>
+
+Options:
+-r <dir> | --root <dir>
+    Use the specified directory as the root for all file searches.  When
+    using properly configured .build-id symbolic links, this is the
+    best method to use as the debuginfo will be loaded automatically via
+    gdb without searching for filenames.
+
+-m <dir> | --modules <dir>
+    Use the specified directory to search for modules
+
+-d <dir> | --modules-debuginfo <dir>
+    Use the specified directory to search for module debuginfo
+
+-D <dir> | --vmlinux-debuginfo <dir>
+    Use the specified directory to search for vmlinux debuginfo
+
+-b <dir> | --build-dir <dir>
+    Use the specified directory as the root for all file searches.  This
+    directory should be the root of a built kernel source tree.  This is
+    shorthand for "-r <dir> -m . -d . -D ." and will override preceding
+    options.
 
 Debugging options:
---gdb           Run the embedded gdb underneath a separate gdb instance.
-                This is useful for debugging issues in gdb that are seen
-                while running crash-python.
---valgrind      Run the embedded gdb underneath valgrind.
-                This is useful for debugging memory leaks in gdb patches.
---nofiles       Start up without loading any object files.
-                This is useful for testing delayed lookup error handling.
-
+--debug
+    Enable noisy output for debugging the debugger
+-v | --verbose
+    Enable verbose output for debugging the debugger
+--gdb
+    Run the embedded gdb underneath a separate gdb instance.  This is useful
+    for debugging issues in gdb that are seen while running crash-python.
+--valgrind
+    Run the embedded gdb underneath valgrind.  This is useful
+    for debugging memory leaks in gdb patches.
 END
 exit 1
 }
 
-TEMP=$(getopt -o 'd:h' --long 'search-dir:,gdb,valgrind,nofiles,help' -n "$(basename $0)" -- "$@")
+TEMP=$(getopt -o 'vr:d:m:D:b:h' --long 'verbose,root:,modules-debuginfo:,modules:,vmlinux-debuginfo:,build-dir:,debug,gdb,valgrind,help' -n "$(basename $0)" -- "$@")
 
 if [ $? -ne 0 ]; then
-    echo "Terminating." >&2
-    exit 1
+    usage
 fi
 
 eval set -- "$TEMP"
 unset TEMP
 
+VERBOSE=False
+DEBUG=False
+
 while true; do
     case "$1" in
-        '-d'|'--search-dir')
-            SEARCHDIRS="$SEARCHDIRS $2"
+        '-r'|'--root')
+            if test -z "$SEARCH_DIRS"; then
+                SEARCH_DIRS="$2"
+            else
+                SEARCH_DIRS="$SEARCH_DIRS $2"
+            fi
             shift 2
             continue
         ;;
+        '-m'|'--modules')
+            if test -z "$MODULES"; then
+                MODULES="$2"
+            else
+                MODULES="$MODULES $2"
+            fi
+            shift 2
+            continue
+        ;;
+        '-d'|'--modules-debuginfo')
+            if test -z "$MODULES_DEBUGINFO"; then
+                MODULES_DEBUGINFO="$2"
+            else
+                MODULES_DEBUGINFO="$MODULES_DEBUGINFO $2"
+            fi
+            shift 2
+            continue
+        ;;
+        '-D'|'--vmlinux-debuginfo')
+            if test -z "$VMLINUX_DEBUGINFO"; then
+                VMLINUX_DEBUGINFO="$2"
+            else
+                VMLINUX_DEBUGINFO="$VMLINUX_DEBUGINFO $2"
+            fi
+            shift 2
+            continue
+        ;;
+        '-b'|'--build-dir')
+            SEARCH_DIRS="$2"
+            VMLINUX_DEBUGINFO="."
+            MODULES="."
+            MODULES_DEBUGINFO="."
+            shift 2
+            continue
+            ;;
+        '-v'|'--verbose')
+            VERBOSE="True"
+            shift
+            continue
+        ;;
+        '--debug')
+            DEBUG="True"
+            shift
+            continue
+        ;;
+
         '--gdb')
             DEBUGMODE=gdb
             shift
@@ -42,11 +118,6 @@ while true; do
             ;;
         '--valgrind')
             DEBUGMODE=valgrind
-            shift
-            continue
-            ;;
-        '--nofiles')
-            NOFILES=yes
             shift
             continue
             ;;
@@ -63,7 +134,7 @@ while true; do
     esac
 done
 
-if [ "$#" -ne 2 -a -z "$NOFILES" ]; then
+if [ "$#" -ne 2 ]; then
     usage
 fi
 
@@ -111,7 +182,15 @@ else
 fi
 
 VMCORE=$2
+for path in $SEARCH_DIRS; do
+    if test -n "$DFD"; then
+        DFD="$DFD:$path"
+    else
+        DFD="$path"
+    fi
+done
 cat << EOF >> $GDBINIT
+set debug-file-directory $DFD:/usr/lib/debug
 set build-id-verbose 0
 set python print-stack full
 set prompt py-crash> 
@@ -132,13 +211,40 @@ import sys
 import traceback
 try:
     import crash.session
+    from crash.kernel import CrashKernel
 except RuntimeError as e:
     print("crash-python: {}, exiting".format(str(e)), file=sys.stderr)
     traceback.print_exc()
     sys.exit(1)
-path = "$SEARCHDIRS".split(' ')
+
+roots = None
+module_path = None
+module_debuginfo_path = None
+vmlinux_debuginfo = None
+verbose=$VERBOSE
+debug=$DEBUG
+
+s = "$SEARCH_DIRS"
+if len(s) > 0:
+    roots = s.split(" ")
+
+s = "$VMLINUX_DEBUGINFO"
+if len(s) > 0:
+    vmlinux_debuginfo = s.split(" ")
+
+s = "$MODULES"
+if len(s) > 0:
+    module_path = s.split(" ")
+
+s = "$MODULES_DEBUGINFO"
+if len(s) > 0:
+    module_debuginfo_path = s.split(" ")
+
 try:
-    x = crash.session.Session(path)
+    kernel = CrashKernel(roots, vmlinux_debuginfo, module_path,
+                         module_debuginfo_path, verbose, debug)
+
+    x = crash.session.Session(kernel, verbose=verbose, debug=debug)
     print("The 'pyhelp' command will list the command extensions.")
 except gdb.error as e:
     print("crash-python: {}, exiting".format(str(e)), file=sys.stderr)
