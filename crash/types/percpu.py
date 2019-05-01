@@ -144,6 +144,7 @@ class TypesPerCPUClass(CrashBaseClass):
 
     @export
     def get_percpu_var(self, var, cpu=None):
+        orig_var = var
         # Percpus can be:
         # - actual objects, where we'll need to use the address.
         # - pointers to objects, where we'll need to use the target
@@ -159,6 +160,6 @@ class TypesPerCPUClass(CrashBaseClass):
             var = var.address
         if not self.is_percpu_var(var):
             var = var.address
-        if not self.is_percpu_var(var):
-            raise TypeError("Argument {} does not correspond to a percpu pointer.".format(var))
-        return self.get_percpu_var_nocheck(var, cpu, is_symbol)
+        if var is None or not self.is_percpu_var(var):
+            raise TypeError("Argument {} does not correspond to a percpu pointer.".format(orig_var))
+        return self.get_percpu_var_nocheck(var, cpu, is_symbol, nr_cpus)
