@@ -6,6 +6,7 @@ import sys
 
 from crash.infra import autoload_submodules
 import crash.kernel
+from crash.kernel import CrashKernelError
 from kdumpfile import kdumpfile
 
 class Session(object):
@@ -35,8 +36,13 @@ class Session(object):
         autoload_submodules('crash.subsystem')
         autoload_submodules('crash.commands')
 
-        self.kernel.setup_tasks()
-        self.kernel.load_modules(searchpath)
+        try:
+            self.kernel.setup_tasks()
+            self.kernel.load_modules(searchpath)
+        except CrashKernelError as e:
+            print(str(e))
+            print("Further debugging may not be possible.")
+            return
 
         if self.kernel.crashing_thread:
             try:

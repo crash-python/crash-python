@@ -17,6 +17,9 @@ from crash.types.task import LinuxTask
 from elftools.elf.elffile import ELFFile
 from crash.util import get_symbol_value
 
+class CrashKernelError(RuntimeError):
+    pass
+
 LINUX_KERNEL_PID = 1
 
 class CrashKernel(CrashBaseClass):
@@ -29,7 +32,7 @@ class CrashKernel(CrashBaseClass):
 
         sym = gdb.lookup_symbol('vsnprintf', None)[0]
         if sym is None:
-            raise RuntimeError("Missing vsnprintf indicates that there is no kernel image loaded.")
+            raise CrashKernelError("Missing vsnprintf indicates that there is no kernel image loaded.")
 
         f = open(gdb.objfiles()[0].filename, 'rb')
         self.elffile = ELFFile(f)
