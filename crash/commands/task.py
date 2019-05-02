@@ -25,14 +25,18 @@ EXAMPLES
 
         parser = ArgumentParser(prog=name)
 
-        parser.add_argument('pid', type=int, nargs=1)
+        parser.add_argument('pid', type=int, nargs=argparse.REMAINDER)
 
         parser.format_usage = lambda: "thread <pid>\n"
         Command.__init__(self, name, parser)
 
     def execute(self, args):
         try:
-            thread = crash.cache.tasks.get_task(args.pid[0]).thread
+            if args.pid:
+                thread = crash.cache.tasks.get_task(args.pid[0]).thread
+            else:
+                thread = gdb.selected_thread()
+
             gdb.execute("thread {}".format(thread.num))
         except KeyError:
             print("No such task with pid {}".format(args.pid[0]))
