@@ -3,8 +3,7 @@
 
 import gdb
 from crash.util import array_size, struct_has_member
-from crash.infra import CrashBaseClass
-from crash.infra.lookup import DelayedValue, ClassProperty, get_delayed_lookup
+from crash.util.symbols import Types, Symvals, SymbolCallbacks
 
 PF_EXITING = 0x4
 
@@ -13,16 +12,15 @@ def get_value(symname):
     if sym[0]:
         return sym[0].value()
 
+types = Types(['struct task_struct', 'struct mm_struct', 'atomic_long_t' ])
+symvals = Symvals([ 'task_state_array' ])
+
 # This is pretty painful.  These are all #defines so none of them end
 # up with symbols in the kernel.  The best approximation we have is
 # task_state_array which doesn't include all of them.  All we can do
 # is make some assumptions based on the changes upstream.  This will
 # be fragile.
-class TaskStateFlags(CrashBaseClass):
-    __types__ = [ 'char *', 'struct task_struct' ]
-    __symvals__ = [ 'task_state_array' ]
-    __symbol_callbacks__ = [ ('task_state_array', '_task_state_flags_callback') ]
-
+class TaskStateFlags(object):
     TASK_RUNNING = 0
 
     TASK_FLAG_UNINITIALIZED = -1
@@ -51,11 +49,11 @@ class TaskStateFlags(CrashBaseClass):
 
     @classmethod
     def _task_state_flags_callback(cls, symbol):
-        count = array_size(cls.task_state_array)
+        count = array_size(symvals.task_state_array)
 
         bit = 0
         for i in range(count):
-            state = cls.task_state_array[i].string()
+            state = symvals.task_state_array[i].string()
             state_strings = {
                 '(running)'      : 'TASK_RUNNING',
                 '(sleeping)'     : 'TASK_INTERRUPTIBLE',
@@ -153,6 +151,9 @@ class TaskStateFlags(CrashBaseClass):
             raise RuntimeError("Missing required task states: {}"
                                .format(",".join(missing)))
 
+symbol_cbs = SymbolCallbacks([ ('task_state_array',
+                                TaskStateFlags._task_state_flags_callback) ])
+
 TF = TaskStateFlags
 
 class BadTaskError(TypeError):
@@ -178,8 +179,8 @@ class LinuxTask(object):
             raise TypeError("cpu must be integer or None")
 
         if not (isinstance(task_struct, gdb.Value) and
-                (task_struct.type == self.task_struct_type or
-                 task_struct.type == self.task_struct_type.pointer())):
+                (task_struct.type == types.task_struct_type or
+                 task_struct.type == types.task_struct_type.pointer())):
                 raise BadTaskError(task_struct)
 
         self.task_struct = task_struct
@@ -200,7 +201,7 @@ class LinuxTask(object):
     @classmethod
     def init_task_types(cls, task):
         if not cls.valid:
-            t = gdb.lookup_type('struct task_struct')
+            t = types.task_struct_type
             if task.type != t:
                 raise BadTaskError(task)
 
@@ -209,10 +210,9 @@ class LinuxTask(object):
             # a type resolved from a symbol will be different structures
             # within gdb.  Equality requires a deep comparison rather than
             # a simple pointer comparison.
-            cls.task_struct_type = task.type
-            fields = cls.task_struct_type.fields()
+            types.task_struct_type = task.type
+            fields = types.task_struct_type.fields()
             cls.task_state_has_exit_state = 'exit_state' in fields
-            cls.mm_struct_type = gdb.lookup_type('struct mm_struct')
             cls.pick_get_rss()
             cls.pick_last_run()
             cls.init_mm = get_value('init_mm')
@@ -334,21 +334,21 @@ class LinuxTask(object):
     # select the proper function and assign it to the class.
     @classmethod
     def pick_get_rss(cls):
-        if struct_has_member(cls.mm_struct_type, 'rss'):
+        if struct_has_member(types.mm_struct_type, 'rss'):
             cls.get_rss = cls.get_rss_field
-        elif struct_has_member(cls.mm_struct_type, '_rss'):
+        elif struct_has_member(types.mm_struct_type, '_rss'):
             cls.get_rss = cls.get__rss_field
-        elif struct_has_member(cls.mm_struct_type, 'rss_stat'):
+        elif struct_has_member(types.mm_struct_type, 'rss_stat'):
             cls.MM_FILEPAGES = get_value('MM_FILEPAGES')
             cls.MM_ANONPAGES = get_value('MM_ANONPAGES')
             cls.get_rss = cls.get_rss_stat_field
         else:
             cls.anon_file_rss_fields = []
 
-            if struct_has_member(cls.mm_struct_type, '_file_rss'):
+            if struct_has_member(types.mm_struct_type, '_file_rss'):
                 cls.anon_file_rss_fields.append('_file_rss')
 
-            if struct_has_member(cls.mm_struct_type, '_anon_rss'):
+            if struct_has_member(types.mm_struct_type, '_anon_rss'):
                 cls.anon_file_rss_fields.append('_anon_rss')
 
             cls.atomic_long_type = gdb.lookup_type('atomic_long_t')
@@ -368,9 +368,9 @@ class LinuxTask(object):
 
     @classmethod
     def pick_last_run(cls):
-        fields = cls.task_struct_type.keys()
+        fields = types.task_struct_type.keys()
         if ('sched_info' in fields and
-                'last_arrival' in cls.task_struct_type['sched_info'].type.keys()):
+                'last_arrival' in types.task_struct_type['sched_info'].type.keys()):
             cls.last_run = cls.last_run__last_arrival
 
         elif 'last_run' in fields:

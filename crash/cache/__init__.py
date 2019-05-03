@@ -7,9 +7,9 @@ import os
 import glob
 import importlib
 
-from crash.infra import CrashBaseClass, autoload_submodules
+from crash.infra import autoload_submodules
 
-class CrashCache(CrashBaseClass):
+class CrashCache(object):
     def refresh(self):
         pass
 

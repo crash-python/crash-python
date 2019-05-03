@@ -4,8 +4,9 @@
 from typing import Dict, Union, List, Tuple
 
 import gdb
-from crash.infra import CrashBaseClass, export
 from crash.util import array_size, struct_has_member
+from crash.util.symbols import Types, Symvals, MinimalSymvals, MinimalSymbols
+from crash.util.symbols import MinimalSymbolCallbacks, SymbolCallbacks
 from crash.types.list import list_for_each_entry
 from crash.types.module import for_each_module
 from crash.exceptions import DelayedAttributeError
@@ -19,9 +20,15 @@ class PerCPUError(TypeError):
     def __init__(self, var):
         super().__init__(self.fmt.format(var))
 
+types = Types([ 'void *', 'char *', 'struct pcpu_chunk',
+                'struct percpu_counter' ])
+symvals = Symvals([ '__per_cpu_offset', 'pcpu_base_addr', 'pcpu_slot',
+                    'pcpu_nr_slots', 'pcpu_group_offsets' ])
+msymvals = MinimalSymvals( ['__per_cpu_start', '__per_cpu_end' ])
+
 SymbolOrValue = Union[gdb.Value, gdb.Symbol]
 
-class TypesPerCPUClass(CrashBaseClass):
+class PerCPUState(object):
     """
     Per-cpus come in a few forms:
     - "Array" of objects
@@ -33,16 +40,6 @@ class TypesPerCPUClass(CrashBaseClass):
     pointer to a percpu but we don't want to dereference a percpu
     pointer.
     """
-
-    __types__ = [ 'void *', 'char *', 'struct pcpu_chunk',
-                  'struct percpu_counter' ]
-    __symvals__ = [ '__per_cpu_offset', 'pcpu_base_addr', 'pcpu_slot',
-                    'pcpu_nr_slots', 'pcpu_group_offsets' ]
-    __minsymvals__ = ['__per_cpu_start', '__per_cpu_end' ]
-    __minsymbol_callbacks__ = [ ('__per_cpu_start', '_setup_per_cpu_size'),
-                             ('__per_cpu_end', '_setup_per_cpu_size') ]
-    __symbol_callbacks__ = [ ('__per_cpu_offset', '_setup_nr_cpus') ]
-
     dynamic_offset_cache: List[Tuple[int, int]] = list()
     static_ranges: Dict[int, int] = dict()
     module_ranges: Dict[int, int] = dict()
@@ -52,13 +49,13 @@ class TypesPerCPUClass(CrashBaseClass):
     @classmethod
     def _setup_per_cpu_size(cls, symbol: gdb.Symbol) -> None:
         try:
-            size = cls.__per_cpu_end - cls.__per_cpu_start
+            size = msymvals['__per_cpu_end'] - msymvals['__per_cpu_start']
         except DelayedAttributeError:
             pass
 
         cls.static_ranges[0] = size
-        if cls.__per_cpu_start != 0:
-            cls.static_ranges[cls.__per_cpu_start] = size
+        if msymvals['__per_cpu_start'] != 0:
+            cls.static_ranges[msymvals['__per_cpu_start']] = size
 
         try:
             # This is only an optimization so we don't return NR_CPUS values
@@ -69,7 +66,7 @@ class TypesPerCPUClass(CrashBaseClass):
 
     @classmethod
     def _setup_nr_cpus(cls, ignored: gdb.Symbol) -> None:
-        cls.nr_cpus = array_size(cls.__per_cpu_offset)
+        cls.nr_cpus = array_size(symvals['__per_cpu_offset'])
 
         if cls.last_cpu == -1:
             cls.last_cpu = cls.nr_cpus
@@ -84,9 +81,8 @@ class TypesPerCPUClass(CrashBaseClass):
             size = int(module['percpu_size'])
             cls.module_ranges[start] = size
 
-    @classmethod
-    def _add_to_offset_cache(cls, base: int, start: int, end: int) -> None:
-        cls.dynamic_offset_cache.append((base + start, base + end))
+    def _add_to_offset_cache(self, base: int, start: int, end: int) -> None:
+        self.dynamic_offset_cache.append((base + start, base + end))
 
     @classmethod
     def dump_ranges(cls) -> None:
@@ -97,14 +93,12 @@ class TypesPerCPUClass(CrashBaseClass):
             print(f"static start={start:#x}, size={size:#x}")
         for (start, size) in cls.module_ranges.items():
             print(f"module start={start:#x}, size={size:#x}")
-        if cls.dynamic_offset_cache:
-            for (start, end) in cls.dynamic_offset_cache:
-                print(f"dynamic start={start:#x}, end={end:#x}")
+        for (start, end) in cls.dynamic_offset_cache:
+            print(f"dynamic start={start:#x}, end={end:#x}")
 
-    @classmethod
-    def _setup_dynamic_offset_cache_area_map(cls, chunk: gdb.Value) -> None:
+    def _setup_dynamic_offset_cache_area_map(self, chunk: gdb.Value) -> None:
         used_is_negative = None
-        chunk_base = int(chunk["base_addr"]) - int(cls.pcpu_base_addr)
+        chunk_base = int(chunk["base_addr"]) - int(symvals.pcpu_base_addr)
 
         off = 0
         start = None
@@ -139,11 +133,11 @@ class TypesPerCPUClass(CrashBaseClass):
                         start = off
                 else:
                     if start is not None:
-                        cls._add_to_offset_cache(chunk_base, start, off)
+                        self._add_to_offset_cache(chunk_base, start, off)
                         start = None
                 off += abs(val)
             if start is not None:
-                cls._add_to_offset_cache(chunk_base, start, off)
+                self._add_to_offset_cache(chunk_base, start, off)
         else:
             for i in range(map_used):
                 off = int(_map[i])
@@ -153,35 +147,33 @@ class TypesPerCPUClass(CrashBaseClass):
                         start = off
                 else:
                     if start is not None:
-                        cls._add_to_offset_cache(chunk_base, start, off)
+                        self._add_to_offset_cache(chunk_base, start, off)
                         start = None
             if start is not None:
                 off = int(_map[map_used]) - 1
-                cls._add_to_offset_cache(chunk_base, start, off)
+                self._add_to_offset_cache(chunk_base, start, off)
 
 
-    @classmethod
-    def _setup_dynamic_offset_cache_bitmap(cls, chunk: gdb.Value) -> None:
-        group_offset = int(cls.pcpu_group_offsets[0])
+    def _setup_dynamic_offset_cache_bitmap(self, chunk: gdb.Value) -> None:
+        group_offset = int(symvals.pcpu_group_offsets[0])
         size_in_bytes = int(chunk['nr_pages']) * Page.PAGE_SIZE
         size_in_bits = size_in_bytes << 3
         start = -1
         end = 0
 
-        chunk_base = int(chunk["base_addr"]) - int(cls.pcpu_base_addr)
-        cls._add_to_offset_cache(chunk_base, 0, size_in_bytes)
+        chunk_base = int(chunk["base_addr"]) - int(symvals.pcpu_base_addr)
+        self._add_to_offset_cache(chunk_base, 0, size_in_bytes)
 
-    @classmethod
-    def _setup_dynamic_offset_cache(cls) -> None:
+    def _setup_dynamic_offset_cache(self) -> None:
         # TODO: interval tree would be more efficient, but this adds no 3rd
         # party module dependency...
-        use_area_map = struct_has_member(cls.pcpu_chunk_type, 'map')
-        for slot in range(cls.pcpu_nr_slots):
-            for chunk in list_for_each_entry(cls.pcpu_slot[slot], cls.pcpu_chunk_type, 'list'):
+        use_area_map = struct_has_member(types.pcpu_chunk_type, 'map')
+        for slot in range(symvals.pcpu_nr_slots):
+            for chunk in list_for_each_entry(symvals.pcpu_slot[slot], types.pcpu_chunk_type, 'list'):
                 if use_area_map:
-                    cls._setup_dynamic_offset_cache_area_map(chunk)
+                    self._setup_dynamic_offset_cache_area_map(chunk)
                 else:
-                    cls._setup_dynamic_offset_cache_bitmap(chunk)
+                    self._setup_dynamic_offset_cache_bitmap(chunk)
 
     def _is_percpu_var_dynamic(self, var: int) -> bool:
         try:
@@ -203,7 +195,7 @@ class TypesPerCPUClass(CrashBaseClass):
         for start in self.static_ranges:
             size = self.static_ranges[start]
             for cpu in range(0, self.last_cpu):
-                offset = int(__per_cpu_offset[cpu]) + start
+                offset = int(symvals['__per_cpu_offset'][cpu]) + start
                 if addr >= offset and addr < offset + size:
                     return True
         return False
@@ -233,7 +225,7 @@ class TypesPerCPUClass(CrashBaseClass):
     # loading debuginfo but not when debuginfo is embedded.
     def _relocated_offset(self, var):
         addr=int(var)
-        start = self.__per_cpu_start
+        start = msymvals['__per_cpu_start']
         size = self.static_ranges[start]
         if addr >= start and addr < start + size:
             return addr - start
@@ -257,7 +249,6 @@ class TypesPerCPUClass(CrashBaseClass):
                     return True
         return False
 
-    @export
     def is_percpu_var(self, var: SymbolOrValue) -> bool:
         """
         Returns whether the provided value or symbol falls within
@@ -311,16 +302,15 @@ class TypesPerCPUClass(CrashBaseClass):
         if cpu < 0:
             raise ValueError("cpu must be >= 0")
 
-        addr = self.__per_cpu_offset[cpu]
+        addr = symvals['__per_cpu_offset'][cpu]
         if addr > 0:
             addr += self._relocated_offset(var)
 
         val = gdb.Value(addr).cast(var.type)
-        if var.type != self.void_p_type:
+        if var.type != types.void_p_type:
             val = val.dereference()
         return val
 
-    @export
     def get_percpu_var(self, var: SymbolOrValue, cpu: int) -> gdb.Value:
         """
         Retrieve a per-cpu variable for a single CPU
@@ -342,7 +332,6 @@ class TypesPerCPUClass(CrashBaseClass):
         var = self._resolve_percpu_var(var)
         return self._get_percpu_var(var, cpu)
 
-    @export
     def get_percpu_vars(self, var: SymbolOrValue,
                         nr_cpus: int=None) -> Dict[int, gdb.Value]:
         """
@@ -377,30 +366,94 @@ class TypesPerCPUClass(CrashBaseClass):
             vals[cpu] = self._get_percpu_var(var, cpu)
         return vals
 
-    @export
-    def percpu_counter_sum(self, var: SymbolOrValue) -> int:
-        """
-        Returns the sum of a percpu counter
+msym_cbs = MinimalSymbolCallbacks([ ('__per_cpu_start',
+                                     PerCPUState._setup_per_cpu_size),
+                                    ('__per_cpu_end',
+                                     PerCPUState._setup_per_cpu_size) ])
+symbol_cbs = SymbolCallbacks([ ('__per_cpu_offset', PerCPUState._setup_nr_cpus),
+                               ('modules', PerCPUState._setup_module_ranges) ])
 
-        Args:
-            var (gdb.Value or gdb.Symbol): The percpu counter to sum
+_state = PerCPUState()
 
-        Returns:
-            int: the sum of all components of the percpu counter
-        """
-        if isinstance(var, gdb.Symbol):
-            var = var.value()
+def is_percpu_var(var: SymbolOrValue) -> bool:
+    """
+    Returns whether the provided value or symbol falls within
+    any of the percpu ranges
 
-        if not (var.type == self.percpu_counter_type or
-                (var.type.code == gdb.TYPE_CODE_PTR and
-                 var.type.target() == self.percpu_counter_type)):
-            raise TypeError("var must be gdb.Symbol or gdb.Value describing `{}' not `{}'"
-                                .format(self.percpu_counter_type, var.type))
+    Args:
+        var: (gdb.Value or gdb.Symbol): The value to query
 
-        total = int(var['count'])
+    Returns:
+        bool: whether the value belongs to any percpu range
+    """
+    return _state.is_percpu_var(var)
 
-        v = get_percpu_vars(var['counters'])
-        for cpu in v:
-            total += int(v[cpu])
+def get_percpu_var(var: SymbolOrValue, cpu: int) -> gdb.Value:
+    """
+    Retrieve a per-cpu variable for a single CPU
 
-        return total
+    Args:
+        var (gdb.Symbol, gdb.MinSymbol, gdb.Value):
+            The value to use to resolve the percpu location
+        cpu (int): The cpu for which to return the per-cpu value.
+
+    Returns:
+        gdb.Value<type>: If cpu is specified, the value corresponding to
+            the specified CPU.
+
+    Raises:
+        TypeError: var is not gdb.Symbol or gdb.Value
+        PerCPUError: var does not fall into any percpu range
+        ValueError: cpu is less than 0
+    """
+    return _state.get_percpu_var(var, cpu)
+
+def get_percpu_vars(var: SymbolOrValue,
+                    nr_cpus: int=None) -> Dict[int, gdb.Value]:
+    """
+    Retrieve a per-cpu variable for all CPUs
+
+    Args:
+        var (gdb.Symbol, gdb.MinSymbol, gdb.Value):
+            The value to use to resolve the percpu location
+        nr_cpus(int, optional, default=None): The number of CPUs to
+            return results for.  None (or unspecified) will use
+            the highest possible CPU count.
+
+    Returns:
+        dict(int, gdb.Value<type>): The values corresponding to every CPU
+            in a dictionary indexed by CPU number.
+
+    Raises:
+        TypeError: var is not gdb.Symbol or gdb.Value
+        PerCPUError: var does not fall into any percpu range
+        ValueError: nr_cpus is <= 0
+    """
+    return _state.get_percpu_vars(var, nr_cpus)
+
+def percpu_counter_sum(var: SymbolOrValue) -> int:
+    """
+    Returns the sum of a percpu counter
+
+    Args:
+        var (gdb.Value or gdb.Symbol): The percpu counter to sum
+
+    Returns:
+        int: the sum of all components of the percpu counter
+    """
+    if isinstance(var, gdb.Symbol):
+        var = var.value()
+
+    if not (var.type == types.percpu_counter_type or
+            (var.type.code == gdb.TYPE_CODE_PTR and
+             var.type.target() == types.percpu_counter_type)):
+        raise TypeError("var must be gdb.Symbol or gdb.Value describing `{}' not `{}'"
+                            .format(types.percpu_counter_type, var.type))
+
+    total = int(var['count'])
+
+    v = get_percpu_vars(var['counters'])
+    for cpu in v:
+        total += int(v[cpu])
+
+    return total

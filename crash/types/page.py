@@ -3,28 +3,18 @@
 
 from math import log, ceil
 import gdb
-import types
-from crash.infra import CrashBaseClass, export
 from crash.util import container_of, find_member_variant
+from crash.util.symbols import Types, Symvals, TypeCallbacks, SymbolCallbacks
 from crash.cache.syscache import config
 
 #TODO debuginfo won't tell us, depends on version?
 PAGE_MAPPING_ANON = 1
 
-class Page(CrashBaseClass):
-    __types__ = [ 'unsigned long', 'struct page', 'enum pageflags',
-                    'enum zone_type', 'struct mem_section']
-    __type_callbacks__ = [ ('struct page', 'setup_page_type' ),
-                           ('enum pageflags', 'setup_pageflags' ),
-                           ('enum zone_type', 'setup_zone_type' ),
-                           ('struct mem_section', 'setup_mem_section') ]
-    __symvals__ = [ 'mem_section' ]
-    # TODO: this should better be generalized to some callback for
-    # "config is available" without refering to the symbol name here
-    __symbol_callbacks__ = [ ('kernel_config_data', 'setup_nodes_width' ),
-                             ('vmemmap_base', 'setup_vmemmap_base' ),
-                             ('page_offset_base', 'setup_directmap_base' ) ]
+types = Types([ 'unsigned long', 'struct page', 'enum pageflags',
+                'enum zone_type', 'struct mem_section'])
+symvals = Symvals([ 'mem_section' ])
 
+class Page(object):
     slab_cache_name = None
     slab_page_name = None
     compound_head_name = None
@@ -85,10 +75,10 @@ class Page(CrashBaseClass):
             section_nr = pfn >> (cls.SECTION_SIZE_BITS - cls.PAGE_SHIFT)
             root_idx = section_nr / cls.SECTIONS_PER_ROOT
             offset = section_nr & (cls.SECTIONS_PER_ROOT - 1)
-            section = cls.mem_section[root_idx][offset]
+            section = symvals.mem_section[root_idx][offset]
 
             pagemap = section["section_mem_map"] & ~3
-            return (pagemap.cast(cls.page_type.pointer()) + pfn).dereference()
+            return (pagemap.cast(types.page_type.pointer()) + pfn).dereference()
         else:
             return cls.vmemmap[pfn]
 
@@ -110,7 +100,7 @@ class Page(CrashBaseClass):
         # setup_page_type() was first and used the hardcoded initial value,
         # we have to update
         if cls.vmemmap is not None:
-            cls.vmemmap = gdb.Value(cls.vmemmap_base).cast(cls.page_type.pointer())
+            cls.vmemmap = gdb.Value(cls.vmemmap_base).cast(types.page_type.pointer())
 
     @classmethod
     def setup_directmap_base(cls, symbol):
@@ -132,7 +122,7 @@ class Page(CrashBaseClass):
             cls.NODES_WIDTH = 8
         # piggyback on this callback because type callback doesn't seem to work
         # for unsigned long
-        cls.BITS_PER_LONG = cls.unsigned_long_type.sizeof * 8
+        cls.BITS_PER_LONG = types.unsigned_long_type.sizeof * 8
 
     @classmethod
     def setup_pageflags_finish(cls):
@@ -149,8 +139,8 @@ class Page(CrashBaseClass):
 
     @staticmethod
     def from_page_addr(addr):
-        page_ptr = gdb.Value(addr).cast(Page.page_type.pointer())
-        pfn = (addr - Page.vmemmap_base) / Page.page_type.sizeof
+        page_ptr = gdb.Value(addr).cast(types.page_type.pointer())
+        pfn = (addr - Page.vmemmap_base) / types.page_type.sizeof
         return Page(page_ptr.dereference(), pfn)
 
     def __is_tail_flagcombo(self):
@@ -201,37 +191,41 @@ class Page(CrashBaseClass):
             return self
 
         return Page.from_page_addr(self.__compound_head())
-        
+
     def __init__(self, obj, pfn):
         self.gdb_obj = obj
         self.pfn = pfn
         self.flags = int(obj["flags"])
 
-class Pages(CrashBaseClass):
+type_cbs = TypeCallbacks([ ('struct page', Page.setup_page_type ),
+                           ('enum pageflags', Page.setup_pageflags ),
+                           ('enum zone_type', Page.setup_zone_type ),
+                           ('struct mem_section', Page.setup_mem_section) ])
 
-    @export
-    def pfn_to_page(cls, pfn):
-        return Page(Page.pfn_to_page(pfn), pfn)
-
-    @export
-    def page_from_addr(cls, addr):
-        pfn = (addr - Page.directmap_base) / Page.PAGE_SIZE
-        return pfn_to_page(pfn)
-
-    @export
-    def page_from_gdb_obj(cls, gdb_obj):
-        pfn = (int(gdb_obj.address) - Page.vmemmap_base) / Page.page_type.sizeof
-        return Page(gdb_obj, pfn)
-
-    @export
-    def for_each_page():
-        # TODO works only on x86?
-        max_pfn = int(gdb.lookup_global_symbol("max_pfn").value())
-        for pfn in range(max_pfn):
-            try:
-                yield Page.pfn_to_page(pfn)
-            except gdb.error:
-                # TODO: distinguish pfn_valid() and report failures for those?
-                pass
+# TODO: this should better be generalized to some callback for
+# "config is available" without refering to the symbol name here
+symbol_cbs = SymbolCallbacks([ ('kernel_config_data', Page.setup_nodes_width ),
+                             ('vmemmap_base', Page.setup_vmemmap_base ),
+                             ('page_offset_base', Page.setup_directmap_base ) ])
 
 
+def pfn_to_page(pfn):
+    return Page(Page.pfn_to_page(pfn), pfn)
+
+def page_from_addr(addr):
+    pfn = (addr - Page.directmap_base) / Page.PAGE_SIZE
+    return pfn_to_page(pfn)
+
+def page_from_gdb_obj(gdb_obj):
+    pfn = (int(gdb_obj.address) - Page.vmemmap_base) / types.page_type.sizeof
+    return Page(gdb_obj, pfn)
+
+def for_each_page():
+    # TODO works only on x86?
+    max_pfn = int(gdb.lookup_global_symbol("max_pfn").value())
+    for pfn in range(max_pfn):
+        try:
+            yield Page.pfn_to_page(pfn)
+        except gdb.error:
+            # TODO: distinguish pfn_valid() and report failures for those?
+            pass

@@ -3,14 +3,13 @@
 
 import gdb
 from typing import Union, List
-from crash.infra import CrashBaseClass
 from crash.infra.lookup import SymbolCallback
 
 EndIOSpecifier = Union[int, str, List[str], gdb.Value, gdb.Symbol, None]
 
 decoders = {}
 
-class Decoder(CrashBaseClass):
+class Decoder(object):
 
     __endio__: EndIOSpecifier = None
 

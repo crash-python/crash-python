@@ -9,7 +9,6 @@ import os.path
 import crash.arch
 import crash.arch.x86_64
 import crash.arch.ppc64
-from crash.infra import CrashBaseClass, export
 from crash.types.list import list_for_each_entry
 from crash.types.percpu import get_percpu_vars
 from crash.types.list import list_for_each_entry
@@ -19,6 +18,7 @@ import crash.cache.syscache
 from crash.types.task import LinuxTask
 from elftools.elf.elffile import ELFFile
 from crash.util import get_symbol_value
+from crash.util.symbols import Types, Symvals, Symbols
 
 from typing import Pattern, Union, List, Dict, Any
 
@@ -55,11 +55,10 @@ LINUX_KERNEL_PID = 1
 
 PathSpecifier = Union[List[str], str]
 
-class CrashKernel(CrashBaseClass):
-    __types__ = [ 'char *' ]
-    __symvals__ = [ 'init_task' ]
-    __symbols__ = [ 'runqueues']
-
+class CrashKernel(object):
+    types = Types([ 'char *' ])
+    symvals = Symvals([ 'init_task' ])
+    symbols = Symbols([ 'runqueues'])
 
     def __init__(self, roots: PathSpecifier=None,
                  vmlinux_debuginfo: PathSpecifier=None,
@@ -311,7 +310,7 @@ class CrashKernel(CrashBaseClass):
     def get_minsymbol_as_string(self, name: str) -> str:
         sym = gdb.lookup_minimal_symbol(name).value()
 
-        return sym.address.cast(self.char_p_type).string()
+        return sym.address.cast(self.types.char_p_type).string()
 
     def extract_version(self) -> str:
         try:
@@ -601,9 +600,9 @@ class CrashKernel(CrashBaseClass):
     def setup_tasks(self) -> None:
         gdb.execute('set print thread-events 0')
 
-        task_list = self.init_task['tasks']
+        task_list = self.symvals.init_task['tasks']
 
-        rqs = get_percpu_vars(self.runqueues)
+        rqs = get_percpu_vars(self.symbols.runqueues)
         rqscurrs = {int(x["curr"]) : k for (k, x) in rqs.items()}
 
         print("Loading tasks...", end='')
@@ -611,11 +610,11 @@ class CrashKernel(CrashBaseClass):
 
         task_count = 0
         tasks = []
-        for taskg in list_for_each_entry(task_list, self.init_task.type,
+        for taskg in list_for_each_entry(task_list, self.symvals.init_task.type,
                                          'tasks', include_head=True):
             tasks.append(taskg)
             for task in list_for_each_entry(taskg['thread_group'],
-                                            self.init_task.type,
+                                            self.symvals.init_task.type,
                                             'thread_group'):
                 tasks.append(task)
 
