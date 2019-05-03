@@ -5,53 +5,33 @@ import gdb
 
 from crash.infra import CrashBaseClass
 from crash.util import get_symbol_value
-from crash.subsystem.filesystem import register_buffer_head_decoder
+from crash.subsystem.storage.decoders import Decoder
 
-class Ext3(CrashBaseClass):
-    __symbol_callbacks__ = [
-            ('journal_end_buffer_io_sync', '_register_journal_buffer_io_sync') ]
+class Ext3Decoder(Decoder):
+    """
+    Decodes an ext3 journal buffer
 
-    @classmethod
-    def _register_journal_buffer_io_sync(cls, sym):
-        # ext3/ext4 and jbd/jbd2 share names but not implementations
-        b = gdb.block_for_pc(int(sym.value().address))
-        sym = get_symbol_value('journal_end_buffer_io_sync', b)
+    This decodes a struct buffer_head with an end_io callback
+    of journal_end_buffer_io_sync.
 
-        register_buffer_head_decoder(sym, cls.decode_journal_buffer_io_sync)
+    Args:
+        bh (gdb.Value<struct buffer_head>): The struct buffer_head to decode
+    """
 
-    @classmethod
-    def decode_journal_buffer_io_sync(cls, bh):
-        """
-        Decodes an ext3 journal buffer
+    __endio__ = 'journal_end_buffer_io_sync'
+    description = "{:x} buffer_head: {} journal block (jbd) on {}"
 
-        This method decodes a struct buffer_head with and end_io callback
-        of journal_end_buffer_io_sync.
+    def __init__(self, bh):
+        super().__init__()
+        self.bh = bh
 
-        Args:
-            bh (gdb.Value<struct buffer_head>): The struct buffer_head to
-                decode
+    def interpret(self):
+        self.fstype = "journal on ext3"
+        self.devname = block_device_name(self.bh['b_bdev'])
+        self.offset = int(self.bh['b_blocknr']) * int(self.bh['b_size'])
+        self.length = int(self.bh['b_size'])
 
-        Returns:
-            dict: Contains the following items:
-                - description (str): Human-readable description of
-                    the buffer head
-                - bh (gdb.Value<struct buffer_head>): The buffer head being
-                    decoded
-                - fstype (str): The name of the file system type being decoded
-                - devname (str): The name of the device the file system uses
-                - offset (int): The offset, in bytes, of the block described
-                - length (int): The length of the block described
-        """
+    def __str__(self):
+        return self.description(int(self.bh), fstype, devname)
 
-        fstype = "journal on ext3"
-        devname = block_device_name(bh['b_bdev'])
-        chain = {
-            'bh' : bh,
-            'description' : "{:x} buffer_head: {} journal block (jbd) on {}".format(int(bh), fstype, devname),
-            'fstype' : fstype,
-            'devname' : devname,
-            'offset' : int(bh['b_blocknr']) * int(bh['b_size']),
-            'length' : int(bh['b_size'])
-        }
-
-        return chain
+Ext3Decoder.register()
