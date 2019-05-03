@@ -16,7 +16,7 @@ class TestDelayedLookupSetup(unittest.TestCase):
     def test_resolve_struct_normal(self):
         spec = 'struct test'
 
-        (name, attrname, pointer) = DelayedLookups._resolve_type(spec)
+        (name, attrname, pointer) = TypeCallback.resolve_type(spec)
         self.assertTrue(name == 'struct test')
         self.assertTrue(attrname == 'test_type')
         self.assertFalse(pointer)
@@ -24,7 +24,7 @@ class TestDelayedLookupSetup(unittest.TestCase):
     def test_resolve_struct_normal_pointer(self):
         spec = 'struct test *'
 
-        (name, attrname, pointer) = DelayedLookups._resolve_type(spec)
+        (name, attrname, pointer) = TypeCallback.resolve_type(spec)
         self.assertTrue(name == 'struct test')
         self.assertTrue(attrname == 'test_p_type')
         self.assertTrue(pointer)
@@ -32,7 +32,7 @@ class TestDelayedLookupSetup(unittest.TestCase):
     def test_resolve_struct_leading_whitespace(self):
         spec = ' struct test'
 
-        (name, attrname, pointer) = DelayedLookups._resolve_type(spec)
+        (name, attrname, pointer) = TypeCallback.resolve_type(spec)
         self.assertTrue(name == 'struct test')
         self.assertTrue(attrname == 'test_type')
         self.assertFalse(pointer)
@@ -40,7 +40,7 @@ class TestDelayedLookupSetup(unittest.TestCase):
     def test_resolve_struct_trailing_whitespace(self):
         spec = 'struct test '
 
-        (name, attrname, pointer) = DelayedLookups._resolve_type(spec)
+        (name, attrname, pointer) = TypeCallback.resolve_type(spec)
         self.assertTrue(name == 'struct test')
         self.assertTrue(attrname == 'test_type')
         self.assertFalse(pointer)
@@ -48,7 +48,7 @@ class TestDelayedLookupSetup(unittest.TestCase):
     def test_resolve_struct_middle_whitespace(self):
         spec = 'struct    test'
 
-        (name, attrname, pointer) = DelayedLookups._resolve_type(spec)
+        (name, attrname, pointer) = TypeCallback.resolve_type(spec)
         self.assertTrue(name == 'struct    test')
         self.assertTrue(attrname == 'test_type')
         self.assertFalse(pointer)
@@ -56,7 +56,7 @@ class TestDelayedLookupSetup(unittest.TestCase):
     def test_resolve_char(self):
         spec = 'char'
 
-        (name, attrname, pointer) = DelayedLookups._resolve_type(spec)
+        (name, attrname, pointer) = TypeCallback.resolve_type(spec)
         self.assertTrue(name == 'char')
         self.assertTrue(attrname == 'char_type')
         self.assertFalse(pointer)
@@ -64,7 +64,7 @@ class TestDelayedLookupSetup(unittest.TestCase):
     def test_resolve_char_pointer(self):
         spec = 'char *'
 
-        (name, attrname, pointer) = DelayedLookups._resolve_type(spec)
+        (name, attrname, pointer) = TypeCallback.resolve_type(spec)
         self.assertTrue(name == 'char')
         self.assertTrue(attrname == 'char_p_type')
         self.assertTrue(pointer)

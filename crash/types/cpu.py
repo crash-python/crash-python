@@ -45,7 +45,7 @@ class TypesCPUClass(CrashBaseClass):
             int: The highest online CPU number
         """
         if not TypesCPUClass.cpus_online :
-            raise DelayedAttributeError(self.__class__.__name__, 'cpus_online')
+            raise DelayedAttributeError('cpus_online')
         return self.cpus_online[-1]
 
     @classmethod
@@ -74,6 +74,5 @@ class TypesCPUClass(CrashBaseClass):
             int: The highest possible CPU number
         """
         if not self.cpus_possible:
-            raise DelayedAttributeError(self.__class__.__name__,
-                                        'cpus_possible')
+            raise DelayedAttributeError('cpus_possible')
         return self.cpus_possible[-1]
