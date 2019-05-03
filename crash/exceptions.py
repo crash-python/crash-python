@@ -18,6 +18,7 @@ class DelayedAttributeError(AttributeError):
     The attribute has been declared but the symbol to fill it has not yet been
     located.
     """
-    def __init__(self, owner, name):
-        msg = "{} has delayed attribute {} but it has not been completed."
-        super().__init__(msg.format(owner, name))
+    def __init__(self, name):
+        msg = "Delayed attribute {} has not been completed."
+        self.name = name
+        super().__init__(msg.format(name))
