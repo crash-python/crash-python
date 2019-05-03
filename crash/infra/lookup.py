@@ -86,11 +86,34 @@ class TypeCallback(ObjfileEventCallback):
     def __init__(self, name, callback, block=None):
         super().__init__()
 
-        self.name = name
+        (self.name, self.attrname, self.pointer) = self.resolve_type(name)
+
         self.block = block
         self.callback = callback
 
         self.connect_callback()
+
+    @staticmethod
+    def resolve_type(name):
+        pointer = False
+        name = name.strip()
+        if name[-1] == '*':
+            pointer = True
+            name = name[:-1].strip()
+
+        attrname = name
+        if name.startswith('struct '):
+            attrname = name[7:].strip()
+
+        if pointer:
+            attrname += '_p_type'
+        else:
+            attrname += '_type'
+
+        name = name
+        attrname = attrname.replace(' ', '_')
+
+        return (name, attrname, pointer)
 
     def check_ready(self):
         try:
@@ -111,9 +134,9 @@ class DelayedValue(object):
         self.name = name
         self.value = None
 
-    def get(self, owner):
+    def get(self):
         if self.value is None:
-            raise DelayedAttributeError(owner, self.name)
+            raise DelayedAttributeError(self.name)
         return self.value
 
     def callback(self, value):
@@ -153,15 +176,13 @@ class DelayedType(DelayedValue):
     """
     A DelayedValue for types.
     """
-    def __init__(self, name, pointer=False):
+    def __init__(self, name):
         """
         Args:
-            name (str): The name of the type.  Must not be a pointer type.
-            pointer (bool, optional, default=False): Whether the requested
-                type should be returned as a pointer to that type.
+            name (str): The name of the type.
         """
+        (name, attrname, self.pointer) = TypeCallback.resolve_type(name)
         super().__init__(name)
-        self.pointer = pointer
         self.cb = TypeCallback(name, self.callback)
 
     def __str__(self):
@@ -201,7 +222,7 @@ class ClassProperty(object):
         self.get = get
 
     def __get__(self, instance, owner):
-        return self.get(owner)
+        return self.get()
 
 class DelayedLookups(object):
     """
@@ -210,26 +231,6 @@ class DelayedLookups(object):
     special names.  These are documented in the _CrashBaseMeta
     documentation.
     """
-    @classmethod
-    def _resolve_type(cls, name):
-        pointer = False
-        name = name.strip()
-        if name[-1] == '*':
-            pointer = True
-            name = name[:-1].strip()
-
-        attrname = name
-        if name.startswith('struct '):
-            attrname = name[7:].strip()
-
-        if pointer:
-            attrname += '_p_type'
-        else:
-            attrname += '_type'
-
-        attrname = attrname.replace(' ', '_')
-        return (name, attrname, pointer)
-
     @classmethod
     def name_check(cls, dct, name, attrname):
         try:
@@ -260,9 +261,8 @@ class DelayedLookups(object):
             if not isinstance(dct['__types__'], list):
                 raise TypeError('__types__ attribute must be a list of strings')
             for typ in dct['__types__']:
-                (lookupname, attrname, pointer) = cls._resolve_type(typ)
-                cls.add_lookup(clsname, dct, lookupname,
-                               DelayedType(lookupname, pointer), attrname)
+                t = DelayedType(typ)
+                cls.add_lookup(clsname, dct, t.name, t, t.attrname)
             del dct['__types__']
         if '__symbols__' in dct:
             if not isinstance(dct['__symbols__'], list):
@@ -304,9 +304,8 @@ class DelayedLookups(object):
         callbacks = []
         if '__type_callbacks__' in dct:
             for (typ, callback) in dct['__type_callbacks__']:
-                (lookupname, attrname, pointer) = this_cls._resolve_type(typ)
                 cb = getattr(cls, callback)
-                callbacks.append(TypeCallback(lookupname, cb))
+                callbacks.append(TypeCallback(typ, cb))
             del dct['__type_callbacks__']
 
         if '__symbol_callbacks__' in dct:
