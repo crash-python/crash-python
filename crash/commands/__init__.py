@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from crash.infra import CrashBaseClass
-
 import gdb
 
 import os
@@ -20,7 +18,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         raise CommandLineError(message)
 
-class Command(CrashBaseClass, gdb.Command):
+class Command(gdb.Command):
     commands = {}
     def __init__(self, name, parser=None):
         self.name = "py" + name

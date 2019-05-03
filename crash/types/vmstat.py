@@ -2,17 +2,16 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from crash.infra import CrashBaseClass, export
 from crash.util import container_of, find_member_variant
+from crash.util.symbols import Types, TypeCallbacks, Symbols
 import crash.types.node
 from crash.types.percpu import get_percpu_var
 from crash.types.cpu import for_each_online_cpu
 
-class VmStat(CrashBaseClass):
-    __types__ = ['enum zone_stat_item', 'enum vm_event_item']
-    __symbols__ = [ 'vm_event_states' ]
-    __type_callbacks__ = [ ('enum zone_stat_item', 'check_enum_type'),
-                           ('enum vm_event_item', 'check_enum_type') ]
+
+class VmStat(object):
+    types = Types(['enum zone_stat_item', 'enum vm_event_item'])
+    symbols = Symbols([ 'vm_event_states' ])
 
     nr_stat_items = None
     nr_event_items = None
@@ -22,12 +21,14 @@ class VmStat(CrashBaseClass):
 
     @classmethod
     def check_enum_type(cls, gdbtype):
-        if gdbtype == cls.enum_zone_stat_item_type:
-            (items, names) = cls.__populate_names(gdbtype, 'NR_VM_ZONE_STAT_ITEMS')
+        if gdbtype == cls.types.enum_zone_stat_item_type:
+            (items, names) = cls.__populate_names(gdbtype,
+                                                   'NR_VM_ZONE_STAT_ITEMS')
             cls.nr_stat_items = items
             cls.vm_stat_names = names
-        elif gdbtype == cls.enum_vm_event_item_type:
-            (items, names) = cls.__populate_names(gdbtype, 'NR_VM_EVENT_ITEMS')
+        elif gdbtype == cls.types.enum_vm_event_item_type:
+            (items, names) = cls.__populate_names(gdbtype,
+                                                   'NR_VM_EVENT_ITEMS')
             cls.nr_event_items = items
             cls.vm_event_names = names
         else:
@@ -45,22 +46,27 @@ class VmStat(CrashBaseClass):
 
             return (nr_items, names)
 
-    @staticmethod
-    def get_stat_names():
-        return VmStat.vm_stat_names
-
-    @staticmethod
-    def get_event_names():
-        return VmStat.vm_event_names
+    @classmethod
+    def get_stat_names(cls):
+        return cls.vm_stat_names
 
     @classmethod
-    def get_events():
-        nr = VmStat.nr_event_items
+    def get_event_names(cls):
+        return cls.vm_event_names
+
+    @classmethod
+    def get_events(cls):
+        nr = cls.nr_event_items
         events = [0] * nr
 
         for cpu in for_each_online_cpu():
-            states = get_percpu_var(cls.vm_event_states, cpu)
+            states = get_percpu_var(cls.symbols.vm_event_states, cpu)
             for item in range(0, nr):
                 events[item] += int(states["event"][item])
 
         return events
+
+type_cbs = TypeCallbacks([ ('enum zone_stat_item',
+                                     VmStat.check_enum_type),
+                                    ('enum vm_event_item',
+                                     VmStat.check_enum_type) ])

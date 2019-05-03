@@ -8,6 +8,11 @@ import re
 
 from crash.commands import Command, ArgumentParser
 from crash.exceptions import DelayedAttributeError
+from crash.util.symbols import Types, Symvals
+
+types = Types([ 'struct printk_log *' , 'char *' ])
+symvals = Symvals([ 'log_buf', 'log_buf_len', 'log_first_idx', 'log_next_idx',
+                    'clear_seq', 'log_first_seq', 'log_next_seq' ])
 
 class LogTypeException(Exception):
     pass
@@ -148,10 +153,6 @@ EXAMPLES
         parser.format_usage = lambda: 'log [-tdm]\n'
         Command.__init__(self, name, parser)
 
-    __types__ = [ 'struct printk_log *' , 'char *' ]
-    __symvals__ = [ 'log_buf', 'log_buf_len', 'log_first_idx', 'log_next_idx',
-                    'clear_seq', 'log_first_seq', 'log_next_seq' ]
-
     @classmethod
     def filter_unstructured_log(cls, log, args):
         lines = log.split('\n')
@@ -168,11 +169,11 @@ EXAMPLES
         return '\n'.join(lines)
 
     def log_from_idx(self, logbuf, idx, dict_needed=False):
-        msg = (logbuf + idx).cast(self.printk_log_p_type)
+        msg = (logbuf + idx).cast(types.printk_log_p_type)
 
         try:
-            textval = (msg.cast(self.char_p_type) +
-                       self.printk_log_p_type.target().sizeof)
+            textval = (msg.cast(types.char_p_type) +
+                       types.printk_log_p_type.target().sizeof)
             text = textval.string(length=int(msg['text_len']))
         except UnicodeDecodeError as e:
             print(e)
@@ -197,8 +198,8 @@ EXAMPLES
 
         if dict_needed:
             dict_len = int(msg['dict_len'])
-            d = (msg.cast(self.char_p_type) +
-                 self.printk_log_p_type.target().sizeof + textlen)
+            d = (msg.cast(types.char_p_type) +
+                 types.printk_log_p_type.target().sizeof + textlen)
             s = ''
 
             for i in range(0, dict_len):
@@ -214,19 +215,19 @@ EXAMPLES
 
     def get_log_msgs(self, dict_needed=False):
         try:
-            idx = self.log_first_idx
+            idx = symvals.log_first_idx
         except DelayedAttributeError as e:
             raise LogTypeException('not structured log')
 
-        if self.clear_seq < self.log_first_seq:
-            self.clear_seq = self.log_first_seq
+        if symvals.clear_seq < symvals.log_first_seq:
+            symvals.clear_seq = symvals.log_first_seq
 
 
-        seq = self.clear_seq
-        idx = self.log_first_idx
+        seq = symvals.clear_seq
+        idx = symvals.log_first_idx
 
-        while seq < self.log_next_seq:
-            msg = self.log_from_idx(self.log_buf, idx, dict_needed)
+        while seq < symvals.log_next_seq:
+            msg = self.log_from_idx(symvals.log_buf, idx, dict_needed)
             seq += 1
             idx = msg['next']
             yield msg
@@ -250,11 +251,11 @@ EXAMPLES
                 print('{}'.format(d.encode('string_escape')))
 
     def handle_logbuf(self, args):
-        if self.log_buf_len and self.log_buf:
+        if symvals.log_buf_len and symvals.log_buf:
             if args.d:
                 raise LogInvalidOption("Unstructured logs don't offer key/value pair support")
 
-            print(self.filter_unstructured_log(self.log_buf.string('utf-8', 'replace'), args))
+            print(self.filter_unstructured_log(symvals.log_buf.string('utf-8', 'replace'), args))
 
     def execute(self, args):
         try:

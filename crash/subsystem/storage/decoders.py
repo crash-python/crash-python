@@ -7,7 +7,7 @@ from crash.infra.lookup import SymbolCallback
 
 EndIOSpecifier = Union[int, str, List[str], gdb.Value, gdb.Symbol, None]
 
-class Decoder(CrashBaseClass):
+class Decoder(object):
     """Decoder objects are used to unwind the storage stack
 
     They are relatively lightweight at runtime, meaning that the object
@@ -19,7 +19,6 @@ class Decoder(CrashBaseClass):
         interpreted (bool): Whether the contents of this Decoder have already
             been interpreted
     """
-
     __endio__: EndIOSpecifier = None
 
     def __init__(self):

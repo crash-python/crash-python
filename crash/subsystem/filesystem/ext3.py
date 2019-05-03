@@ -3,8 +3,6 @@
 
 import gdb
 
-from crash.infra import CrashBaseClass
-from crash.util import get_symbol_value
 from crash.subsystem.storage.decoders import Decoder
 
 class Ext3Decoder(Decoder):

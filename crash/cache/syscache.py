@@ -11,14 +11,14 @@ from datetime import timedelta
 from crash.exceptions import DelayedAttributeError
 from crash.cache import CrashCache
 from crash.util import array_size
-from crash.infra import export
-from crash.infra.lookup import get_delayed_lookup
+from crash.util.symbols import Types, Symvals, SymbolCallbacks
+from crash.infra.lookup import DelayedValue
 
 class CrashUtsnameCache(CrashCache):
-    __symvals__ = [ 'init_uts_ns' ]
+    symvals = Symvals([ 'init_uts_ns' ])
 
     def load_utsname(self):
-        self.utsname = self.init_uts_ns['name']
+        self.utsname = self.symvals.init_uts_ns['name']
         return self.utsname
 
     def init_utsname_cache(self):
@@ -43,8 +43,8 @@ class CrashUtsnameCache(CrashCache):
         return getattr(self.__class__, name)
 
 class CrashConfigCache(CrashCache):
-    __types__ = [ 'char *' ]
-    __symvals__ = [ 'kernel_config_data' ]
+    types = Types([ 'char *' ])
+    symvals = Symvals([ 'kernel_config_data' ])
 
     def __getattr__(self, name):
         if name == 'config_buffer':
@@ -70,8 +70,8 @@ class CrashConfigCache(CrashCache):
         MAGIC_END = 'IKCFG_ED'
 
         # Must cast it to char * to do the pointer arithmetic correctly
-        data_addr = self.kernel_config_data.address.cast(self.char_p_type)
-        data_len = self.kernel_config_data.type.sizeof
+        data_addr = self.symvals.kernel_config_data.address.cast(self.types.char_p_type)
+        data_len = self.symvals.kernel_config_data.type.sizeof
 
         buf_len = len(MAGIC_START)
         buf = self.read_buf_str(data_addr, buf_len)
@@ -119,14 +119,18 @@ class CrashConfigCache(CrashCache):
             return None
 
 class CrashKernelCache(CrashCache):
-    __symvals__ = [ 'avenrun' ]
-    __symbol_callbacks__ = [
-                    ( 'jiffies', 'setup_jiffies' ),
-                    ( 'jiffies_64', 'setup_jiffies' ) ]
-    __delayed_values__ = [ 'jiffies' ]
+    symvals = Symvals([ 'avenrun' ])
 
     jiffies_ready = False
     adjust_jiffies = False
+
+    jiffies_dv = DelayedValue('jiffies')
+
+    @property
+    def jiffies(self):
+        v = self.jiffies_dv.get()
+        return v
+
     def __init__(self, config):
         CrashCache.__init__(self)
         self.config = config
@@ -157,8 +161,8 @@ class CrashKernelCache(CrashCache):
 
     def get_loadavg_values(self):
         metrics = []
-        for index in range(0, array_size(self.avenrun)):
-            metrics.append(self.calculate_loadavg(self.avenrun[index]))
+        for index in range(0, array_size(self.symvals.avenrun)):
+            metrics.append(self.calculate_loadavg(self.symvals.avenrun[index]))
 
         return metrics
 
@@ -169,6 +173,11 @@ class CrashKernelCache(CrashCache):
             return self.loadavg
         except DelayedAttributeError:
             return "Unknown"
+
+    @classmethod
+    def set_jiffies(cls, value):
+        cls.jiffies_dv.value = None
+        cls.jiffies_dv.callback(value)
 
     @classmethod
     def setup_jiffies(cls, symbol):
@@ -187,7 +196,7 @@ class CrashKernelCache(CrashCache):
             jiffies = int(gdb.lookup_global_symbol('jiffies').value())
             cls.adjust_jiffies = False
 
-        delayed = get_delayed_lookup(cls, 'jiffies').callback(jiffies)
+        cls.set_jiffies(jiffies)
 
     def adjusted_jiffies(self):
         if self.adjust_jiffies:
@@ -199,10 +208,14 @@ class CrashKernelCache(CrashCache):
         self.uptime = timedelta(seconds=self.adjusted_jiffies() // self.hz)
         return self.uptime
 
-    @export
-    def jiffies_to_msec(self, jiffies):
-        return 1000 // self.hz * jiffies
+symbol_cbs = SymbolCallbacks( [( 'jiffies',
+                                 CrashKernelCache.setup_jiffies ),
+                               ( 'jiffies_64',
+                                 CrashKernelCache.setup_jiffies ) ])
 
 utsname = CrashUtsnameCache()
 config = CrashConfigCache()
 kernel = CrashKernelCache(config)
+
+def jiffies_to_msec(jiffies):
+    return 1000 // kernel.hz * jiffies

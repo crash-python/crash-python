@@ -2,15 +2,14 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from crash.infra import CrashBaseClass, export
+
 from crash.types.klist import klist_for_each_entry
+from crash.util.symbols import Types
 
-class ClassDeviceClass(CrashBaseClass):
-    __types__ = [ 'struct device' ]
+types = Types(['struct device'])
 
-    @export
-    def for_each_class_device(self, class_struct, subtype=None):
-        klist = class_struct['p']['klist_devices']
-        for dev in klist_for_each_entry(klist, self.device_type, 'knode_class'):
-            if subtype is None or int(subtype) == int(dev['type']):
-                yield dev
+def for_each_class_device(class_struct, subtype=None):
+    klist = class_struct['p']['klist_devices']
+    for dev in klist_for_each_entry(klist, types.device_type, 'knode_class'):
+        if subtype is None or int(subtype) == int(dev['type']):
+            yield dev
