@@ -3,7 +3,6 @@
 
 import gdb
 import addrxlat
-from crash.infra import CrashBaseClass, export
 from crash.cache.syscache import utsname
 from crash.util import offsetof
 
@@ -39,7 +38,7 @@ class TranslationContext(addrxlat.Context):
     def cb_read64(self, faddr):
         return int(gdb.Value(faddr.addr).cast(self.uint64_ptr).dereference())
 
-class CrashAddressTranslation(CrashBaseClass):
+class CrashAddressTranslation(object):
     def __init__(self):
         try:
             target = gdb.current_target()
@@ -62,14 +61,12 @@ class CrashAddressTranslation(CrashBaseClass):
                 self.is_non_auto = True
                 break
 
-    @export
-    def addrxlat_context(self):
-        return self.context
+__impl = CrashAddressTranslation()
+def addrxlat_context():
+    return __impl.context
 
-    @export
-    def addrxlat_system(self):
-        return self.system
+def addrxlat_system():
+    return __impl.system
 
-    @export
-    def addrxlat_is_non_auto(self):
-        return self.is_non_auto
+def addrxlat_is_non_auto():
+    return __impl.is_non_auto

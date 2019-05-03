@@ -111,7 +111,7 @@ class TestSysCache(unittest.TestCase):
         from crash.cache.syscache import CrashConfigCache, CrashKernelCache
         config = CrashConfigCache()
         kernel = CrashKernelCache(config)
-        kernel.jiffies = 27028508
+        kernel.set_jiffies(27028508)
         kernel.adjust_jiffies = False
         x = kernel.uptime
         uptime = str(x)

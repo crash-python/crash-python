@@ -3,10 +3,10 @@
 
 import gdb
 
-from crash.infra import CrashBaseClass, export
 from crash.subsystem.filesystem import super_fstype
 from crash.types.list import list_for_each_entry
 from crash.util import container_of, decode_flags, struct_has_member
+from crash.util.symbols import Types, Symvals, TypeCallbacks, SymbolCallbacks
 
 MNT_NOSUID      = 0x01
 MNT_NODEV       = 0x02
@@ -38,139 +38,124 @@ MNT_FLAGS_HIDDEN = {
 }
 MNT_FLAGS_HIDDEN.update(MNT_FLAGS)
 
+types = Types([ 'struct mount', 'struct vfsmount' ])
+symvals = Symvals([ 'init_task' ])
 
-class Mount(CrashBaseClass):
-    __types__ = [ 'struct mount', 'struct vfsmount' ]
-    __symvals__ = [ 'init_task' ]
-    __type_callbacks__ = [ ('struct vfsmount', 'check_mount_type' ) ]
-    __symbol_callbacks__ = [ ('init_task', 'check_task_interface' ) ]
-
+class Mount(object):
     @classmethod
     def for_each_mount_impl(cls, task):
         raise NotImplementedError("Mount.for_each_mount is unhandled on this kernel version.")
 
     @classmethod
-    def check_mount_type(cls, gdbtype):
-        try:
-            cls.mount_type = gdb.lookup_type('struct mount')
-        except gdb.error:
-            # Older kernels didn't separate mount from vfsmount
-            cls.mount_type = cls.vfsmount_type
+    def for_each_mount_nsproxy(cls, task):
+        return list_for_each_entry(task['nsproxy']['mnt_ns']['list'],
+                                   types.mount_type, 'mnt_list')
 
     @classmethod
     def check_task_interface(cls, symval):
         try:
-            nsproxy = cls.init_task['nsproxy']
+            nsproxy = symvals.init_task['nsproxy']
             cls.for_each_mount_impl = cls.for_each_mount_nsproxy
         except KeyError:
             print("check_task_interface called but no init_task?")
             pass
 
-    @export
-    def for_each_mount(self, task=None):
-        if task is None:
-            task = self.init_task
-        return self.for_each_mount_impl(task)
+def check_mount_type(gdbtype):
+    try:
+        types.mount_type = gdb.lookup_type('struct mount')
+    except gdb.error:
+        # Older kernels didn't separate mount from vfsmount
+        types.mount_type = types.vfsmount_type
 
-    def for_each_mount_nsproxy(self, task):
-        return list_for_each_entry(task['nsproxy']['mnt_ns']['list'],
-                                   self.mount_type, 'mnt_list')
+def for_each_mount(task=None):
+    if task is None:
+        task = symvals.init_task
+    return Mount.for_each_mount_impl(task)
 
-    @export
-    @classmethod
-    def real_mount(cls, vfsmnt):
-        if (vfsmnt.type == cls.mount_type or
-            vfsmnt.type == cls.mount_type.pointer()):
-            t = vfsmnt.type
-            if t.code == gdb.TYPE_CODE_PTR:
-                t = t.target()
-            if t is not cls.mount_type:
-                cls.mount_type = t
-            return vfsmnt
-        return container_of(vfsmnt, cls.mount_type, 'mnt')
+def real_mount(vfsmnt):
+    if (vfsmnt.type == types.mount_type or
+        vfsmnt.type == types.mount_type.pointer()):
+        t = vfsmnt.type
+        if t.code == gdb.TYPE_CODE_PTR:
+            t = t.target()
+        if t is not types.mount_type:
+            types.mount_type = t
+        return vfsmnt
+    return container_of(vfsmnt, types.mount_type, 'mnt')
 
-    @export
-    @classmethod
-    def mount_flags(cls, mnt, show_hidden=False):
-        if struct_has_member(mnt, 'mnt'):
-            mnt = mnt['mnt']
-        if show_hidden:
-            return decode_flags(mnt['mnt_flags'], MNT_FLAGS_HIDDEN, ",")
-        return decode_flags(mnt['mnt_flags'], MNT_FLAGS, ",")
+def mount_flags(mnt, show_hidden=False):
+    if struct_has_member(mnt, 'mnt'):
+        mnt = mnt['mnt']
+    if show_hidden:
+        return decode_flags(mnt['mnt_flags'], MNT_FLAGS_HIDDEN, ",")
+    return decode_flags(mnt['mnt_flags'], MNT_FLAGS, ",")
 
-    @export
-    @staticmethod
-    def mount_super(mnt):
-        try:
-            sb = mnt['mnt']['mnt_sb']
-        except gdb.error:
-            sb = mnt['mnt_sb']
-        return sb
+def mount_super(mnt):
+    try:
+        sb = mnt['mnt']['mnt_sb']
+    except gdb.error:
+        sb = mnt['mnt_sb']
+    return sb
 
-    @export
-    @staticmethod
-    def mount_root(mnt):
-        try:
-            mnt = mnt['mnt']
-        except gdb.error:
-            pass
+def mount_root(mnt):
+    try:
+        mnt = mnt['mnt']
+    except gdb.error:
+        pass
 
-        return mnt['mnt_root']
+    return mnt['mnt_root']
 
-    @export
-    @classmethod
-    def mount_fstype(cls, mnt):
-        return super_fstype(cls.mount_super(mnt))
+def mount_fstype(mnt):
+    return super_fstype(mount_super(mnt))
 
-    @export
-    @classmethod
-    def mount_device(cls, mnt):
-        devname = mnt['mnt_devname'].string()
-        if devname is None:
-            devname = "none"
-        return devname
+def mount_device(mnt):
+    devname = mnt['mnt_devname'].string()
+    if devname is None:
+        devname = "none"
+    return devname
 
-    @export
-    @classmethod
-    def d_path(cls, mnt, dentry, root=None):
-        if root is None:
-            root = cls.init_task['fs']['root']
+def d_path(mnt, dentry, root=None):
+    if root is None:
+        root = symvals.init_task['fs']['root']
 
-        if dentry.type.code != gdb.TYPE_CODE_PTR:
-            dentry = dentry.address
+    if dentry.type.code != gdb.TYPE_CODE_PTR:
+        dentry = dentry.address
 
-        if mnt.type.code != gdb.TYPE_CODE_PTR:
-            mnt = mnt.address
+    if mnt.type.code != gdb.TYPE_CODE_PTR:
+        mnt = mnt.address
 
-        mount = cls.real_mount(mnt)
-        if mount.type.code != gdb.TYPE_CODE_PTR:
-            mount = mount.address
+    mount = real_mount(mnt)
+    if mount.type.code != gdb.TYPE_CODE_PTR:
+        mount = mount.address
 
-        try:
-            mnt = mnt['mnt'].address
-        except gdb.error:
-            pass
+    try:
+        mnt = mnt['mnt'].address
+    except gdb.error:
+        pass
 
-        name = ""
+    name = ""
 
-        # Gone are the days where finding the root was as simple as
-        # dentry == dentry->d_parent
-        while dentry != root['dentry'] or mnt != root['mnt']:
-            if dentry == mnt['mnt_root'] or dentry == dentry['d_parent']:
-                if dentry != mnt['mnt_root']:
-                    return None
-                if mount != mount['mnt_parent']:
-                    dentry = mount['mnt_mountpoint']
-                    mount = mount['mnt_parent']
-                    try:
-                        mnt = mount['mnt'].address
-                    except gdb.error:
-                        mnt = mount
-                    continue
-                break
+    # Gone are the days where finding the root was as simple as
+    # dentry == dentry->d_parent
+    while dentry != root['dentry'] or mnt != root['mnt']:
+        if dentry == mnt['mnt_root'] or dentry == dentry['d_parent']:
+            if dentry != mnt['mnt_root']:
+                return None
+            if mount != mount['mnt_parent']:
+                dentry = mount['mnt_mountpoint']
+                mount = mount['mnt_parent']
+                try:
+                    mnt = mount['mnt'].address
+                except gdb.error:
+                    mnt = mount
+                continue
+            break
 
-            name = "/" + dentry['d_name']['name'].string() + name
-            dentry = dentry['d_parent']
-        if not name:
-            name = '/'
-        return name
+        name = "/" + dentry['d_name']['name'].string() + name
+        dentry = dentry['d_parent']
+    if not name:
+        name = '/'
+    return name
+
+type_cbs = TypeCallbacks([ ('struct vfsmount', check_mount_type ) ])
+symbols_cbs = SymbolCallbacks([ ('init_task', Mount.check_task_interface ) ])

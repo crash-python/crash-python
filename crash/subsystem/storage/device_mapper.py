@@ -3,7 +3,7 @@
 
 import gdb
 
-from crash.infra import CrashBaseClass
+from crash.util.symbols import Types
 from crash.subsystem.storage import block_device_name
 from crash.subsystem.storage.decoders import Decoder, decode_bio
 
@@ -18,7 +18,7 @@ class ClonedBioReqDecoder(Decoder):
             request-based device mapper target
 
     """
-    __types__ = [ 'struct dm_rq_clone_bio_info *' ]
+    types = Types([ 'struct dm_rq_clone_bio_info *' ])
     __endio__ = 'end_clone_bio'
     description = '{:x} bio: Request-based Device Mapper on {}'
 
@@ -28,7 +28,7 @@ class ClonedBioReqDecoder(Decoder):
         super().__init__()
         self.bio = bio
         if cls._get_clone_bio_rq_info is None:
-            if 'clone' in cls.dm_rq_clone_bio_info_p_type.target():
+            if 'clone' in cls.types.dm_rq_clone_bio_info_p_type.target():
                 getter = cls._get_clone_bio_rq_info_3_7
             else:
                 getter = cls._get_clone_bio_rq_info_old
@@ -47,11 +47,11 @@ class ClonedBioReqDecoder(Decoder):
 
     @classmethod
     def _get_clone_bio_rq_info_old(cls, bio):
-        return bio['bi_private'].cast(cls.dm_rq_clone_bio_info_p_type)
+        return bio['bi_private'].cast(cls.types.dm_rq_clone_bio_info_p_type)
 
     @classmethod
     def _get_clone_bio_rq_info_3_7(cls, bio):
-        return container_of(bio, cls.dm_rq_clone_bio_info_p_type, 'clone')
+        return container_of(bio, cls.types.dm_rq_clone_bio_info_p_type, 'clone')
 
 ClonedBioReqDecoder.register()
 
@@ -72,7 +72,7 @@ class ClonedBioDecoder(Decoder):
         tio (gdb.Value<struct dm_target_io>):
             The struct dm_target_tio for this bio
     """
-    __types__ = [ 'struct dm_target_io *' ]
+    types = Types([ 'struct dm_target_io *' ])
     _get_clone_bio_tio = None
     __endio__ = 'clone_endio'
     description = "{:x} bio: device mapper clone: {}[{}] -> {}[{}]"
@@ -82,7 +82,7 @@ class ClonedBioDecoder(Decoder):
         self.bio = bio
 
         if _get_clone_bio_tio is None:
-            if 'clone' in cls.dm_target_io_p_type.target():
+            if 'clone' in cls.types.dm_target_io_p_type.target():
                 getter = cls._get_clone_bio_tio_3_15
             else:
                 getter = cls._get_clone_bio_tio_old
@@ -105,11 +105,11 @@ class ClonedBioDecoder(Decoder):
 
     @classmethod
     def _get_clone_bio_tio_old(cls, bio):
-        return bio['bi_private'].cast(cls.dm_target_io_p_type)
+        return bio['bi_private'].cast(cls.types.dm_target_io_p_type)
 
     @classmethod
     def _get_clone_bio_tio_3_15(cls, bio):
         return container_of(bio['bi_private'],
-                            cls.dm_clone_bio_info_p_type, 'clone')
+                            cls.types.dm_clone_bio_info_p_type, 'clone')
 
 ClonedBioDecoder.register()

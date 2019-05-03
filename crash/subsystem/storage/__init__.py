@@ -4,302 +4,280 @@
 from typing import Iterable
 
 import gdb
+from gdb.types import get_basic_type
 
 from crash.util import container_of
-from crash.infra import CrashBaseClass, export
+from crash.util.symbols import Types, Symvals, SymbolCallbacks, TypeCallbacks
 from crash.types.classdev import for_each_class_device
 from . import decoders
 import crash.exceptions
 
-class Storage(CrashBaseClass):
-    __types__ = [ 'struct gendisk',
-                  'struct hd_struct',
-                  'struct device',
-                  'struct device_type',
-                  'struct bdev_inode' ]
-    __symvals__ = [ 'block_class',
-                    'blockdev_superblock',
-                    'disk_type',
-                    'part_type' ]
-    __symbol_callbacks = [
-                ( 'disk_type', '_check_types' ),
-                ( 'part_type', '_check_types' ) ]
-    __type_callbacks__ = [ ('struct device_type', '_check_types' ) ]
+types = Types([ 'struct gendisk', 'struct hd_struct', 'struct device',
+                  'struct device_type', 'struct bdev_inode' ])
+symvals = Symvals([ 'block_class', 'blockdev_superblock', 'disk_type',
+                    'part_type' ])
 
-    @classmethod
-    def _check_types(cls, result):
-        try:
-            if cls.part_type.type.unqualified() != cls.device_type_type:
-                raise TypeError("part_type expected to be {} not {}"
-                                .format(cls.device_type_type,
-                                        cls.part_type.type))
+def for_each_bio_in_stack(bio: gdb.Value) -> Iterable[decoders.Decoder]:
+    """
+    Iterates and decodes each bio involved in a stacked storage environment
 
-            if cls.disk_type.type.unqualified() != cls.device_type_type:
-                raise TypeError("disk_type expected to be {} not {}"
-                                .format(cls.device_type_type,
-                                        cls.disk_type.type))
-            cls.types_checked = True
-        except crash.exceptions.DelayedAttributeError:
-            pass
+    This method will yield a Decoder object describing each level
+    in the storage stack, starting with the provided bio, as
+    processed by each level's decoder.  The stack will be interrupted
+    if an encountered object doesn't have a decoder specified.
 
-    @export
-    @classmethod
-    def for_each_bio_in_stack(cls, bio: gdb.Value) -> Iterable[decoders.Decoder]:
-        """
-        Iterates and decodes each bio involved in a stacked storage environment
+    See crash.subsystem.storage.decoders for more detail.
 
-        This method will return a dictionary describing each object
-        in the storage stack, starting with the provided bio, as
-        processed by each level's decoder.  The stack will be interrupted
-        if an encountered object doesn't have a decoder specified.
+    Args:
+        bio (gdb.Value<struct bio>): The initial struct bio to start
+            decoding
 
-        See crash.subsystem.storage.decoder.register_decoder for more detail.
+    Yields:
+        Decoder
+    """
+    decoder = decoders.decode_bio(bio)
+    while decoder is not None:
+        yield decoder
+        decoder = next(decoder)
 
-        Args:
-            bio (gdb.Value<struct bio>): The initial struct bio to start
-                decoding
+def dev_to_gendisk(dev):
+    """
+    Converts a struct device that is embedded in a struct gendisk
+    back to the struct gendisk.
 
-        Yields:
-            dict : Contains, minimally, the following item.
-                - description (str): A human-readable description of the bio.
-                  Additional items may be available based on the
-                  implmentation-specific decoder.
-        """
-        decoder = decoders.decode_bio(bio)
-        while decoder is not None:
-            yield decoder
-            decoder = next(decoder)
+    Args:
+        dev (gdb.Value<struct device>) : A struct device contained within
+              a struct gendisk.  No checking is performed.  Results
+              if other structures are provided are undefined.
 
-    @export
-    def dev_to_gendisk(self, dev):
-        """
-        Converts a struct device that is embedded in a struct gendisk
-        back to the struct gendisk.
+    Returns:
+        gdb.Value<struct hd_struct> : The converted struct hd_struct
+    """
+    return container_of(dev, types.gendisk_type, 'part0.__dev')
 
-        Args:
-            dev (gdb.Value<struct device>) : A struct device contained within
-                  a struct gendisk.  No checking is performed.  Results
-                  if other structures are provided are undefined.
+def dev_to_part(dev):
+    """
+    Converts a struct device that is embedded in a struct hd_struct
+    back to the struct hd_struct.
 
-        Returns:
-            gdb.Value<struct hd_struct> : The converted struct hd_struct
-        """
-        return container_of(dev, self.gendisk_type, 'part0.__dev')
+    Args:
+        dev (gdb.Value<struct device>): A struct device embedded within a
+            struct hd_struct.  No checking is performed.  Results if other
+            structures are provided are undefined.
 
-    @export
-    def dev_to_part(self, dev):
-        """
-        Converts a struct device that is embedded in a struct hd_struct
-        back to the struct hd_struct.
+    Returns:
+        gdb.Value<struct hd_struct>: The converted struct hd_struct
 
-        Args:
-            dev (gdb.Value<struct device>): A struct device embedded within a
-                struct hd_struct.  No checking is performed.  Results if other
-                structures are provided are undefined.
+    """
+    return container_of(dev, types.hd_struct_type, '__dev')
 
-        Returns:
-            gdb.Value(struct hd_struct): The converted struct hd_struct
+def gendisk_to_dev(gendisk):
+    """
+    Converts a struct gendisk that embeds a struct device to
+    the struct device.
 
-        """
-        return container_of(dev, self.hd_struct_type, '__dev')
+    Args:
+        dev (gdb.Value<struct gendisk>): A struct gendisk that embeds
+            a struct device.  No checking is performed.  Results
+            if other structures are provided are undefined.
 
-    @export
-    def gendisk_to_dev(self, gendisk):
-        """
-        Converts a struct gendisk that embeds a struct device to
-        the struct device.
+    Returns:
+        gdb.Value<struct device>: The converted struct device
+    """
 
-        Args:
-            dev (gdb.Value<struct gendisk>): A struct gendisk that embeds
-                a struct device.  No checking is performed.  Results
-                if other structures are provided are undefined.
+    return gendisk['part0']['__dev'].address
 
-        Returns:
-            gdb.Value<struct device>: The converted struct device
-        """
+def part_to_dev(part):
+    """
+    Converts a struct hd_struct that embeds a struct device to
+    the struct device.
 
-        return gendisk['part0']['__dev'].address
+    Args:
+        dev (gdb.Value<struct hd_struct>): A struct hd_struct that embeds
+            a struct device.  No checking is performed.  Results if
+            other structures are provided are undefined.
 
-    @export
-    def part_to_dev(self, part):
-        """
-        Converts a struct hd_struct that embeds a struct device to
-        the struct device.
+    Returns:
+        gdb.Value<struct device>: The converted struct device
+    """
+    return part['__dev'].address
 
-        Args:
-            dev (gdb.Value<struct hd_struct>): A struct hd_struct that embeds
-                a struct device.  No checking is performed.  Results if
-                other structures are provided are undefined.
 
-        Returns:
-            gdb.Value<struct device>: The converted struct device
-        """
-        return part['__dev'].address
+def for_each_block_device(subtype: gdb.Value=None) -> Iterable[gdb.Value]:
+    """
+    Iterates over each block device registered with the block class.
 
-    @export
-    def for_each_block_device(self, subtype=None):
-        """
-        Iterates over each block device registered with the block class.
+    This method iterates over the block_class klist and yields every
+    member found.  The members are either struct gendisk or
+    struct hd_struct, depending on whether it describes an entire
+    disk or a partition, respectively.
 
-        This method iterates over the block_class klist and yields every
-        member found.  The members are either struct gendisk or
-        struct hd_struct, depending on whether it describes an entire
-        disk or a partition, respectively.
+    The members can be filtered by providing a subtype, which
+    corresponds to a the the type field of the struct device.
 
-        The members can be filtered by providing a subtype, which
-        corresponds to a the the type field of the struct device.
+    Args:
+        subtype (gdb.Value<struct device_type>, optional): The struct
+            device_type that will be used to match and filter.  Typically
+            'disk_type' or 'device_type'
 
-        Args:
-            subtype (gdb.Value<struct device_type>, optional): The struct
-                device_type that will be used to match and filter.  Typically
-                'disk_type' or 'device_type'
+    Yields:
+        gdb.Value<struct gendisk> or
+        gdb.Value<struct hd_struct>:
+            A struct gendisk or struct hd_struct that meets
+            the filter criteria.
 
-        Yields:
-            gdb.Value<struct gendisk or struct hd_struct> - A struct gendisk
-                or struct hd_struct that meets the filter criteria.
+    Raises:
+        RuntimeError: An unknown device type was encountered during
+            iteration.
+    """
 
-        Raises:
-            RuntimeError: An unknown device type was encountered during
-                iteration.
-        """
-
-        if subtype:
-            if subtype.type.unqualified() == self.device_type_type:
-                subtype = subtype.address
-            elif subtype.type.unqualified() != self.device_type_type.pointer():
-                raise TypeError("subtype must be {} not {}"
-                                .format(self.device_type_type.pointer(),
-                                        subtype.type.unqualified()))
-        for dev in for_each_class_device(self.block_class, subtype):
-            if dev['type'] == self.disk_type.address:
-                yield self.dev_to_gendisk(dev)
-            elif dev['type'] == self.part_type.address:
-                yield self.dev_to_part(dev)
-            else:
-                raise RuntimeError("Encountered unexpected device type {}"
-                                   .format(dev['type']))
-
-    @export
-    def for_each_disk(self):
-        """
-        Iterates over each block device registered with the block class
-        that corresponds to an entire disk.
-
-        This is an alias for for_each_block_device(disk_type)
-        """
-
-        return self.for_each_block_device(self.disk_type)
-
-    @export
-    def gendisk_name(self, gendisk):
-        """
-        Returns the name of the provided block device.
-
-        This method evaluates the block device and returns the name,
-        including partition number, if applicable.
-
-        Args:
-            gendisk(gdb.Value<struct gendisk or struct hd_struct>):
-                A struct gendisk or struct hd_struct for which to return
-                the name
-
-        Returns:
-            str: the name of the block device
-
-        Raises:
-            TypeError: gdb.Value does not describe a struct gendisk or
-                struct hd_struct
-        """
-        if gendisk.type.code == gdb.TYPE_CODE_PTR:
-            gendisk = gendisk.dereference()
-
-        if gendisk.type.unqualified() == self.gendisk_type:
-            return gendisk['disk_name'].string()
-        elif gendisk.type.unqualified() == self.hd_struct_type:
-            parent = self.dev_to_gendisk(self.part_to_dev(gendisk)['parent'])
-            return "{}{:d}".format(self.gendisk_name(parent),
-                                   int(gendisk['partno']))
+    if subtype:
+        if get_basic_type(subtype.type) == types.device_type_type:
+            subtype = subtype.address
+        elif get_basic_type(subtype.type) != types.device_type_type.pointer():
+            raise TypeError("subtype must be {} not {}"
+                            .format(types.device_type_type.pointer(),
+                                    subtype.type.unqualified()))
+    for dev in for_each_class_device(symvals.block_class, subtype):
+        if dev['type'] == symvals.disk_type.address:
+            yield dev_to_gendisk(dev)
+        elif dev['type'] == symvals.part_type.address:
+            yield dev_to_part(dev)
         else:
-            raise TypeError("expected {} or {}, not {}"
-                            .format(self.gendisk_type, self.hd_struct_type,
-                            gendisk.type.unqualified()))
+            raise RuntimeError("Encountered unexpected device type {}"
+                               .format(dev['type']))
 
-    @export
-    def block_device_name(self, bdev):
-        """
-        Returns the name of the provided block device.
+def for_each_disk():
+    """
+    Iterates over each block device registered with the block class
+    that corresponds to an entire disk.
 
-        This method evaluates the block device and returns the name,
-        including partition number, if applicable.
+    This is an alias for for_each_block_device(disk_type)
+    """
 
-        Args:
-            bdev(gdb.Value<struct block_device>): A struct block_device for
-                which to return the name
+    return for_each_block_device(symvals.disk_type)
 
-        Returns:
-            str: the name of the block device
-        """
-        return self.gendisk_name(bdev['bd_disk'])
+def gendisk_name(gendisk):
+    """
+    Returns the name of the provided block device.
 
-    @export
-    def is_bdev_inode(self, inode):
-        """
-        Tests whether the provided struct inode describes a block device
+    This method evaluates the block device and returns the name,
+    including partition number, if applicable.
 
-        This method evaluates the inode and returns a True or False,
-        depending on whether the inode describes a block device.
+    Args:
+        gendisk(gdb.Value<struct gendisk or struct hd_struct>):
+            A struct gendisk or struct hd_struct for which to return
+            the name
 
-        Args:
-            bdev(gdb.Value<struct inode>): The struct inode to test whether
-                it describes a block device.
+    Returns:
+        str: the name of the block device
 
-        Returns:
-            bool: True if the inode describes a block device, False otherwise.
-        """
-        return inode['i_sb'] == self.blockdev_superblock
+    Raises:
+        TypeError: gdb.Value does not describe a struct gendisk or
+            struct hd_struct
+    """
+    if gendisk.type.code == gdb.TYPE_CODE_PTR:
+        gendisk = gendisk.dereference()
 
-    @export
-    def inode_to_block_device(self, inode):
-        """
-        Returns the block device associated with this inode.
+    if get_basic_type(gendisk.type) == types.gendisk_type:
+        return gendisk['disk_name'].string()
+    elif get_basic_type(gendisk.type) == types.hd_struct_type:
+        parent = dev_to_gendisk(part_to_dev(gendisk)['parent'])
+        return "{}{:d}".format(gendisk_name(parent), int(gendisk['partno']))
+    else:
+        raise TypeError("expected {} or {}, not {}"
+                        .format(types.gendisk_type, types.hd_struct_type,
+                        gendisk.type.unqualified()))
 
-        If the inode describes a block device, return that block device.
-        Otherwise, raise TypeError.
+def block_device_name(bdev):
+    """
+    Returns the name of the provided block device.
 
-        Args:
-            inode(gdb.Value<struct inode>): The struct inode for which to
-                return the associated block device
+    This method evaluates the block device and returns the name,
+    including partition number, if applicable.
 
-        Returns:
-            gdb.Value<struct block_device>: The struct block_device associated
-                with the provided struct inode
+    Args:
+        bdev(gdb.Value<struct block_device>): A struct block_device for
+            which to return the name
 
-        Raises:
-            TypeError: inode does not describe a block device
-        """
-        if inode['i_sb'] != self.blockdev_superblock:
-            raise TypeError("inode does not correspond to block device")
-        return container_of(inode, self.bdev_inode_type, 'vfs_inode')['bdev']
+    Returns:
+        str: the name of the block device
+    """
+    return gendisk_name(bdev['bd_disk'])
 
-    @export
-    def inode_on_bdev(self, inode):
-        """
-        Returns the block device associated with this inode.
+def is_bdev_inode(inode):
+    """
+    Tests whether the provided struct inode describes a block device
 
-        If the inode describes a block device, return that block device.
-        Otherwise, return the block device, if any, associated
-        with the inode's super block.
+    This method evaluates the inode and returns a True or False,
+    depending on whether the inode describes a block device.
 
-        Args:
-            inode(gdb.Value<struct inode>): The struct inode for which to
-                return the associated block device
+    Args:
+        bdev(gdb.Value<struct inode>): The struct inode to test whether
+            it describes a block device.
 
-        Returns:
-            gdb.Value<struct block_device>: The struct block_device associated
-                with the provided struct inode
-        """
-        if self.is_bdev_inode(inode):
-            return self.inode_to_block_device(inode)
-        else:
-            return inode['i_sb']['s_bdev']
-inst = Storage()
+    Returns:
+        bool: True if the inode describes a block device, False otherwise.
+    """
+    return inode['i_sb'] == symvals.blockdev_superblock
+
+def inode_to_block_device(inode):
+    """
+    Returns the block device associated with this inode.
+
+    If the inode describes a block device, return that block device.
+    Otherwise, raise TypeError.
+
+    Args:
+        inode(gdb.Value<struct inode>): The struct inode for which to
+            return the associated block device
+
+    Returns:
+        gdb.Value<struct block_device>: The struct block_device associated
+            with the provided struct inode
+
+    Raises:
+        TypeError: inode does not describe a block device
+    """
+    if inode['i_sb'] != symvals.blockdev_superblock:
+        raise TypeError("inode does not correspond to block device")
+    return container_of(inode, types.bdev_inode_type, 'vfs_inode')['bdev']
+
+def inode_on_bdev(inode):
+    """
+    Returns the block device associated with this inode.
+
+    If the inode describes a block device, return that block device.
+    Otherwise, return the block device, if any, associated
+    with the inode's super block.
+
+    Args:
+        inode(gdb.Value<struct inode>): The struct inode for which to
+            return the associated block device
+
+    Returns:
+        gdb.Value<struct block_device>: The struct block_device associated
+            with the provided struct inode
+    """
+    if is_bdev_inode(inode):
+        return inode_to_block_device(inode)
+    else:
+        return inode['i_sb']['s_bdev']
+
+def _check_types(result):
+    try:
+        if symvals.part_type.type.unqualified() != types.device_type_type:
+            raise TypeError("part_type expected to be {} not {}"
+                            .format(symvals.device_type_type,
+                                    types.part_type.type))
+
+        if symvals.disk_type.type.unqualified() != types.device_type_type:
+            raise TypeError("disk_type expected to be {} not {}"
+                            .format(symvals.device_type_type,
+                                    types.disk_type.type))
+    except crash.exceptions.DelayedAttributeError:
+        pass
+
+symbol_cbs = SymbolCallbacks([ ( 'disk_type', _check_types ),
+                               ( 'part_type', _check_types )] )
+type_cbs = TypeCallbacks([ ('struct device_type', _check_types ) ])

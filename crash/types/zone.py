@@ -2,19 +2,17 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from crash.infra import CrashBaseClass, export
 from crash.util import container_of, find_member_variant, array_for_each
+from crash.util.symbols import Types
 import crash.types.node
 from crash.types.percpu import get_percpu_var
 from crash.types.vmstat import VmStat
 from crash.types.cpu import for_each_online_cpu
 from crash.types.list import list_for_each_entry
 
-def getValue(sym):
-    return gdb.lookup_symbol(sym, None)[0].value()
+class Zone(object):
 
-class Zone(CrashBaseClass):
-    __types__ = [ 'struct zone', 'struct page' ]
+    types = Types([' struct page' ])
 
     def __init__(self, obj, zid):
         self.gdb_obj = obj
@@ -52,7 +50,9 @@ class Zone(CrashBaseClass):
         nr_free = 0
         list_array_name = "lists" if is_pcp else "free_list"
         for free_list in array_for_each(area[list_array_name]):
-            for page_obj in list_for_each_entry(free_list, self.page_type, "lru"):
+            for page_obj in list_for_each_entry(free_list,
+                                                self.types.page_type,
+                                                "lru"):
                 page = crash.types.page.Page.from_obj(page_obj)
                 nr_free += 1
                 if page.get_nid() != self.nid or page.get_zid() != self.zid:
@@ -72,18 +72,14 @@ class Zone(CrashBaseClass):
             pageset = get_percpu_var(self.gdb_obj["pageset"], cpu)
             self._check_free_area(pageset["pcp"], True)
 
-class Zones(CrashBaseClass):
+def for_each_zone():
+    for node in crash.types.node.for_each_node():
+        for zone in node.for_each_zone():
+            yield zone
 
-    @export
-    def for_each_zone(cls):
-        for node in crash.types.node.for_each_node():
-            for zone in node.for_each_zone():
-                yield zone
-
-    @export
-    def for_each_populated_zone(cls):
-        #TODO: some filter thing?
-        for zone in cls.for_each_zone():
-            if zone.is_populated():
-                yield zone
+def for_each_populated_zone():
+    #TODO: some filter thing?
+    for zone in for_each_zone():
+        if zone.is_populated():
+            yield zone
 
