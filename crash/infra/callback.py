@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Callable, Any, Union
+
 import gdb
 import traceback
 import sys
+
+Callback = Callable[[Any], Union[bool, None]]
 
 class CallbackCompleted(RuntimeError):
     """The callback has already been completed and is no longer valid"""
@@ -22,14 +26,23 @@ class ObjfileEventCallback(object):
 
     Derived classes need only implement the complete and check_ready
     methods.
+
+    Consumers of this interface must also call :meth:`connect_callback` to
+    connect the object to the callback infrastructure.
     """
     def __init__(self):
         self.completed = False
         self.connected = False
 
-        self.setup_symbol_cache_flush_callback()
+        self._setup_symbol_cache_flush_callback()
 
     def connect_callback(self):
+        """
+        Connect this callback to the event system.
+
+        Raises:
+            :obj:`CallbackCompleted`: This callback has already been completed.
+        """
         if self.completed:
             raise CallbackCompleted(self)
 
@@ -52,6 +65,12 @@ class ObjfileEventCallback(object):
         return self.completed
 
     def complete(self):
+        """
+        Complete and disconnect this callback from the event system.
+
+        Raises:
+            :obj:`CallbackCompleted`: This callback has already been completed.
+        """
         if not self.completed:
             gdb.events.new_objfile.disconnect(self._new_objfile_callback)
             self.completed = True
@@ -59,19 +78,19 @@ class ObjfileEventCallback(object):
         else:
             raise CallbackCompleted(self)
 
-    symbol_cache_flush_setup = False
+    _symbol_cache_flush_setup = False
     @classmethod
-    def setup_symbol_cache_flush_callback(cls):
-        if not cls.symbol_cache_flush_setup:
-            gdb.events.new_objfile.connect(cls.flush_symbol_cache_callback)
-            cls.symbol_cache_flush_setup = True
+    def _setup_symbol_cache_flush_callback(cls):
+        if not cls._symbol_cache_flush_setup:
+            gdb.events.new_objfile.connect(cls._flush_symbol_cache_callback)
+            cls._symbol_cache_flush_setup = True
 
 
     # GDB does this itself, but Python is initialized ahead of the
     # symtab code.  The symtab observer is behind the python observers
     # in the execution queue so the cache flush executes /after/ us.
     @classmethod
-    def flush_symbol_cache_callback(self, event):
+    def _flush_symbol_cache_callback(self, event):
         gdb.execute("maint flush-symbol-cache")
 
     def _new_objfile_callback(self, event):
@@ -86,22 +105,29 @@ class ObjfileEventCallback(object):
             if completed is True or completed is None:
                 self.complete()
 
-    def check_ready(self):
+    def check_ready(self) -> Any:
         """
-        check_ready returns the value that will be passed to the callback.
-        A return value other than None or False will be passed to the
-        callback.
+        The method that derived classes implement for detecting when the
+        conditions required to call the callback have been met.
+
+        Returns:
+            :obj:`object`: This method can return an arbitrary object.  It will
+            be passed untouched to :meth:`callback` if the result is anything
+            other than :obj:`None` or :obj:`False`.
         """
         raise NotImplementedError("check_ready must be implemented by derived class.")
 
-    def callback(self, result):
+    def callback(self, result: Any) -> Union[None, bool]:
         """
-        The callback may return None, True, or False.  A return value of
-        None or True indicates that the callback is completed and may
-        be disconnected.  A return value of False indicates that the
-        callback should stay connected for future use.
+        The callback that derived classes implement for handling the
+        sucessful result of :meth:`check_ready`.
 
         Args:
-            result: The result to pass to the callback
+            result: The result returned from :meth:`check_ready`
+
+        Returns:
+            :obj:`None` or :obj:`bool`: If :obj:`None` or :obj:`True`,
+            the callback succeeded and will be completed and removed.
+            Otherwise, the callback will stay connected for future completion.
         """
         raise NotImplementedError("callback must be implemented by derived class.")
