@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Iterable
+
 import gdb
 
 from crash.util import container_of
 from crash.infra import CrashBaseClass, export
 from crash.types.classdev import for_each_class_device
+from . import decoders
 import crash.exceptions
 
 class Storage(CrashBaseClass):
@@ -22,8 +25,6 @@ class Storage(CrashBaseClass):
                 ( 'disk_type', '_check_types' ),
                 ( 'part_type', '_check_types' ) ]
     __type_callbacks__ = [ ('struct device_type', '_check_types' ) ]
-
-    bio_decoders = {}
 
     @classmethod
     def _check_types(cls, result):
@@ -43,45 +44,7 @@ class Storage(CrashBaseClass):
 
     @export
     @classmethod
-    def register_bio_decoder(cls, sym, decoder):
-        """
-        Registers a bio decoder with the storage subsystem.
-
-        A bio decoder is a method that accepts a bio, potentially
-        interprets the private members of the bio, and returns
-        a dictionary.  The only mandatory member of the dictionary
-        is 'description' which contains a human-readable description
-        of the purpose of this bio.
-
-        If the bio is part of a stack, the 'next' item should contain
-        the next object in the stack.  It does not necessarily need
-        to be a bio.  It does need to have a 'decoder' item declared
-        that will accept the given object.  The decoder does not
-        need to be registered unless it will be a top-level decoder.
-
-        Other items can be added as-needed to allow informed callers
-        to obtain direct information.
-
-        Args:
-            sym (gdb.Symbol or gdb.Value<void (*)(struct bio *)>):
-                The Symbol or Value describing a kernel function used as
-                a bio->b_end_io callback
-            decoder (method): A Python method that accepts a
-                gdb.Value(struct bio)
-
-        Raises:
-            TypeError: sym is not a gdb.Symbol or gdb.Value
-        """
-
-        if isinstance(sym, gdb.Symbol):
-            sym = sym.value().address
-        elif not isinstance(sym, gdb.Value):
-            raise TypeError("register_bio_decoder expects gdb.Symbol or gdb.Value")
-        cls.bio_decoders[int(sym)] = decoder
-
-    @export
-    @classmethod
-    def for_each_bio_in_stack(cls, bio):
+    def for_each_bio_in_stack(cls, bio: gdb.Value) -> Iterable[decoders.Decoder]:
         """
         Iterates and decodes each bio involved in a stacked storage environment
 
@@ -90,7 +53,7 @@ class Storage(CrashBaseClass):
         processed by each level's decoder.  The stack will be interrupted
         if an encountered object doesn't have a decoder specified.
 
-        See register_bio_decoder for more detail.
+        See crash.subsystem.storage.decoder.register_decoder for more detail.
 
         Args:
             bio (gdb.Value<struct bio>): The initial struct bio to start
@@ -102,44 +65,10 @@ class Storage(CrashBaseClass):
                   Additional items may be available based on the
                   implmentation-specific decoder.
         """
-        first = cls.bio_decoders[int(bio['bi_end_io'])](bio)
-        if first:
-            yield first
-            while 'decoder' in first:
-                first = first['decoder'](first['next'])
-                yield first
-
-    @export
-    @classmethod
-    def decode_bio(cls, bio):
-        """
-        Decodes a single bio, if possible
-
-        This method will return a dictionary describing a single bio
-        after decoding it using a registered decoder, if available.
-
-        If no decoder is registered, a generic description will be
-        returned in the dictionary's 'description' field.
-
-        Args:
-            bio (gdb.Value<struct bio>): The bio to decode
-
-        Returns:
-            dict: Contains, minimally, the following item.
-                - description (str): A human-readable description of the bio.
-                  Additional items may be available based on the
-                  implmentation-specific decoder.
-        """
-
-        try:
-            return cls.bio_decoders[int(bio['bi_end_io'])](bio)
-        except KeyError:
-            chain = {
-                'description' : "{:x} bio: undecoded bio on {} ({})".format(
-                    int(bio), block_device_name(bio['bi_bdev']),
-                    bio['bi_end_io']),
-            }
-            return chain
+        decoder = decoders.decode_bio(bio)
+        while decoder is not None:
+            yield decoder
+            decoder = next(decoder)
 
     @export
     def dev_to_gendisk(self, dev):
