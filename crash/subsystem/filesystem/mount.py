@@ -6,7 +6,7 @@ import gdb
 from crash.infra import CrashBaseClass, export
 from crash.subsystem.filesystem import super_fstype
 from crash.types.list import list_for_each_entry
-from crash.util import container_of
+from crash.util import container_of, decode_flags, struct_has_member
 
 MNT_NOSUID      = 0x01
 MNT_NODEV       = 0x02
@@ -19,6 +19,25 @@ MNT_SHRINKABLE  = 0x100
 MNT_WRITE_HOLD  = 0x200
 MNT_SHARED      = 0x1000
 MNT_UNBINDABLE  = 0x2000
+
+MNT_FLAGS = {
+    MNT_NOSUID      : "MNT_NOSUID",
+    MNT_NODEV       : "MNT_NODEV",
+    MNT_NOEXEC      : "MNT_NOEXEC",
+    MNT_NOATIME     : "MNT_NOATIME",
+    MNT_NODIRATIME  : "MNT_NODIRATIME",
+    MNT_RELATIME    : "MNT_RELATIME",
+    MNT_READONLY    : "MNT_READONLY",
+}
+
+MNT_FLAGS_HIDDEN = {
+    MNT_SHRINKABLE : "[MNT_SHRINKABLE]",
+    MNT_WRITE_HOLD : "[MNT_WRITE_HOLD]",
+    MNT_SHARED : "[MNT_SHARED]",
+    MNT_UNBINDABLE : "[MNT_UNBINDABLE]",
+}
+MNT_FLAGS_HIDDEN.update(MNT_FLAGS)
+
 
 class Mount(CrashBaseClass):
     __types__ = [ 'struct mount', 'struct vfsmount' ]
@@ -73,45 +92,11 @@ class Mount(CrashBaseClass):
     @export
     @classmethod
     def mount_flags(cls, mnt, show_hidden=False):
-        flags = int(mnt['mnt_flags'])
-
-        if flags & MNT_READONLY:
-            flagstr = "ro"
-        else:
-            flagstr = "rw"
-
-        if flags & MNT_NOSUID:
-            flagstr += ",nosuid"
-
-        if flags & MNT_NODEV:
-            flagstr += ",nodev"
-
-        if flags & MNT_NOEXEC:
-            flagstr += ",noexec"
-
-        if flags & MNT_NOATIME:
-            flagstr += ",noatime"
-
-        if flags & MNT_NODIRATIME:
-            flagstr += ",nodiratime"
-
-        if flags & MNT_RELATIME:
-            flagstr += ",relatime"
-
+        if struct_has_member(mnt, 'mnt'):
+            mnt = mnt['mnt']
         if show_hidden:
-            if flags & MNT_SHRINKABLE:
-                flagstr += ",[MNT_SHRINKABLE]"
-
-            if flags & MNT_WRITE_HOLD:
-                flagstr += ",[MNT_WRITE_HOLD]"
-
-            if flags & MNT_SHARED:
-                flagstr += ",[MNT_SHARED]"
-
-            if flags & MNT_UNBINDABLE:
-                flagstr += ",[MNT_UNBINDABLE]"
-
-        return flagstr
+            return decode_flags(mnt['mnt_flags'], MNT_FLAGS_HIDDEN, ",")
+        return decode_flags(mnt['mnt_flags'], MNT_FLAGS, ",")
 
     @export
     @staticmethod
