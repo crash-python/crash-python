@@ -10,12 +10,13 @@ from crash.types.cpu import for_each_online_cpu
 
 class VmStat(CrashBaseClass):
     __types__ = ['enum zone_stat_item', 'enum vm_event_item']
+    __symbols__ = [ 'vm_event_states' ]
     __type_callbacks__ = [ ('enum zone_stat_item', 'check_enum_type'),
                            ('enum vm_event_item', 'check_enum_type') ]
 
     nr_stat_items = None
     nr_event_items = None
-    
+
     vm_stat_names = None
     vm_event_names = None
 
@@ -40,34 +41,26 @@ class VmStat(CrashBaseClass):
 
             for field in enum_type.fields():
                 if field.enumval < nr_items:
-                    names[field.enumval] = field.name 
-            
+                    names[field.enumval] = field.name
+
             return (nr_items, names)
 
     @staticmethod
     def get_stat_names():
-        if VmStat.vm_stat_names is None:
-            VmStat.vm_stat_names = VmStat.__populate_names(
-                    VmStat.nr_stat_items, "enum zone_stat_item")
         return VmStat.vm_stat_names
 
     @staticmethod
     def get_event_names():
-        if VmStat.vm_event_names is None:
-            VmStat.vm_event_names = VmStat.__populate_names(
-                    VmStat.nr_event_items, "enum vm_event_item")
         return VmStat.vm_event_names
 
-    @staticmethod
+    @classmethod
     def get_events():
-        states_sym = gdb.lookup_global_symbol("vm_event_states")
         nr = VmStat.nr_event_items
         events = [0] * nr
 
         for cpu in for_each_online_cpu():
-            states = get_percpu_var(states_sym, cpu)
+            states = get_percpu_var(cls.vm_event_states, cpu)
             for item in range(0, nr):
                 events[item] += int(states["event"][item])
 
         return events
-
