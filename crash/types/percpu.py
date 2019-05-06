@@ -103,16 +103,20 @@ class TypesPerCPUClass(CrashBaseClass):
         return int(v) < self.per_cpu_size
 
     def __is_percpu_var_dynamic(self, var):
-        if self.dynamic_offset_cache is None:
-            self.__setup_dynamic_offset_cache()
+        try:
+            if self.dynamic_offset_cache is None:
+                self.__setup_dynamic_offset_cache()
 
-        var = int(var)
-        # TODO: we could sort the list...
-        for (start, end) in self.dynamic_offset_cache:
-            if var >= start and var < end:
-                return True
+            var = int(var)
+            # TODO: we could sort the list...
+            for (start, end) in self.dynamic_offset_cache:
+                if var >= start and var < end:
+                    return True
 
-        return False
+            return False
+        except DelayedAttributeError:
+            # This can happen with the testcases or in kernels prior to 2.6.30
+            pass
 
     @export
     def is_percpu_var(self, var):
