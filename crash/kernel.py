@@ -11,6 +11,7 @@ from crash.infra import CrashBaseClass, export
 from crash.types.list import list_for_each_entry
 from crash.types.percpu import get_percpu_var
 from crash.types.list import list_for_each_entry
+from crash.types.module import for_each_module, for_each_module_section
 import crash.cache.tasks
 from crash.types.task import LinuxTask
 from elftools.elf.elffile import ELFFile
@@ -18,8 +19,7 @@ from elftools.elf.elffile import ELFFile
 LINUX_KERNEL_PID = 1
 
 class CrashKernel(CrashBaseClass):
-    __types__ = [ 'struct module' ]
-    __symvals__ = [ 'modules', 'init_task' ]
+    __symvals__ = [ 'init_task' ]
     __symbols__ = [ 'runqueues']
 
     def __init__(self, searchpath=None):
@@ -46,21 +46,10 @@ class CrashKernel(CrashBaseClass):
         thread = gdb.selected_thread()
         return self.arch.fetch_register(thread, register.regnum)
 
-    def for_each_module(self):
-        for module in list_for_each_entry(self.modules, self.module_type,
-                                          'list'):
-            yield module
-
     def get_module_sections(self, module):
-        attrs = module['sect_attrs']
         out = []
-        for sec in range(0, attrs['nsections']):
-            attr = attrs['attrs'][sec]
-            name = attr['name'].string()
-            if name == '.text':
-                continue
-            out.append("-s {} {:#x}".format(name, int(attr['address'])))
-
+        for (name, addr) in for_each_module_section(module):
+            out.append("-s {} {:#x}".format(name, addr))
         return " ".join(out)
 
     def load_modules(self, verbose=False):
@@ -68,7 +57,7 @@ class CrashKernel(CrashBaseClass):
         sys.stdout.flush()
         failed = 0
         loaded = 0
-        for module in self.for_each_module():
+        for module in for_each_module():
             modname = "{}".format(module['name'].string())
             modfname = "{}.ko".format(modname)
             found = False
