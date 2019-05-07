@@ -37,7 +37,7 @@ class Command(gdb.Command):
         self.commands[self.name] = self
         gdb.Command.__init__(self, self.name, gdb.COMMAND_USER)
 
-    def invoke_uncaught(self, argstr, from_tty):
+    def invoke_uncaught(self, argstr, from_tty=False):
         argv = gdb.string_to_argv(argstr)
         args = self.parser.parse_args(argv)
         self.execute(args)
