@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 setup(
     name = "crash",
     version = "0.1",
-    packages = find_packages(exclude=['tests']),
+    packages = find_packages(exclude=['tests', 'kernel-tests']),
     package_data = {
         '' : [ "*.dist" "*.txt" ],
     },
