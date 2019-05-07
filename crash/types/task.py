@@ -4,6 +4,7 @@
 import gdb
 from crash.util import array_size, struct_has_member
 from crash.util.symbols import Types, Symvals, SymbolCallbacks
+from crash.types.list import list_for_each_entry
 
 PF_EXITING = 0x4
 
@@ -13,7 +14,7 @@ def get_value(symname):
         return sym[0].value()
 
 types = Types(['struct task_struct', 'struct mm_struct', 'atomic_long_t' ])
-symvals = Symvals([ 'task_state_array' ])
+symvals = Symvals([ 'task_state_array', 'init_task' ])
 
 # This is pretty painful.  These are all #defines so none of them end
 # up with symbols in the kernel.  The best approximation we have is
@@ -380,3 +381,48 @@ class LinuxTask(object):
             cls.last_run = cls.last_run__timestamp
         else:
             raise RuntimeError("No method to retrieve last run from task found.")
+
+def for_each_thread_group_leader() -> Iterator[gdb.Value]:
+    """
+    Iterate the task list and yield each thread group leader
+
+    Yields:
+        :obj:`gdb.Value`: The next task on the list.  The value is of
+        type ``struct task_struct``.
+    """
+    task_list = symvals.init_task['tasks']
+    for task in list_for_each_entry(task_list, symvals.init_task.type,
+                                     'tasks', include_head=True):
+        yield task
+
+def for_each_thread_in_group(task: gdb.Value) -> Iterator[gdb.Value]:
+    """
+    Iterate a thread group leader's thread list and
+    yield each struct task_struct
+
+    Args:
+        task: The task_struct that is the thread group leader.  The value
+            must be of type ``struct task_struct``.
+
+    Yields:
+        :obj:`gdb.Value`: The next task on the list.  The value is of type
+        ``struct task_struct``.
+    """
+    thread_list = task['thread_group']
+    for thread in list_for_each_entry(thread_list, symvals.init_task.type,
+                                      'thread_group'):
+        yield thread
+
+def for_each_all_tasks() -> Iterator[gdb.Value]:
+    """
+    Iterate the task list and yield each task including any associated
+    thread tasks
+
+    Yields:
+        :obj:`gdb.Value`: The next task on the list.  The value is of type
+        ``struct task_struct``.
+    """
+    for leader in for_each_thread_group_leader():
+        yield leader
+        for task in for_each_thread_in_group(leader):
+            yield task
