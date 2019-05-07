@@ -13,6 +13,7 @@ from crash.types.list import list_for_each_entry
 from crash.types.percpu import get_percpu_vars
 from crash.types.list import list_for_each_entry
 from crash.types.module import for_each_module, for_each_module_section
+from crash.types.task import for_each_all_tasks
 import crash.cache.tasks
 import crash.cache.syscache
 from crash.types.task import LinuxTask
@@ -609,21 +610,12 @@ class CrashKernel(object):
         sys.stdout.flush()
 
         task_count = 0
-        tasks = []
-        for taskg in list_for_each_entry(task_list, self.symvals.init_task.type,
-                                         'tasks', include_head=True):
-            tasks.append(taskg)
-            for task in list_for_each_entry(taskg['thread_group'],
-                                            self.symvals.init_task.type,
-                                            'thread_group'):
-                tasks.append(task)
-
         try:
             crashing_cpu = int(get_symbol_value('crashing_cpu'))
         except Exception as e:
             crashing_cpu = -1
 
-        for task in tasks:
+        for task in for_each_all_tasks():
             cpu = None
             regs = None
             active = int(task.address) in rqscurrs
