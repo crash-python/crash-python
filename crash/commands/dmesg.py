@@ -200,16 +200,8 @@ EXAMPLES
             dict_len = int(msg['dict_len'])
             d = (msg.cast(types.char_p_type) +
                  types.printk_log_p_type.target().sizeof + textlen)
-            s = ''
-
-            for i in range(0, dict_len):
-                if d[i]:
-                    s += chr(d[i])
-                else:
-                    msgdict['dict'].append(s)
-                    s = ''
-
-            if s != '':
+            if dict_len > 0:
+                s = d.string('ascii', 'backslashreplace', dict_len)
                 msgdict['dict'].append(s)
         return msgdict
 
@@ -248,7 +240,7 @@ EXAMPLES
                 print('{}{}{}'.format(level, timestamp, line))
 
             for d in msg['dict']:
-                print('{}'.format(d.encode('string_escape')))
+                print(d)
 
     def handle_logbuf(self, args):
         if symvals.log_buf_len and symvals.log_buf:
