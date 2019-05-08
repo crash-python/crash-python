@@ -8,6 +8,8 @@ import glob
 import importlib
 import argparse
 
+from crash.exceptions import DelayedAttributeError
+
 class CommandError(RuntimeError):
     pass
 
@@ -48,6 +50,8 @@ class Command(gdb.Command):
         except CommandLineError as e:
             print(f"{self.name}: {str(e)}")
             self.parser.print_usage()
+        except DelayedAttributeError as e:
+            print(f"{self.name}: command unavailable, {str(e)}")
         except (SystemExit, KeyboardInterrupt):
             pass
 
