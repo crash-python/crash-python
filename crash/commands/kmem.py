@@ -9,11 +9,8 @@ from crash.types.slab import kmem_cache_get_all, kmem_cache_from_name
 from crash.types.slab import slab_from_obj_addr
 from crash.types.zone import for_each_zone, for_each_populated_zone
 from crash.types.vmstat import VmStat
-import argparse
-import re
-
-def getValue(sym):
-    return gdb.lookup_symbol(sym, None)[0].value()
+from crash.util import get_symbol_value
+from crash.exceptions import MissingSymbolError
 
 class KmemCommand(Command):
     """ kernel memory inspection
@@ -117,8 +114,8 @@ DESCRIPTION
 
     def print_vmstats(self):
         try:
-            vm_stat = getValue("vm_stat")
-        except AttributeError:
+            vm_stat = get_symbol_value("vm_stat")
+        except MissingSymbolError:
             raise CommandError("Support for new-style vmstat is unimplemented.")
 
         print("  VM_STAT:")
