@@ -4,6 +4,7 @@
 import gdb
 import crash
 from crash.commands import Command, ArgumentParser
+from crash.commands import CommandError, CommandLineError
 from crash.types.slab import kmem_cache_get_all, kmem_cache_from_name, slab_from_obj_addr
 from crash.types.zone import for_each_zone, for_each_populated_zone
 from crash.types.vmstat import VmStat
@@ -55,8 +56,7 @@ DESCRIPTION
                 print("Checking kmem cache {}".format(cache_name))
                 cache = kmem_cache_from_name(cache_name)
                 if cache is None:
-                    print("Cache {} not found.".format(cache_name))
-                    return
+                    raise CommandError(f"Cache {cache_name} not found.")
                 cache.check_all()
             else:
                 print("Checking all kmem caches...")
@@ -68,15 +68,16 @@ DESCRIPTION
             return
           
         if not args.arg:
-            print("Nothing to do.")
-            return
+            raise CommandLineError("no address specified")
 
-        addr = int(args.arg[0], 0)
+        try:
+            addr = int(args.arg[0], 0)
+        except ValueError:
+            raise CommandLineError("address must be numeric")
         slab = slab_from_obj_addr(addr)
 
         if not slab:
-            print("Address not found in any kmem cache.")
-            return
+            raise CommandError("Address not found in any kmem cache.")
 
         obj = slab.contains_obj(addr)
         name = slab.kmem_cache.name
@@ -98,9 +99,7 @@ DESCRIPTION
                 elif ac["ac_type"] == "alien":
                     ac_desc = "alien cache of node %d for node %d" % (ac["nid_src"], ac["nid_tgt"])
                 else:
-                    print("unexpected array cache type")
-                    print(ac)
-                    return
+                    raise CommandError(f"unexpected array cache type {str(ac)}")
                     
                 print("FREE object %x from slab %s (in %s)" %
                                            (obj[1], name, ac_desc))
@@ -120,7 +119,7 @@ DESCRIPTION
         try:
             vm_stat = getValue("vm_stat")
         except AttributeError:
-            raise gdb.GdbError("Support for new-style vmstat is unimplemented.")
+            raise CommandError("Support for new-style vmstat is unimplemented.")
 
         print("  VM_STAT:")
         #TODO put this... where?
