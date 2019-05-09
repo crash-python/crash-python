@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Dict
+
 from builtins import round
 
 import gdb
@@ -11,8 +13,11 @@ from datetime import timedelta
 from crash.exceptions import DelayedAttributeError
 from crash.cache import CrashCache
 from crash.util import array_size
-from crash.util.symbols import Types, Symvals, SymbolCallbacks
+from crash.util.symbols import Types, Symvals, SymbolCallbacks, MinimalSymvals
 from crash.infra.lookup import DelayedValue
+
+
+ImageLocation = Dict[str, Dict[str, int]]
 
 class CrashUtsnameCache(CrashCache):
     symvals = Symvals([ 'init_uts_ns' ])
@@ -45,6 +50,8 @@ class CrashUtsnameCache(CrashCache):
 class CrashConfigCache(CrashCache):
     types = Types([ 'char *' ])
     symvals = Symvals([ 'kernel_config_data' ])
+    msymvals = MinimalSymvals([ 'kernel_config_data',
+                                'kernel_config_data_end' ])
 
     def __getattr__(self, name):
         if name == 'config_buffer':
@@ -53,51 +60,77 @@ class CrashConfigCache(CrashCache):
             return self._parse_config()
         return getattr(self.__class__, name)
 
-    @staticmethod
-    def read_buf(address, size):
+    def read_buf(self, address: int, size: int) -> memoryview:
         return gdb.selected_inferior().read_memory(address, size)
 
-    @staticmethod
-    def read_buf_str(address, size):
-        buf = gdb.selected_inferior().read_memory(address, size)
-        if isinstance(buf, memoryview):
-            return buf.tobytes().decode('utf-8')
-        else:
-            return str(buf)
+    def read_buf_bytes(self, address: int, size: int) -> bytes:
+        return self.read_buf(address, size).tobytes()
 
-    def decompress_config_buffer(self):
-        MAGIC_START = 'IKCFG_ST'
-        MAGIC_END = 'IKCFG_ED'
+    def locate_config_buffer_section(self) -> ImageLocation:
+        data_start = int(self.msymvals.kernel_config_data)
+        data_end = int(self.msymvals.kernel_config_data_end)
 
-        # Must cast it to char * to do the pointer arithmetic correctly
-        data_addr = self.symvals.kernel_config_data.address.cast(self.types.char_p_type)
-        data_len = self.symvals.kernel_config_data.type.sizeof
+        return {
+            'data' : {
+                'start' : data_start,
+                'size' : data_end - data_start,
+            },
+            'magic' : {
+                'start' : data_start - 8,
+                'end' : data_end,
+            },
+        }
+
+    def locate_config_buffer_typed(self) -> ImageLocation:
+        start = int(self.symvals.kernel_config_data.address)
+        end = start + self.symvals.kernel_config_data.type.sizeof
+
+        return {
+            'data' : {
+                'start' : start + 8,
+                'size' : end - start - 2*8 - 1,
+            },
+            'magic' : {
+                'start' : start,
+                'end' : end - 8 - 1,
+            },
+        }
+
+    def verify_image(self, location: ImageLocation) -> None:
+        MAGIC_START = b'IKCFG_ST'
+        MAGIC_END = b'IKCFG_ED'
 
         buf_len = len(MAGIC_START)
-        buf = self.read_buf_str(data_addr, buf_len)
+        buf = self.read_buf_bytes(location['magic']['start'], buf_len)
         if buf != MAGIC_START:
-            raise IOError("Missing MAGIC_START in kernel_config_data.")
+            raise IOError(f"Missing MAGIC_START in kernel_config_data. Got `{buf}'")
 
         buf_len = len(MAGIC_END)
-        buf = self.read_buf_str(data_addr + data_len - buf_len - 1, buf_len)
+        buf = self.read_buf_bytes(location['magic']['end'], buf_len)
         if buf != MAGIC_END:
-            raise IOError("Missing MAGIC_END in kernel_config_data.")
+            raise IOError("Missing MAGIC_END in kernel_config_data. Got `{buf}'")
+
+    def decompress_config_buffer(self) -> str:
+        try:
+            location = self.locate_config_buffer_section()
+        except DelayedAttributeError:
+            location = self.locate_config_buffer_typed()
+
+        self.verify_image(location)
 
         # Read the compressed data
-        buf_len = data_len - len(MAGIC_START) - len(MAGIC_END)
-        buf = self.read_buf(data_addr + len(MAGIC_START), buf_len)
-        self.config_buffer = zlib.decompress(buf, 16 + zlib.MAX_WBITS)
-        if (isinstance(self.config_buffer, bytes)):
-            self.config_buffer = str(self.config_buffer.decode('utf-8'))
-        else:
-            self.config_buffer = str(self.config_buffer)
+        buf = self.read_buf_bytes(location['data']['start'],
+                                  location['data']['size'])
+
+        decompressed = zlib.decompress(buf, 16 + zlib.MAX_WBITS)
+        self.config_buffer = str(decompressed.decode('utf-8'))
         return self.config_buffer
 
     def __str__(self):
         return self.config_buffer
 
-    def _parse_config(self):
-        self.ikconfig_cache = {}
+    def _parse_config(self) -> Dict[str, str]:
+        self.ikconfig_cache: Dict[str, str] = dict()
 
         for line in self.config_buffer.splitlines():
             # bin comments
