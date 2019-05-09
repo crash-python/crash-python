@@ -2,11 +2,11 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from crash.commands import CrashCommand, CrashCommandParser
+from crash.commands import Command, ArgumentParser
 import crash.cache.tasks
 import argparse
 
-class TaskCommand(CrashCommand):
+class TaskCommand(Command):
     """select task by pid
 
 NAME
@@ -23,12 +23,12 @@ EXAMPLES
     """
     def __init__(self, name):
 
-        parser = CrashCommandParser(prog=name)
+        parser = ArgumentParser(prog=name)
 
         parser.add_argument('pid', type=int, nargs=1)
 
         parser.format_usage = lambda: "thread <pid>\n"
-        CrashCommand.__init__(self, name, parser)
+        Command.__init__(self, name, parser)
 
     def execute(self, args):
         try:

@@ -10,21 +10,24 @@ import glob
 import importlib
 import argparse
 
-class CrashCommandLineError(RuntimeError):
+class CommandError(RuntimeError):
     pass
 
-class CrashCommandParser(argparse.ArgumentParser):
-    def error(self, message):
-        raise CrashCommandLineError(message)
+class CommandLineError(RuntimeError):
+    pass
 
-class CrashCommand(CrashBaseClass, gdb.Command):
+class ArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise CommandLineError(message)
+
+class Command(CrashBaseClass, gdb.Command):
     commands = {}
     def __init__(self, name, parser=None):
         self.name = "py" + name
         if parser is None:
-            parser = CrashCommandParser(prog=self.name)
-        elif not isinstance(parser, CrashCommandParser):
-            raise TypeError("parser must be CrashCommandParser")
+            parser = ArgumentParser(prog=self.name)
+        elif not isinstance(parser, ArgumentParser):
+            raise TypeError("parser must be ArgumentParser")
 
         nl = ""
         if self.__doc__[-1] != '\n':
@@ -42,13 +45,16 @@ class CrashCommand(CrashBaseClass, gdb.Command):
     def invoke(self, argstr, from_tty=False):
         try:
             self.invoke_uncaught(argstr, from_tty)
-        except CrashCommandLineError as e:
-            print("{}: {}".format(self.name, str(e)))
+        except CommandError as e:
+            print(f"{self.name}: {str(e)}")
+        except CommandLineError as e:
+            print(f"{self.name}: {str(e)}")
+            self.parser.print_usage()
         except (SystemExit, KeyboardInterrupt):
             pass
 
     def execute(self, argv):
-        raise NotImplementedError("CrashCommand should not be called directly")
+        raise NotImplementedError("Command should not be called directly")
 
 def discover():
     modules = glob.glob(os.path.dirname(__file__)+"/[A-Za-z]*.py")

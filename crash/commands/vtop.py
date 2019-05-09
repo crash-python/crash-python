@@ -3,7 +3,7 @@
 
 import gdb
 import argparse
-from crash.commands import CrashCommand, CrashCommandParser
+from crash.commands import Command, ArgumentParser
 from crash.addrxlat import addrxlat_context, addrxlat_system, addrxlat_is_non_auto
 import addrxlat
 
@@ -59,7 +59,7 @@ class LinuxNonAutoPGT(LinuxPGT):
         except (addrxlat.NotPresentError, addrxlat.NoDataError):
             return addr + 'N/A'
 
-class VTOPCommand(CrashCommand):
+class VTOPCommand(Command):
     """convert virtual address to physical
 
 NAME
@@ -173,7 +173,7 @@ EXAMPLES
     """
 
     def __init__(self):
-        parser = CrashCommandParser(prog="vtop")
+        parser = ArgumentParser(prog="vtop")
 
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-u', action='store_true', default=False)

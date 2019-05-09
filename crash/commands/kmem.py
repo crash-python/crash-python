@@ -3,7 +3,7 @@
 
 import gdb
 import crash
-from crash.commands import CrashCommand, CrashCommandParser
+from crash.commands import Command, ArgumentParser
 from crash.types.slab import kmem_cache_get_all, kmem_cache_from_name, slab_from_obj_addr
 from crash.types.zone import for_each_zone, for_each_populated_zone
 from crash.types.vmstat import VmStat
@@ -13,7 +13,7 @@ import re
 def getValue(sym):
     return gdb.lookup_symbol(sym, None)[0].value()
 
-class KmemCommand(CrashCommand):
+class KmemCommand(Command):
     """ kernel memory inspection
 
 NAME
@@ -30,7 +30,7 @@ DESCRIPTION
     """
 
     def __init__(self, name):
-        parser = CrashCommandParser(prog=name)
+        parser = ArgumentParser(prog=name)
 
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-s', action='store_true', default=False)

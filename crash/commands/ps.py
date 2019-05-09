@@ -4,11 +4,11 @@
 import gdb
 import argparse
 
-from crash.commands import CrashCommand, CrashCommandParser
-from crash.commands import CrashCommandLineError
+from crash.commands import Command, ArgumentParser
+from crash.commands import CommandLineError
 from crash.types.task import LinuxTask, TaskStateFlags as TF
 
-class PSCommand(CrashCommand):
+class PSCommand(Command):
     """display process status information
 
 NAME
@@ -381,7 +381,7 @@ EXAMPLES
           20      2   3  ffff8802129a9710  IN   0.0      0      0  [migration/3]
         """
     def __init__(self):
-        parser = CrashCommandParser(prog="ps")
+        parser = ArgumentParser(prog="ps")
 
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-k', action='store_true', default=False)
@@ -406,7 +406,7 @@ EXAMPLES
         parser.format_usage = lambda: \
         "ps [-k|-u|-G][-s][-p|-c|-t|-l|-a|-g|-r] [pid | taskp | command] ...\n"
 
-        CrashCommand.__init__(self, "ps", parser)
+        Command.__init__(self, "ps", parser)
 
         self.header_template = "    PID    PPID  CPU {1:^{0}}  ST  %MEM     " \
                                "VSZ    RSS  COMM"
@@ -541,7 +541,7 @@ EXAMPLES
             try:
                 self.setup_task_states()
             except AttributeError:
-                raise CrashCommandLineError("The task subsystem is not available.")
+                raise CommandLineError("The task subsystem is not available.")
 
         sort_by = sort_by_pid
         if argv.l:

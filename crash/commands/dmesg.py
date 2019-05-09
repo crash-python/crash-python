@@ -6,7 +6,7 @@ import os.path
 import argparse
 import re
 
-from crash.commands import CrashCommand, CrashCommandParser
+from crash.commands import Command, ArgumentParser
 from crash.exceptions import DelayedAttributeError
 
 class LogTypeException(Exception):
@@ -15,7 +15,7 @@ class LogTypeException(Exception):
 class LogInvalidOption(Exception):
     pass
 
-class LogCommand(CrashCommand):
+class LogCommand(Command):
     """dump system message buffer
 
 NAME
@@ -139,14 +139,14 @@ EXAMPLES
 
     """
     def __init__(self, name):
-        parser = CrashCommandParser(prog=name)
+        parser = ArgumentParser(prog=name)
 
         parser.add_argument('-t', action='store_true', default=False)
         parser.add_argument('-d', action='store_true', default=False)
         parser.add_argument('-m', action='store_true', default=False)
 
         parser.format_usage = lambda: 'log [-tdm]\n'
-        CrashCommand.__init__(self, name, parser)
+        Command.__init__(self, name, parser)
 
     __types__ = [ 'struct printk_log *' , 'char *' ]
     __symvals__ = [ 'log_buf', 'log_buf_len', 'log_first_idx', 'log_next_idx',

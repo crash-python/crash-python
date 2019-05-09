@@ -2,11 +2,11 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from crash.commands import CrashCommand, CrashCommandParser
-from crash.commands import CrashCommandLineError
+from crash.commands import Command, ArgumentParser
+from crash.commands import CommandLineError
 from crash.cache.syscache import utsname, config, kernel
 
-class SysCommand(CrashCommand):
+class SysCommand(Command):
     """system data
 
 NAME
@@ -43,12 +43,12 @@ EXAMPLES
     """
     def __init__(self, name):
 
-        parser = CrashCommandParser(prog=name)
+        parser = ArgumentParser(prog=name)
 
         parser.add_argument('config', nargs='?')
 
         parser.format_usage = lambda: "sys [config]\n"
-        CrashCommand.__init__(self, name, parser)
+        Command.__init__(self, name, parser)
 
     @staticmethod
     def show_default():
@@ -64,8 +64,7 @@ EXAMPLES
             if args.config == "config":
                 print(config)
             else:
-                raise CrashCommandLineError("error: unknown option: {}"
-                                            .format(args.config))
+                raise CommandLineError(f"error: unknown option: {args.config}")
         else:
             self.show_default()
 

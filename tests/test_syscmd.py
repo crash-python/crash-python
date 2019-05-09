@@ -7,7 +7,7 @@ import sys
 from io import StringIO
 
 from crash.exceptions import MissingSymbolError
-from crash.commands import CrashCommandLineError
+from crash.commands import CommandLineError
 from crash.commands.syscmd import SysCommand
 
 class TestSysCmd(unittest.TestCase):
@@ -28,11 +28,11 @@ class TestSysCmd(unittest.TestCase):
         self.assertTrue('MACHINE: x86_64' in result)
 
     def test_sys_garbage(self):
-        with self.assertRaises(CrashCommandLineError):
+        with self.assertRaises(CommandLineError):
             self.cmd.invoke_uncaught("garbage", from_tty=False)
 
     def test_sys_garbage_flag(self):
-        with self.assertRaises(CrashCommandLineError):
+        with self.assertRaises(CommandLineError):
             self.cmd.invoke_uncaught("-a", from_tty=False)
 
     def test_sys_config(self):

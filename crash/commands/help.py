@@ -3,9 +3,9 @@
 
 import gdb
 import argparse
-from crash.commands import CrashCommand, CrashCommandParser
+from crash.commands import Command, ArgumentParser
 
-class HelpCommand(CrashCommand):
+class HelpCommand(Command):
     """ this command
 
 NAME
@@ -21,7 +21,7 @@ DESCRIPTION
 """
 
     def __init__(self):
-        parser = CrashCommandParser(prog="help")
+        parser = ArgumentParser(prog="help")
         parser.add_argument('args', nargs=argparse.REMAINDER)
         super().__init__('help', parser)
 

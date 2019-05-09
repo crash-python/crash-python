@@ -3,7 +3,7 @@
 
 import gdb
 
-from crash.commands import CrashCommand, CrashCommandParser
+from crash.commands import Command, ArgumentParser
 from crash.subsystem.filesystem.mount import MNT_NOSUID, MNT_NODEV, MNT_NOEXEC
 from crash.subsystem.filesystem.mount import MNT_NOATIME, MNT_NODIRATIME
 from crash.subsystem.filesystem.mount import MNT_RELATIME, MNT_READONLY
@@ -14,7 +14,7 @@ from crash.subsystem.filesystem.mount import mount_device, mount_fstype
 from crash.subsystem.filesystem.mount import mount_super, mount_flags
 from crash.subsystem.filesystem.mount import mount_root
 
-class MountCommand(CrashCommand):
+class MountCommand(Command):
     """display mounted file systems
 
 NAME
@@ -25,7 +25,7 @@ NAME
   -d    display device obtained from super_block
 """
     def __init__(self, name):
-        parser = CrashCommandParser(prog=name)
+        parser = ArgumentParser(prog=name)
 
         parser.add_argument('-v', action='store_true', default=False)
         parser.add_argument('-f', action='store_true', default=False)
