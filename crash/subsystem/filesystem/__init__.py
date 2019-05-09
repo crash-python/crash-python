@@ -142,3 +142,35 @@ def get_super_block(desc: AddressSpecifier, force: bool=False) -> gdb.Value:
             raise gdb.NotAvailableError(f"no superblock available at `{desc}'")
 
     return sb
+
+def is_fstype_super(super_block: gdb.Value, name: str) -> bool:
+    """
+    Tests whether the super_block belongs to a particular file system type.
+
+    This uses a naive string comparison so modules are not required.
+
+    Args:
+        super_block (gdb.Value<struct super_block>):
+            The struct super_block to test
+        name (str): The name of the file system type
+
+    Returns:
+        bool: whether the super_block belongs to the specified file system
+    """
+    return super_fstype(super_block) == name
+
+def is_fstype_inode(inode: gdb.Value, name: str) -> bool:
+    """
+    Tests whether the inode belongs to a particular file system type.
+
+    Args:
+        inode (gdb.Value<struct inode>): The struct inode to test
+        name (str): The name of the file system type
+
+    Returns:
+        bool: whether the inode belongs to the specified file system
+
+    Raises:
+        gdb.NotAvailableError: The target value was not available.
+    """
+    return is_fstype_super(inode['i_sb'], name)
