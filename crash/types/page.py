@@ -4,7 +4,8 @@
 from math import log, ceil
 import gdb
 from crash.util import container_of, find_member_variant
-from crash.util.symbols import Types, Symvals, TypeCallbacks, SymbolCallbacks
+from crash.util.symbols import Types, Symvals, TypeCallbacks
+from crash.util.symbols import SymbolCallbacks, MinimalSymbolCallbacks
 from crash.cache.syscache import config
 
 #TODO debuginfo won't tell us, depends on version?
@@ -201,12 +202,14 @@ type_cbs = TypeCallbacks([ ('struct page', Page.setup_page_type ),
                            ('enum pageflags', Page.setup_pageflags ),
                            ('enum zone_type', Page.setup_zone_type ),
                            ('struct mem_section', Page.setup_mem_section) ])
+msymbol_cbs = MinimalSymbolCallbacks([ ('kernel_config_data',
+                                        Page.setup_nodes_width ) ])
 
 # TODO: this should better be generalized to some callback for
 # "config is available" without refering to the symbol name here
-symbol_cbs = SymbolCallbacks([ ('kernel_config_data', Page.setup_nodes_width ),
-                             ('vmemmap_base', Page.setup_vmemmap_base ),
-                             ('page_offset_base', Page.setup_directmap_base ) ])
+symbol_cbs = SymbolCallbacks([ ('vmemmap_base', Page.setup_vmemmap_base ),
+                               ('page_offset_base',
+                                Page.setup_directmap_base ) ])
 
 
 def pfn_to_page(pfn):
