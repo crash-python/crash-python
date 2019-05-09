@@ -5,7 +5,8 @@ import gdb
 import crash
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandError, CommandLineError
-from crash.types.slab import kmem_cache_get_all, kmem_cache_from_name, slab_from_obj_addr
+from crash.types.slab import kmem_cache_get_all, kmem_cache_from_name
+from crash.types.slab import slab_from_obj_addr
 from crash.types.zone import for_each_zone, for_each_populated_zone
 from crash.types.vmstat import VmStat
 import argparse
@@ -34,13 +35,12 @@ DESCRIPTION
         parser = ArgumentParser(prog=name)
 
         group = parser.add_mutually_exclusive_group()
-        group.add_argument('-s', action='store_true', default=False)
+        group.add_argument('-s', nargs='?', const=True, default=False,
+                           dest='slabname')
         group.add_argument('-z', action='store_true', default=False)
         group.add_argument('-V', action='store_true', default=False)
+        group.add_argument('address', nargs='?')
 
-        parser.add_argument('arg', nargs=argparse.REMAINDER)
-
-        parser.format_usage = lambda : "kmem [-s] [addr | slabname]\n"
         super().__init__(name, parser)
 
     def execute(self, args):
@@ -50,28 +50,28 @@ DESCRIPTION
         elif args.V:
             self.print_vmstats()
             return
-        elif args.s:
-            if args.arg:
-                cache_name = args.arg[0]
-                print("Checking kmem cache {}".format(cache_name))
-                cache = kmem_cache_from_name(cache_name)
-                if cache is None:
-                    raise CommandError(f"Cache {cache_name} not found.")
-                cache.check_all()
-            else:
+        elif args.slabname:
+            if args.slabname is True:
                 print("Checking all kmem caches...")
                 for cache in kmem_cache_get_all():
                     print(cache.name)
                     cache.check_all()
+            else:
+                cache_name = args.slabname
+                print(f"Checking kmem cache {cache_name}")
+                cache = kmem_cache_from_name(cache_name)
+                if cache is None:
+                    raise CommandError(f"Cache {cache_name} not found.")
+                cache.check_all()
 
             print("Checking done.")
             return
           
-        if not args.arg:
+        if not args.address:
             raise CommandLineError("no address specified")
 
         try:
-            addr = int(args.arg[0], 0)
+            addr = int(args.address[0], 0)
         except ValueError:
             raise CommandLineError("address must be numeric")
         slab = slab_from_obj_addr(addr)
