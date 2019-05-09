@@ -155,14 +155,14 @@ class Slab(object):
 
         self.__populate_free()
         if obj_addr in self.free:
-            return (False, obj_addr, None)
+            return (False, int(obj_addr), None)
 
         ac = self.kmem_cache.get_array_caches()
 
         if obj_addr in ac:
-            return (False, obj_addr, ac[obj_addr])
+            return (False, int(obj_addr), ac[obj_addr])
 
-        return (True, obj_addr, None)
+        return (True, int(obj_addr), None)
 
     def __error(self, msg, misplaced = False):
         msg = col_error("cache %s slab %x%s" % (self.kmem_cache.name,
@@ -575,8 +575,9 @@ class KmemCache(object):
                     print("cached pointer {:#x} in {} is not allocated: {}".format(
                         ac_ptr, acs[ac_ptr], ac_obj_obj))
                 elif ac_obj_obj[1] != ac_ptr:
-                    print("cached pointer {:#x} in {} has wrong offset: {}".format(
-                        ac_ptr, acs[ac_ptr], ac_obj_obj))
+                    print("cached pointer {:#x} in {} has wrong offset: ({}, {:#x}, {})"
+                        .format( ac_ptr, acs[ac_ptr], ac_obj_obj[0],
+                                 ac_obj_obj[1], ac_obj_obj[2]))
 
     def check_all(self):
         for (nid, node) in self.__get_nodelists():
