@@ -263,6 +263,9 @@ class LinuxTask(object):
     def is_zombie(self):
         return self.task_state() & TF.EXIT_ZOMBIE
 
+    def is_thread_group_leader(self):
+        return int(self.task_struct['exit_signal']) >= 0
+
     def update_mem_usage(self):
         if self.mem_valid:
             return

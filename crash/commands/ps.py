@@ -578,7 +578,8 @@ EXAMPLES
 
 
                 # Only show thread group leaders
-#                    if argv.G and task.pid != int(task.task_struct['tgid']):
+                if argv.G and not task.is_thread_group_leader():
+                    continue
 
                 task.update_mem_usage()
                 self.print_one(argv, thread)
