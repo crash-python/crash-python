@@ -7,8 +7,151 @@ import fnmatch
 import re
 
 from crash.commands import Command, ArgumentParser
-from crash.commands import CommandLineError
+from crash.commands import CommandLineError, CommandError
 from crash.types.task import LinuxTask, TaskStateFlags as TF
+
+class TaskFormat(object):
+    """
+    This class is responsible for converting the arguments into formatting
+    rules.
+    """
+    def __init__(self, argv, regex):
+        self.sort = lambda x: x.info.task_pid()
+        self._filter = lambda x: True
+        self._format_one_task = self._format_common_line
+        self._regex = regex
+
+        if argv.s:
+            self._format_header = self._format_stack_header
+            self._format_column4 = self._format_stack_address
+        elif argv.n:
+            self._format_header = self._format_threadnum_header
+            self._format_column4 = self._format_thread_num
+        else:
+            self._format_header = self._format_task_header
+            self._format_column4 = self._format_task_address
+
+        if argv.k:
+            self._filter = self._is_kernel_thread
+        elif argv.u:
+            self._filter = self._is_user_task
+        elif argv.G:
+            self._filter = self._is_thread_group_leader
+
+        if argv.l:
+            self.sort = lambda x: -x.info.last_run()
+            self._format_one_task = self._format_last_run
+            self._format_header = lambda : ""
+
+    def _format_generic_header(self, col4name: str, col4width: int) -> str:
+        header  = f"    PID    PPID  CPU {col4name:^{col4width}}  ST  %MEM     "
+        header += "VSZ    RSS  COMM"
+
+        return header
+
+    def _format_stack_header(self) -> str:
+        return self._format_generic_header("KSTACK", 16)
+
+    def _format_stack_address(self, task: LinuxTask) -> str:
+        addr = int(task.get_stack_pointer())
+        return f"{addr:16x}"
+
+    def _format_task_header(self) ->str:
+        return self._format_generic_header("TASK", 16)
+
+    def _format_task_address(self, task: LinuxTask) -> str:
+        addr = int(task.task_struct.address)
+        return f"{addr:16x}"
+
+    def _format_threadnum_header(self) -> str:
+        return self._format_generic_header("THREAD#", 7)
+
+    def _format_thread_num(self, task: LinuxTask) -> str:
+        return f"{task.thread.num:7d}"
+
+    def _is_kernel_thread(self, task: LinuxTask) -> bool:
+        return task.is_kernel_task()
+
+    def _is_user_task(self, task: LinuxTask) -> bool:
+        return not self._is_kernel_thread(task)
+
+    def _is_thread_group_leader(self, task: LinuxTask) -> bool:
+        return task.is_thread_group_leader()
+
+    def _format_common_line(self, task: LinuxTask, state: str) -> str:
+        pid = task.task_pid()
+        parent_pid = task.parent_pid()
+        last_cpu = task.get_last_cpu()
+        name = task.task_name()
+
+        # This needs adaptation for page size != 4k
+        total_vm = task.total_vm * 4096 // 1024
+        rss = task.rss * 4096 // 1024
+
+        if task.active:
+            active = ">"
+        else:
+            active = " "
+
+        line  = f"{active} {pid:>5}   {parent_pid:>5}  {last_cpu:>3}  "
+        line += self._format_column4(task)
+        line += f" {state:3}  {0:.1f} {total_vm:7d} {rss:6d}  {name}"
+
+        return line
+
+    def _format_last_run(self, task: LinuxTask, state: str) -> str:
+        pid = task.task_pid()
+        addr = task.task_address()
+        cpu = task.get_last_cpu()
+        name = task.task_name()
+        if task.active:
+            cpu = task.cpu
+
+        line  = f"[{task.last_run():d}] [{state}]  PID: {pid:-5d}  "
+        line += f"TASK: {addr:x} CPU: {cpu:>2d}  COMMAND: \"{name}\""
+
+        return line
+
+    def should_print_task(self, task: LinuxTask) -> bool:
+        """
+        Given optional filters and regex as part of the parent
+        object, return whether a task passes the criteria to be
+        printed.
+
+        Args:
+            task (LinuxTask): The task under consideration
+
+        Returns:
+            bool: Whether this task should be printed
+        """
+        if self._filter(task) is False:
+            return False
+
+        if self._regex and not self._regex.match(task.task_name()):
+            return False
+
+        return True
+
+    def format_one_task(self, task: LinuxTask, state: str) -> str:
+        """
+        Given the formatting rules, produce the output line for this task.
+
+        Args:
+            task (LinuxTask): The task to be printed
+
+        Returns:
+            str: The ps output line for this task
+        """
+        return self._format_one_task(task, state)
+
+    def format_header(self) -> str:
+        """
+        Return the header for this output object
+
+        Returns:
+            str: The header for this type of ps output
+        """
+        return self._format_header()
 
 class PSCommand(Command):
     """display process status information
@@ -410,21 +553,6 @@ EXAMPLES
 
         Command.__init__(self, "ps", parser)
 
-        self.header_template = "    PID    PPID  CPU {1:^{0}}  ST  %MEM     " \
-                               "VSZ    RSS  COMM"
-
-#   PID    PPID  CPU       TASK        ST  %MEM     VSZ    RSS  COMM
-#      1      0   3  ffff88033aa780c8 RU   0.0      0      0  [systemd]
-#> 17080  16749   6  ffff8801db5ae040  RU   0.0    8168   1032  less
-#   PID    PPID  CPU       TASK        ST  %MEM     VSZ    RSS  COMM
-#>     0      0   0  ffffffff81c13460  RU   0.0       0      0  [swapper/0]
-# 17077  16749   0  ffff8800b956b848 RU   0.0      0      0  [less]
-        self.line_template = "{0} {1:>5}   {2:>5}  {3:>3}  {4:{5}x} {6:3}  {7:.1f}"
-        self.line_template += " {8:7d} {9:6d}  {10:.{11}}{12}{13:.{14}}"
-
-        self.num_line_template = "{0} {1:>5}   {2:>5}  {3:>3}  {4:{5}d}  {6:3}  {7:.1f}"
-        self.num_line_template += " {8:7d} {9:6d}  {10:.{11}}{12}{13:.{14}}"
-
     def task_state_string(self, task):
         state = task.task_state()
         buf = None
@@ -453,72 +581,6 @@ EXAMPLES
 
         return buf
 
-    @classmethod
-    def task_header(cls, task):
-        task_struct = task.task_struct
-        template = "PID: {0:-5d}  TASK: {1:x}  CPU: {2:>2d}  COMMAND: \"{3}\""
-        cpu = task.get_last_cpu()
-        if task.active:
-            cpu = task.cpu
-        return template.format(int(task_struct['pid']),
-                               int(task_struct.address), cpu,
-                               task_struct['comm'].string())
-
-    def print_last_run(self, task):
-        radix = 10
-        if radix == 10:
-            radix_string = "d"
-        else:
-            radix_string = "x"
-        template = "[{0:{1}}] [{2}]  {3}"
-        print(template.format(task.last_run(), radix_string,
-                              self.task_state_string(task),
-                              self.task_header(task)))
-
-    def print_one(self, argv, thread):
-        task = thread.info
-        specified = argv.args is None
-        task_struct = task.task_struct
-
-        pointer = task_struct.address
-        if argv.s:
-            pointer = task.get_stack_pointer()
-
-        if argv.n:
-            pointer = thread.num
-
-        if argv.l:
-            self.print_last_run(task)
-            return
-
-        try:
-            parent_pid = task_struct['parent']['pid']
-        except KeyError:
-            # This can happen on live systems where pids have gone
-            # away
-            print("Couldn't locate task at address {:#x}"
-                  .format(task_struct.parent.address))
-            return
-
-        if task.active:
-            active = ">"
-        else:
-            active = " "
-        line = self.line_template
-        width = 16
-        if argv.n:
-            line = self.num_line_template
-            width = 7
-
-        print(line.format(active, int(task_struct['pid']), int(parent_pid),
-                          int(task.get_last_cpu()), int(pointer),
-                          width, self.task_state_string(task), 0,
-                          task.total_vm * 4096 // 1024,
-                          task.rss * 4096 // 1024,
-                          "[", int(task.is_kernel_task()),
-                          task_struct['comm'].string(),
-                          "]", int(task.is_kernel_task())))
-
     def setup_task_states(self):
         self.task_states = {
             TF.TASK_RUNNING         : "RU",
@@ -538,49 +600,42 @@ EXAMPLES
             self.task_states[TF.TASK_IDLE] = "ID"
 
     def execute(self, argv):
-        sort_by_pid = lambda x: x.info.task_struct['pid']
-        sort_by_last_run = lambda x: -x.info.last_run()
+        # Unimplemented
+        if argv.p or argv.c or argv.t or argv.a or argv.g or argv.r:
+            raise CommandError("Support for the -p, -c, -t, -a, -g, and -r options is unimplemented.")
 
         if not hasattr(self, 'task_states'):
             self.setup_task_states()
-
-        sort_by = sort_by_pid
-        if argv.l:
-            sort_by = sort_by_last_run
-        else:
-            if argv.s:
-                col4name = "KSTACK"
-                width = 16
-            elif argv.n:
-                col4name = " THREAD#"
-                width = 7
-            else:
-                col4name = "TASK"
-                width = 16
-            print(self.header_template.format(width, col4name))
 
         regex = None
         if argv.args:
             regex = re.compile(fnmatch.translate(argv.args[0]))
 
-        for thread in sorted(gdb.selected_inferior().threads(), key=sort_by):
+        taskformat = TaskFormat(argv, regex)
+
+        count = 0
+        header = taskformat.format_header()
+        for thread in sorted(gdb.selected_inferior().threads(),
+                             key=taskformat.sort):
             task = thread.info
             if task:
-                if argv.k and not task.is_kernel_task():
-                    continue
-                if argv.u and task.is_kernel_task():
+                if not taskformat.should_print_task(task):
                     continue
 
-                if regex is not None:
-                    m = regex.match(task.task_struct['comm'].string())
-                    if m is None:
-                        continue
-
-
-                # Only show thread group leaders
-                if argv.G and not task.is_thread_group_leader():
-                    continue
+                if header:
+                    print(header)
+                    header = None
 
                 task.update_mem_usage()
-                self.print_one(argv, thread)
+                state = self.task_state_string(task)
+                line = taskformat.format_one_task(task, state)
+                print(line)
+                count += 1
+
+        if count == 0:
+            if regex:
+                print(f"No matches for {argv.args[0]}.")
+            else:
+                raise CommandError("Unfiltered output has no matches. BUG?")
+
 PSCommand()
