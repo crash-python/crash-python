@@ -302,12 +302,8 @@ class LinuxTask(object):
     def set_get_stack_pointer(cls, fn):
         cls.get_stack_pointer_fn = fn
 
-    @classmethod
-    def get_stack_pointer(cls):
-        # This unbinds the function from the task object so we don't
-        # pass self to the function.
-        fn = cls.get_stack_pointer_fn
-        return fn(self.thread)
+    def get_stack_pointer(self):
+        return self.get_stack_pointer_fn(self.task_struct['thread'])
 
     def get_rss_field(self):
         return int(self.task_struct['mm']['rss'].value())

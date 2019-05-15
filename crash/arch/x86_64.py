@@ -53,6 +53,7 @@ class x86_64Architecture(CrashArchitecture):
         task = thread.info.task_struct
 
         rsp = task['thread']['sp'].cast(ulong_type.pointer())
+        thread.registers['rsp'].value = rsp
 
         frame = rsp.cast(self.inactive_task_frame_type.pointer()).dereference()
 
@@ -62,7 +63,6 @@ class x86_64Architecture(CrashArchitecture):
             if register == 16:
                 return True
 
-        thread.registers['rsp'].value = rsp
         thread.registers['rbp'].value = frame['bp']
         thread.registers['rbx'].value = frame['bx']
         thread.registers['r12'].value = frame['r12']
@@ -114,7 +114,7 @@ class x86_64Architecture(CrashArchitecture):
         thread.info.valid_stack = True
 
     @classmethod
-    def get_stack_pointer(cls, thread):
-        return int(thread.registers['rsp'].value)
+    def get_stack_pointer(cls, thread_struct):
+        return thread_struct['sp']
 
 register(x86_64Architecture)
