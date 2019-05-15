@@ -283,6 +283,22 @@ class LinuxTask(object):
         self.pgd_addr = int(mm['pgd'])
         self.mem_valid = True
 
+    def task_name(self, brackets=False):
+        name = self.task_struct['comm'].string()
+        if brackets and self.is_kernel_task():
+            return f"[{name}]"
+        else:
+            return name
+
+    def task_pid(self):
+        return int(self.task_struct['pid'])
+
+    def parent_pid(self):
+        return int(self.task_struct['parent']['pid'])
+
+    def task_address(self):
+        return int(self.task_struct.address)
+
     def is_kernel_task(self):
         if self.task_struct['pid'] == 0:
             return True
