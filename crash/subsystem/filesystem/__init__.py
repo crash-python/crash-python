@@ -86,6 +86,9 @@ def super_fstype(sb: gdb.Value) -> str:
 
     Returns:
         str: The file system type's name
+
+    Raises:
+        gdb.NotAvailableError: The target value was not available.
     """
     return sb['s_type']['name'].string()
 
@@ -100,6 +103,8 @@ def super_flags(sb: gdb.Value) -> str:
     Returns:
         str: The flags field in human-readable form.
 
+    Raises:
+        gdb.NotAvailableError: The target value was not available.
     """
     return decode_flags(sb['s_flags'], SB_FLAGS)
 
@@ -112,6 +117,9 @@ def for_each_super_block() -> Iterable[gdb.Value]:
 
     Yields:
         gdb.Value<struct super_block>
+
+    Raises:
+        gdb.NotAvailableError: The target value was not available.
     """
     for sb in list_for_each_entry(symvals.super_blocks,
                                   types.super_block_type, 's_list'):
@@ -156,6 +164,9 @@ def is_fstype_super(super_block: gdb.Value, name: str) -> bool:
 
     Returns:
         bool: whether the super_block belongs to the specified file system
+
+    Raises:
+        gdb.NotAvailableError: The target value was not available.
     """
     return super_fstype(super_block) == name
 
