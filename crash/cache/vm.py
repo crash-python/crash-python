@@ -6,7 +6,7 @@ import gdb
 from crash.cache import CrashCache
 class CrashCacheVM(CrashCache):
     def __init__(self):
-        super(CrashCacheVM, self).__init__()
+        super().__init__()
 
     def refresh(self):
         pass

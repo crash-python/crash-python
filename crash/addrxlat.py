@@ -9,7 +9,7 @@ from crash.util import offsetof
 
 class TranslationContext(addrxlat.Context):
     def __init__(self, *args, **kwargs):
-        super(TranslationContext, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.read_caps = addrxlat.CAPS(addrxlat.KVADDR)
         self.uint32_ptr = gdb.lookup_type('uint32_t').pointer()
         self.uint64_ptr = gdb.lookup_type('uint64_t').pointer()
@@ -31,7 +31,7 @@ class TranslationContext(addrxlat.Context):
             if sym is not None:
                 return offsetof(sym.type, args[1])
 
-        return super(TranslationContext, self).cb_sym(symtype, *args)
+        return super().cb_sym(symtype, *args)
 
     def cb_read32(self, faddr):
         return int(gdb.Value(faddr.addr).cast(self.uint32_ptr).dereference())

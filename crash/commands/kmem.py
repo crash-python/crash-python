@@ -40,7 +40,7 @@ DESCRIPTION
         parser.add_argument('arg', nargs=argparse.REMAINDER)
 
         parser.format_usage = lambda : "kmem [-s] [addr | slabname]\n"
-        super(KmemCommand, self).__init__(name, parser)
+        super().__init__(name, parser)
 
     def execute(self, args):
         if args.z:

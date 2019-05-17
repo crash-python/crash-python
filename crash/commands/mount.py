@@ -32,7 +32,7 @@ NAME
         parser.add_argument('-d', action='store_true', default=False)
 
         parser.format_usage = lambda : "mount\n"
-        super(MountCommand, self).__init__(name, parser)
+        super().__init__(name, parser)
 
     def __getattr__(self, name):
         if name == 'charp':

@@ -13,7 +13,7 @@ class SymbolCallback(object):
     "addrxlat symbolic callback"
 
     def __init__(self, ctx=None, *args, **kwargs):
-        super(SymbolCallback, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.ctx = ctx
 
     def __call__(self, symtype, *args):
@@ -43,7 +43,7 @@ class Target(gdb.Target):
         # So far we've read from the kernel image, now that we've setup
         # the architecture, we're ready to plumb into the target
         # infrastructure.
-        super(Target, self).__init__()
+        super().__init__()
 
     def setup_arch(self):
         archname = self.kdump.attr.arch.name

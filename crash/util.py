@@ -8,7 +8,7 @@ from crash.exceptions import MissingTypeError, MissingSymbolError
 class OffsetOfError(Exception):
     """Generic Exception for offsetof errors"""
     def __init__(self, message):
-        super(OffsetOfError, self).__init__()
+        super().__init__()
         self.message = message
 
     def __str__(self):
@@ -20,7 +20,7 @@ class InvalidArgumentError(OffsetOfError):
 
     def __init__(self, val):
         msg = self.formatter.format(str(type(val)))
-        super(InvalidArgumentError, self).__init__(msg)
+        super().__init__(msg)
         self.val = val
 
 class InvalidArgumentTypeError(OffsetOfError):
@@ -28,7 +28,7 @@ class InvalidArgumentTypeError(OffsetOfError):
     formatter = "`{}' is not a struct or union"
     def __init__(self, gdbtype):
         msg = self.formatter.format(str(gdbtype))
-        super(InvalidArgumentTypeError, self).__init__(msg)
+        super().__init__(msg)
         self.type = gdbtype
 
 class InvalidComponentError(OffsetOfError):
@@ -36,7 +36,7 @@ class InvalidComponentError(OffsetOfError):
     formatter = "cannot resolve '{}->{}' ({})"
     def __init__(self, gdbtype, spec, message):
         msg = self.formatter.format(str(gdbtype), spec, message)
-        super(InvalidComponentError, self).__init__(msg)
+        super().__init__(msg)
         self.type = gdbtype
         self.spec = spec
 
@@ -51,7 +51,7 @@ class _InvalidComponentTypeError(_InvalidComponentBaseError):
     formatter = "component `{}' in `{}' is not a struct or union"
     def __init__(self, name, spec):
         msg = self.formatter.format(name, spec)
-        super(_InvalidComponentTypeError, self).__init__(msg)
+        super().__init__(msg)
         self.name = name
         self.spec = spec
 
@@ -61,7 +61,7 @@ class _InvalidComponentNameError(_InvalidComponentBaseError):
     formatter = "no such member `{}' in `{}'"
     def __init__(self, member, gdbtype):
         msg = self.formatter.format(member, str(gdbtype))
-        super(_InvalidComponentNameError, self).__init__(msg)
+        super().__init__(msg)
         self.member = member
         self.type = gdbtype
 

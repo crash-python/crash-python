@@ -23,7 +23,7 @@ class MinimalSymbolCallback(ObjfileEventCallback):
         self.name = name
         self.symbol_file = symbol_file
         self.callback = callback
-        super(MinimalSymbolCallback, self).__init__()
+        super().__init__()
 
     def check_ready(self):
         return gdb.lookup_minimal_symbol(self.name, self.symbol_file, None)
@@ -49,7 +49,7 @@ class SymbolCallback(ObjfileEventCallback):
         self.name = name
         self.domain = domain
         self.callback = callback
-        super(SymbolCallback, self).__init__()
+        super().__init__()
 
     def check_ready(self):
         return gdb.lookup_symbol(self.name, None, self.domain)[0]
@@ -64,7 +64,7 @@ class SymvalCallback(SymbolCallback):
     objfile and returns the gdb.Value associated with it.
     """
     def check_ready(self):
-        sym = super(SymvalCallback, self).check_ready()
+        sym = super().check_ready()
         if sym is not None:
             try:
                 return sym.value()
@@ -81,7 +81,7 @@ class TypeCallback(ObjfileEventCallback):
         self.name = name
         self.block = block
         self.callback = callback
-        super(TypeCallback, self).__init__()
+        super().__init__()
 
     def check_ready(self):
         try:
@@ -121,7 +121,7 @@ class DelayedMinimalSymbol(DelayedValue):
         Args:
             name (str): The name of the minimal symbol
         """
-        super(DelayedMinimalSymbol, self).__init__(name)
+        super().__init__(name)
         self.cb = MinimalSymbolCallback(name, self.callback)
     def __str__(self):
         return "{} attached with {}".format(self.__class__, str(self.cb))
@@ -135,7 +135,7 @@ class DelayedSymbol(DelayedValue):
         Args:
             name (str): The name of the symbol
         """
-        super(DelayedSymbol, self).__init__(name)
+        super().__init__(name)
         self.cb = SymbolCallback(name, self.callback)
     def __str__(self):
         return "{} attached with {}".format(self.__class__, str(self.cb))
@@ -151,7 +151,7 @@ class DelayedType(DelayedValue):
             pointer (bool, optional, default=False): Whether the requested
                 type should be returned as a pointer to that type.
         """
-        super(DelayedType, self).__init__(name)
+        super().__init__(name)
         self.pointer = pointer
         self.cb = TypeCallback(name, self.callback)
 

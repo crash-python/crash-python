@@ -9,7 +9,7 @@ class CallbackCompleted(RuntimeError):
     """The callback has already been completed and is no longer valid"""
     def __init__(self, callback_obj):
         msg = "{} has already completed.".format(callback_obj.name)
-        super(CallbackCompleted, self).__init__(msg)
+        super().__init__(msg)
         self.callback_obj = callback_obj
 
 class ObjfileEventCallback(object):

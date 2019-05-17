@@ -23,7 +23,7 @@ DESCRIPTION
     def __init__(self):
         parser = CrashCommandParser(prog="help")
         parser.add_argument('args', nargs=argparse.REMAINDER)
-        super(HelpCommand, self).__init__('help', parser)
+        super().__init__('help', parser)
 
     def execute(self, argv):
         if not argv.args:

@@ -51,7 +51,7 @@ class LinuxPGT(object):
 
 class LinuxNonAutoPGT(LinuxPGT):
     def address(self):
-        addr = super(LinuxNonAutoPGT, self).address() + ' [machine], '
+        addr = super().address() + ' [machine], '
         tmp = self.ptr.copy()
         try:
             tmp.conv(addrxlat.KPHYSADDR, self.context, self.system)
@@ -186,7 +186,7 @@ EXAMPLES
         parser.format_usage = lambda : \
         "vtop [-c [pid | taskp]] [-u|-k] address ...\n"
 
-        super(VTOPCommand, self).__init__("vtop", parser)
+        super().__init__("vtop", parser)
 
     def execute(self, argv):
         ctx = addrxlat_context()

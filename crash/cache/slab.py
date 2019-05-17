@@ -8,7 +8,7 @@ from crash.cache import CrashCache
 class CrashCacheSlab(CrashCache):
 
     def __init__(self):
-        super(CrashCacheSlab, self).__init__()
+        super().__init__()
         self.populated = False
         self.kmem_caches = dict()
         self.kmem_caches_by_addr = dict()

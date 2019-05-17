@@ -87,7 +87,7 @@ class BadTaskError(TypeError):
             typedesc = task.type
         else:
             typedesc = type(task)
-        super(BadTaskError, self).__init__(self.msgtemplate.format(typedesc))
+        super().__init__(self.msgtemplate.format(typedesc))
 
 class LinuxTask(object):
     task_struct_type = None
