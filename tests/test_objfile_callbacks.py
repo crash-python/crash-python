@@ -24,6 +24,8 @@ class TestCallback(unittest.TestCase):
                 self.checked = False
                 super(test_class, self).__init__()
 
+                self.connect_callback()
+
             def check_ready(self):
                 self.checked = True
                 return safe_get_symbol_value('main')

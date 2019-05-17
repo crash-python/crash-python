@@ -24,10 +24,19 @@ class ObjfileEventCallback(object):
     methods.
     """
     def __init__(self):
-        self.completed = True
-        completed = False
+        self.completed = False
+        self.connected = False
 
         self.setup_symbol_cache_flush_callback()
+
+    def connect_callback(self):
+        if self.completed:
+            raise CallbackCompleted(self)
+
+        if self.connected:
+            return
+
+        self.connected = True
 
         # We don't want to do lookups immediately if we don't have
         # an objfile.  It'll fail for any custom types but it can
@@ -35,16 +44,18 @@ class ObjfileEventCallback(object):
         if len(gdb.objfiles()) > 0:
             result = self.check_ready()
             if not (result is None or result is False):
-                completed = self.callback(result)
+                self.completed = self.callback(result)
 
-        if completed is False:
-            self.completed = False
+        if self.completed is False:
             gdb.events.new_objfile.connect(self._new_objfile_callback)
+
+        return self.completed
 
     def complete(self):
         if not self.completed:
             gdb.events.new_objfile.disconnect(self._new_objfile_callback)
             self.completed = True
+            self.connected = False
         else:
             raise CallbackCompleted(self)
 
@@ -81,7 +92,7 @@ class ObjfileEventCallback(object):
         A return value other than None or False will be passed to the
         callback.
         """
-        return True
+        raise NotImplementedError("check_ready must be implemented by derived class.")
 
     def callback(self, result):
         """
@@ -93,4 +104,4 @@ class ObjfileEventCallback(object):
         Args:
             result: The result to pass to the callback
         """
-        pass
+        raise NotImplementedError("callback must be implemented by derived class.")

@@ -20,10 +20,13 @@ class MinimalSymbolCallback(ObjfileEventCallback):
                 symbol is discovered
             symbol_file (str, optional, default=None): Name of symbol file
         """
+        super().__init__()
+
         self.name = name
         self.symbol_file = symbol_file
         self.callback = callback
-        super().__init__()
+
+        self.connect_callback()
 
     def check_ready(self):
         return gdb.lookup_minimal_symbol(self.name, self.symbol_file, None)
@@ -46,10 +49,13 @@ class SymbolCallback(ObjfileEventCallback):
             domain (gdb.Symbol constant, i.e. SYMBOL_*_DOMAIN): The domain
                 to search for the symbol
         """
+        super().__init__()
+
         self.name = name
         self.domain = domain
         self.callback = callback
-        super().__init__()
+
+        self.connect_callback()
 
     def check_ready(self):
         return gdb.lookup_symbol(self.name, None, self.domain)[0]
@@ -78,10 +84,13 @@ class TypeCallback(ObjfileEventCallback):
     objfile and returns the gdb.Type associated with it.
     """
     def __init__(self, name, callback, block=None):
+        super().__init__()
+
         self.name = name
         self.block = block
         self.callback = callback
-        super().__init__()
+
+        self.connect_callback()
 
     def check_ready(self):
         try:
