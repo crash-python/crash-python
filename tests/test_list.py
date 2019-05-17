@@ -80,7 +80,8 @@ class TestList(unittest.TestCase):
         expected_count = short_list.type.sizeof // short_list[0].type.sizeof
         count = 0
         with self.assertRaises(CorruptListError):
-            for node in list_for_each(normal_list, exact_cycles=True):
+            for node in list_for_each(normal_list, exact_cycles=True,
+                                      print_broken_links=False):
                 count += 1
 
     def test_normal_container_list_with_string(self):
@@ -113,7 +114,8 @@ class TestList(unittest.TestCase):
         count = 0
         with self.assertRaises(ListCycleError):
             for node in list_for_each_entry(cycle_list, 'struct container',
-                                            'list', exact_cycles=True):
+                                            'list', exact_cycles=True,
+                                            print_broken_links=False):
                 count += 1
 
     def test_cycle_container_list_with_type(self):
@@ -125,7 +127,8 @@ class TestList(unittest.TestCase):
         count = 0
         with self.assertRaises(ListCycleError):
             for node in list_for_each_entry(cycle_list, struct_container,
-                                            'list', exact_cycles=True):
+                                            'list', exact_cycles=True,
+                                            print_broken_links=False):
                 count += 1
 
     def test_bad_container_list_with_string(self):
@@ -136,7 +139,7 @@ class TestList(unittest.TestCase):
         count = 0
         with self.assertRaises(CorruptListError):
             for node in list_for_each_entry(bad_list, 'struct container',
-                                            'list'):
+                                            'list', print_broken_links=False):
                 count += 1
 
     def test_bad_container_list_with_type(self):
@@ -148,5 +151,5 @@ class TestList(unittest.TestCase):
         count = 0
         with self.assertRaises(CorruptListError):
             for node in list_for_each_entry(bad_list, struct_container,
-                                            'list'):
+                                            'list', print_broken_links=False):
                 count += 1

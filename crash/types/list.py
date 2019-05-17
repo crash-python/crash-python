@@ -109,9 +109,12 @@ def list_for_each(list_head, include_head=False, reverse=False,
 
 def list_for_each_entry(list_head, gdbtype, member,
                         include_head=False, reverse=False,
+                        print_broken_links=True,
                         exact_cycles=False):
     for node in list_for_each(list_head, include_head=include_head,
-                              reverse=reverse, exact_cycles=exact_cycles):
+                              reverse=reverse,
+                              print_broken_links=print_broken_links,
+                              exact_cycles=exact_cycles):
         if node.type != types.list_head_type.pointer():
             raise TypeError("Type {} found. Expected struct list_head *."
                             .format(str(node.type)))
