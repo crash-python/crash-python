@@ -82,9 +82,10 @@ def container_of(val, gdbtype, member):
     Args:
         val (gdb.Value): The value to be converted.  It can refer to an
             allocated structure or a pointer.
-        gdbtype (gdb.Type): The type of the object that will be generated
-        member (str): The name of the member in the target struct that
-            contains `val`.
+        gdbtype (gdb.Type, gdb.Value, str, gdb.Symbol):
+            The type of the object that will be generated
+        member (str):
+            The name of the member in the target struct that contains `val`.
 
     Returns:
         gdb.Value<gdbtype>: The converted object, of the type specified by
@@ -185,6 +186,7 @@ def resolve_type(val):
 
     Raises:
         TypeError: The object type of val is not valid
+        MissingTypeError: could not resolve the type from string argument
     """
     if isinstance(val, gdb.Type):
         gdbtype = val
@@ -337,6 +339,8 @@ def safe_lookup_type(name, block=None):
 
     Args:
         name (str): The name of the type to look up
+        block (gdb.Block, optional, default=None):
+            The block to use to resolve the type
 
     Returns:
         gdb.Type for requested type or None if it could not be found
@@ -352,6 +356,9 @@ def array_size(value):
 
     Args:
         value (gdb.Value): The array to size
+
+    Returns:
+        int: The number of elements in the array
     """
     return value.type.sizeof // value[0].type.sizeof
 
@@ -366,6 +373,9 @@ def get_typed_pointer(val, gdbtype):
 
     Returns:
         gdb.Value: The casted pointer of the requested type
+
+    Raises:
+        TypeError: string value for val does not describe a hex address
     """
     if gdbtype.code != gdb.TYPE_CODE_PTR:
         gdbtype = gdbtype.pointer()
@@ -386,6 +396,15 @@ def get_typed_pointer(val, gdbtype):
     return val
 
 def array_for_each(value):
+    """
+    Yields each element in an array separately
+
+    Args:
+        value (gdb.Value): The array to iterate
+
+    Yields:
+        gdb.Value: One element in the array at a time
+    """
     size = array_size(value)
     for i in range(array_size(value)):
         yield value[i]
