@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Iterable, Callable
+
 import gdb
 from crash.util import array_size, struct_has_member
 from crash.util.symbols import Types, Symvals, SymbolCallbacks
@@ -169,12 +171,10 @@ class BadTaskError(TypeError):
 class LinuxTask(object):
     task_struct_type = None
     mm_struct_fields = None
-    get_rss = None
-    get_stack_pointer_fn = None
     valid = False
 
     def __init__(self, task_struct, active=False, cpu=None, regs=None):
-        self.init_task_types(task_struct)
+        self._init_task_types(task_struct)
 
         if cpu is not None and not isinstance(cpu, int):
             raise TypeError("cpu must be integer or None")
@@ -200,7 +200,7 @@ class LinuxTask(object):
         self.pgd_addr = 0
 
     @classmethod
-    def init_task_types(cls, task):
+    def _init_task_types(cls, task):
         if not cls.valid:
             t = types.task_struct_type
             if task.type != t:
@@ -214,35 +214,78 @@ class LinuxTask(object):
             types.task_struct_type = task.type
             fields = types.task_struct_type.fields()
             cls.task_state_has_exit_state = 'exit_state' in fields
-            cls.pick_get_rss()
-            cls.pick_last_run()
+            cls._pick_get_rss()
+            cls._pick_last_run()
             cls.init_mm = get_value('init_mm')
             cls.valid = True
 
-    def attach_thread(self, thread):
+    def attach_thread(self, thread: gdb.InferiorThread) -> None:
+        """
+        Associate a gdb thread with this task
+
+        Args:
+            thread (gdb.InferiorThread):
+                The gdb thread to associate with this task
+        """
         if not isinstance(thread, gdb.InferiorThread):
             raise TypeError("Expected gdb.InferiorThread")
         self.thread = thread
 
-    def set_thread_info(self, thread_info):
+    def set_thread_info(self, thread_info: gdb.Value) -> None:
+        """
+        Set the thread info for this task
+
+        The thread info structure is architecture specific.  This method
+        allows the architecture code to assign its thread info structure
+        to this task.
+
+        Args:
+            gdb.Value<struct thread_info>:
+                The struct thread_info to be associated with this task
+        """
         self.thread_info = thread_info
 
-    def get_thread_info(self):
+    def get_thread_info(self) -> gdb.Value:
+        """
+        Get the thread info for this task
+
+        The thread info structure is architecture specific and so this
+        method abstracts its retreival.
+
+        Returns:
+            gdb.Value<struct thread_info>:
+                The struct thread_info associated with this task
+        """
         return self.thread_info
 
-    def get_last_cpu(self):
-        try:
-            return int(self.task_struct['cpu'])
-        except gdb.error as e:
-            return int(self.thread_info['cpu'])
+    def get_last_cpu(self) -> int:
+        """
+        Returns the last cpu this task was scheduled to execute on
 
+        Returns:
+            int: the last cpu this task was scheduled to execute on
+        """
+        if struct_has_member(self.task_struct, 'cpu'):
+            cpu = self.task_struct['cpu']
+        else:
+            cpu = self.thread_info['cpu']
+        return int(cpu)
+
+    # Hrm.  This seems broken since we're combining flags from
+    # two fields.
     def task_state(self):
         state = int(self.task_struct['state'])
         if self.task_state_has_exit_state:
             state |= int(self.task_struct['exit_state'])
         return state
 
-    def maybe_dead(self):
+    def maybe_dead(self) -> bool:
+        """
+        Returns whether this task is dead
+
+        Returns:
+            bool: whether this task is dead
+        """
         state = self.task_state()
 
         known = TF.TASK_INTERRUPTIBLE
@@ -254,19 +297,49 @@ class LinuxTask(object):
             known |= TF.TASK_SWAPPING
         return (state & known) == 0
 
-    def task_flags(self):
+    def task_flags(self) -> int:
+        """
+        Returns the flags for this task
+
+        Returns:
+            int: the flags for this task
+        """
         return int(self.task_struct['flags'])
 
-    def is_exiting(self):
-        return self.task_flags() & PF_EXITING
+    def is_exiting(self) -> bool:
+        """
+        Returns whether a task is exiting
 
-    def is_zombie(self):
-        return self.task_state() & TF.EXIT_ZOMBIE
+        Returns:
+            bool: whether the task is exiting
+        """
+        return (self.task_flags() & PF_EXITING) != 0
 
-    def is_thread_group_leader(self):
+    def is_zombie(self) -> bool:
+        """
+        Returns whether a task is in Zombie state
+
+        Returns:
+            bool: whether the task is in zombie state
+        """
+        return (self.task_state() & TF.EXIT_ZOMBIE) != 0
+
+    def is_thread_group_leader(self) -> bool:
+        """
+        Returns whether a task is a thread group leader
+
+        Returns:
+            bool: whether the task is a thread group leader
+        """
         return int(self.task_struct['exit_signal']) >= 0
 
-    def update_mem_usage(self):
+    def update_mem_usage(self) -> None:
+        """
+        Update the memory usage for this task
+
+        Tasks are created initially without their memory statistics.  This
+        method explicitly updates them.
+        """
         if self.mem_valid:
             return
 
@@ -283,20 +356,48 @@ class LinuxTask(object):
         self.pgd_addr = int(mm['pgd'])
         self.mem_valid = True
 
-    def task_name(self, brackets=False):
+    def task_name(self, brackets: bool=False) -> str:
+        """
+        Returns the `comm' field of this task
+
+        Args:
+            brackets: If this task is a kernel thread, surround the name
+                in square brackets
+
+        Returns:
+            str: the comm field of this task a python string
+        """
         name = self.task_struct['comm'].string()
         if brackets and self.is_kernel_task():
             return f"[{name}]"
         else:
             return name
 
-    def task_pid(self):
+    def task_pid(self) -> int:
+        """
+        Returns the pid of this task
+
+        Returns:
+            int: the pid of this task
+        """
         return int(self.task_struct['pid'])
 
-    def parent_pid(self):
+    def parent_pid(self) -> int:
+        """
+        Returns the pid of this task's parent
+
+        Returns:
+            int: the pid of this task's parent
+        """
         return int(self.task_struct['parent']['pid'])
 
-    def task_address(self):
+    def task_address(self) -> int:
+        """
+        Returns the address of the task_struct for this task
+
+        Returns:
+            int: the address of the task_struct
+        """
         return int(self.task_struct.address)
 
     def is_kernel_task(self):
@@ -314,20 +415,31 @@ class LinuxTask(object):
 
         return False
 
+    def get_stack_pointer_fn(self, task_struct: gdb.Value) -> int:
+        try:
+            fn = getattr(self, '_get_stack_pointer_fn')
+        except AttributeError as e:
+            raise NotImplementedError("Architecture hasn't provided stack pointer callback")
+
+        return fn(task_struct)
+
     @classmethod
-    def set_get_stack_pointer(cls, fn):
-        cls.get_stack_pointer_fn = fn
+    def set_get_stack_pointer(cls, fn: Callable[[gdb.Value], int]):
+        setattr(cls, '_get_stack_pointer_fn', fn)
 
-    def get_stack_pointer(self):
-        return self.get_stack_pointer_fn(self.task_struct['thread'])
+    def get_stack_pointer(self) -> int:
+        """
+        Get the stack pointer for this task
+        """
+        return int(self.get_stack_pointer_fn(self.task_struct['thread']))
 
-    def get_rss_field(self):
+    def _get_rss_field(self):
         return int(self.task_struct['mm']['rss'].value())
 
-    def get__rss_field(self):
+    def _get__rss_field(self):
         return int(self.task_struct['mm']['_rss'].value())
 
-    def get_rss_stat_field(self):
+    def _get_rss_stat_field(self):
         stat = self.task_struct['mm']['rss_stat']['count']
         stat0 = self.task_struct['mm']['rss_stat']['count'][0]
         rss = 0
@@ -335,7 +447,7 @@ class LinuxTask(object):
             rss += int(stat[i]['counter'])
         return rss
 
-    def get_anon_file_rss_fields(self):
+    def _get_anon_file_rss_fields(self):
         mm = self.task_struct['mm']
         rss = 0
         for name in cls.anon_file_rss_fields:
@@ -349,15 +461,15 @@ class LinuxTask(object):
     # dynamically.  We may do that eventually, but for now we can just
     # select the proper function and assign it to the class.
     @classmethod
-    def pick_get_rss(cls):
+    def _pick_get_rss(cls):
         if struct_has_member(types.mm_struct_type, 'rss'):
-            cls.get_rss = cls.get_rss_field
+            cls._get_rss = cls._get_rss_field
         elif struct_has_member(types.mm_struct_type, '_rss'):
-            cls.get_rss = cls.get__rss_field
+            cls._get_rss = cls._get__rss_field
         elif struct_has_member(types.mm_struct_type, 'rss_stat'):
             cls.MM_FILEPAGES = get_value('MM_FILEPAGES')
             cls.MM_ANONPAGES = get_value('MM_ANONPAGES')
-            cls.get_rss = cls.get_rss_stat_field
+            cls._get_rss = cls._get_rss_stat_field
         else:
             cls.anon_file_rss_fields = []
 
@@ -368,48 +480,96 @@ class LinuxTask(object):
                 cls.anon_file_rss_fields.append('_anon_rss')
 
             cls.atomic_long_type = gdb.lookup_type('atomic_long_t')
-            cls.get_rss = cls.get_anon_file_rss_fields
+            cls._get_rss = cls._get_anon_file_rss_fields
 
             if len(cls.anon_file_rss_fields):
                 raise RuntimeError("No method to retrieve RSS from task found.")
 
-    def last_run__last_run(self):
+    def _get_rss(self) -> int:
+       raise NotImplementedError("_get_rss not implemented")
+
+    def get_rss(self):
+        """
+        Return the resident set for this task
+
+        Returns:
+            int: the size of the resident memory set for this task
+        """
+        return self._get_rss()
+
+    def _last_run__last_run(self):
         return int(self.task_struct['last_run'])
 
-    def last_run__timestamp(self):
+    def _last_run__timestamp(self):
         return int(self.task_struct['timestamp'])
 
-    def last_run__last_arrival(self):
+    def _last_run__last_arrival(self):
         return int(self.task_struct['sched_info']['last_arrival'])
 
+    def _get_last_run(self) -> int:
+       raise NotImplementedError("_get_last_run not implemented")
+
     @classmethod
-    def pick_last_run(cls):
+    def _pick_last_run(cls):
         fields = types.task_struct_type.keys()
         if ('sched_info' in fields and
                 'last_arrival' in types.task_struct_type['sched_info'].type.keys()):
-            cls.last_run = cls.last_run__last_arrival
+            cls._get_last_run = cls._last_run__last_arrival
 
         elif 'last_run' in fields:
-            cls.last_run = cls.last_run__last_run
+            cls._get_last_run = cls._last_run__last_run
 
         elif 'timestamp' in fields:
-            cls.last_run = cls.last_run__timestamp
+            cls._get_last_run = cls._last_run__timestamp
         else:
             raise RuntimeError("No method to retrieve last run from task found.")
 
+    def last_run(self) -> int:
+        """
+        The timestamp of when this task was last run
+
+        Returns:
+            int: The timestamp of when this task was last run
+        """
+        return self._get_last_run()
+
 def for_each_thread_group_leader():
+    """
+    Iterate the task list and yield each thread group leader
+
+    Yields:
+        gdb.Value<struct task_struct>: The next task on the list
+    """
     task_list = symvals.init_task['tasks']
     for task in list_for_each_entry(task_list, symvals.init_task.type,
                                      'tasks', include_head=True):
         yield task
 
 def for_each_thread_in_group(task):
+    """
+    Iterate a thread group leader's thread list and
+    yield each struct task_struct
+
+    Args:
+        gdb.Value<struct task_struct>:
+            The task_struct that is the thread group leader.
+
+    Yields:
+        gdb.Value<struct task_struct>: The next task on the list
+    """
     thread_list = task['thread_group']
     for thread in list_for_each_entry(thread_list, symvals.init_task.type,
                                       'thread_group'):
         yield thread
 
-def for_each_all_tasks():
+def for_each_all_tasks() -> Iterable[gdb.Value]:
+    """
+    Iterate the task list and yield each task including any associated
+    thread tasks
+
+    Yields:
+        gdb.Value<struct task_struct>: The next task on the list
+    """
     for leader in for_each_thread_group_leader():
         yield leader
         for task in for_each_thread_in_group(leader):
