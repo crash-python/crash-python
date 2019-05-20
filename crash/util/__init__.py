@@ -366,6 +366,10 @@ def get_typed_pointer(val, gdbtype):
     """
     Returns a pointer to the requested type at the given address
 
+    If the val is passed as a gdb.Value, it will be casted to
+    the expected type.  If it is not a pointer, the address of the
+    value will be used instead.
+
     Args:
         val (gdb.Value, str, or int): The address for which to provide
             a casted pointer
@@ -380,10 +384,8 @@ def get_typed_pointer(val, gdbtype):
     if gdbtype.code != gdb.TYPE_CODE_PTR:
         gdbtype = gdbtype.pointer()
     if isinstance(val, gdb.Value):
-        if (val.type != gdbtype and
-            val.type != gdbtype.target()):
-            raise TypeError("gdb.Value must refer to {} not {}"
-                            .format(gdbtype, val.type))
+        if val.type.code != gdb.TYPE_CODE_PTR:
+            val = val.address
     elif isinstance(val, str):
         try:
             val = int(val, 16)
@@ -391,7 +393,9 @@ def get_typed_pointer(val, gdbtype):
             print(e)
             raise TypeError("string must describe hex address: ".format(e))
     if isinstance(val, int):
-        val = gdb.Value(val).cast(gdbtype).dereference()
+        val = gdb.Value(val).cast(gdbtype)
+    else:
+        val = val.cast(gdbtype)
 
     return val
 
