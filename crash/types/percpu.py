@@ -19,9 +19,20 @@ class PerCPUError(TypeError):
         super().__init__(self.fmt.format(var))
 
 SymbolOrValue = Union[gdb.Value, gdb.Symbol]
-PerCPUReturn = Union[gdb.Value, Dict[int, gdb.Value]]
 
 class TypesPerCPUClass(CrashBaseClass):
+    """
+    Per-cpus come in a few forms:
+    - "Array" of objects
+    - "Array" of pointers to objects
+    - Pointers to either of those
+
+    If we want to get the typing right, we need to recognize each one
+    and figure out what type to pass back.  We do want to dereference
+    pointer to a percpu but we don't want to dereference a percpu
+    pointer.
+    """
+
     __types__ = [ 'void *', 'char *', 'struct pcpu_chunk',
                   'struct percpu_counter' ]
     __symvals__ = [ '__per_cpu_offset', 'pcpu_base_addr', 'pcpu_slot',
@@ -236,100 +247,7 @@ class TypesPerCPUClass(CrashBaseClass):
             return True
         return False
 
-    def get_percpu_var_nocheck(self, var: SymbolOrValue, cpu: int=None,
-                               nr_cpus: int=None) -> PerCPUReturn:
-        """
-        Retrieve a per-cpu variable for one or all CPUs without performing
-        range checks
-
-        Per-cpus come in a few forms:
-        - "Array" of objects
-        - "Array" of pointers to objects
-        - Pointers to either of those
-
-        If we want to get the typing right, we need to recognize each one
-        and figure out what type to pass back.  We do want to dereference
-        pointer to a percpu but we don't want to dereference a percpu
-        pointer.
-
-        Args:
-            var (gdb.Symbol, gdb.MinSymbol, gdb.Value):
-                The value to use to resolve the percpu location
-            cpu (int, optional, default=None): The cpu for which to return
-                the per-cpu value.  A value of None will return a dictionary
-                of [cpu, value] for all CPUs.
-            nr_cpus(int, optional, default=None):
-
-        Returns:
-            gdb.Value<type>: If cpu is specified, the value corresponding to
-                the specified CPU.
-            dict(int, gdb.Value<type>): If cpu is not specified, the values
-                corresponding to every CPU in a dictionary indexed by CPU
-                number.
-
-        Raises:
-            TypeError: var is not gdb.Symbol or gdb.Value
-            ValueError: cpu is less than 0
-            ValueError: nr_cpus is less-or-equal to 0
-        """
-        if nr_cpus is None:
-            nr_cpus = self.last_cpu
-        if nr_cpus < 0:
-            raise ValueError("nr_cpus must be > 0")
-        if cpu is None:
-            vals = {}
-            for cpu in range(0, nr_cpus):
-                vals[cpu] = self.get_percpu_var_nocheck(var, cpu, nr_cpus)
-            return vals
-        elif cpu < 0:
-            raise ValueError("cpu must be >= 0")
-
-        addr = self.__per_cpu_offset[cpu]
-        if addr > 0:
-            addr += self._relocated_offset(var)
-
-        val = gdb.Value(addr).cast(var.type)
-        if var.type != self.void_p_type:
-            val = val.dereference()
-        return val
-
-    @export
-    def get_percpu_var(self, var: SymbolOrValue, cpu: int=None,
-                       nr_cpus: int=None) -> PerCPUReturn:
-        """
-        Retrieve a per-cpu variable for one or all CPUs
-
-        Per-cpus come in a few forms:
-        - "Array" of objects
-        - "Array" of pointers to objects
-        - Pointers to either of those
-
-        If we want to get the typing right, we need to recognize each one
-        and figure out what type to pass back.  We do want to dereference
-        pointer to a percpu but we don't want to dereference a percpu
-        pointer.
-
-        Args:
-            var (gdb.Symbol, gdb.MinSymbol, gdb.Value):
-                The value to use to resolve the percpu location
-            cpu (int, optional, default=None): The cpu for which to return
-                the per-cpu value.  A value of None will return a dictionary
-                of [cpu, value] for all CPUs.
-            nr_cpus(int, optional, default=None):
-
-        Returns:
-            gdb.Value<type>: If cpu is specified, the value corresponding to
-                the specified CPU.
-            dict(int, gdb.Value<type>): If cpu is not specified, the values
-                corresponding to every CPU in a dictionary indexed by CPU
-                number.
-
-        Raises:
-            TypeError: var is not gdb.Symbol or gdb.Value
-            PerCPUError: var does not fall into any percpu range
-            ValueError: cpu is less than 0
-            ValueError: nr_cpus is less-or-equal to 0
-        """
+    def _resolve_percpu_var(self, var):
         orig_var = var
         if isinstance(var, gdb.Symbol) or isinstance(var, gdb.MinSymbol):
             var = var.value()
@@ -342,7 +260,7 @@ class TypesPerCPUClass(CrashBaseClass):
                 var = var.address
             # Pointer to a percpu
             elif self.is_percpu_var(var):
-                if var.type != self.void_p_type:
+                if var.type != types.void_p_type:
                         var = var.dereference().address
                 assert(self.is_percpu_var(var))
             else:
@@ -353,4 +271,74 @@ class TypesPerCPUClass(CrashBaseClass):
         else:
             raise PerCPUError(orig_var)
 
-        return self.get_percpu_var_nocheck(var, cpu, nr_cpus)
+        return var
+
+    def _get_percpu_var(self, var: SymbolOrValue, cpu: int) -> gdb.Value:
+        if cpu < 0:
+            raise ValueError("cpu must be >= 0")
+
+        addr = self.__per_cpu_offset[cpu]
+        if addr > 0:
+            addr += self._relocated_offset(var)
+
+        val = gdb.Value(addr).cast(var.type)
+        if var.type != self.void_p_type:
+            val = val.dereference()
+        return val
+
+    @export
+    def get_percpu_var(self, var: SymbolOrValue, cpu: int) -> gdb.Value:
+        """
+        Retrieve a per-cpu variable for a single CPU
+
+        Args:
+            var (gdb.Symbol, gdb.MinSymbol, gdb.Value):
+                The value to use to resolve the percpu location
+            cpu (int): The cpu for which to return the per-cpu value.
+
+        Returns:
+            gdb.Value<type>: If cpu is specified, the value corresponding to
+                the specified CPU.
+
+        Raises:
+            TypeError: var is not gdb.Symbol or gdb.Value
+            PerCPUError: var does not fall into any percpu range
+            ValueError: cpu is less than 0
+        """
+        var = self._resolve_percpu_var(var)
+        return self._get_percpu_var(var, cpu)
+
+    @export
+    def get_percpu_vars(self, var: SymbolOrValue,
+                        nr_cpus: int=None) -> Dict[int, gdb.Value]:
+        """
+        Retrieve a per-cpu variable for all CPUs
+
+        Args:
+            var (gdb.Symbol, gdb.MinSymbol, gdb.Value):
+                The value to use to resolve the percpu location
+            nr_cpus(int, optional, default=None): The number of CPUs to
+                return results for.  None (or unspecified) will use
+                the highest possible CPU count.
+
+        Returns:
+            dict(int, gdb.Value<type>): The values corresponding to every CPU
+                in a dictionary indexed by CPU number.
+
+        Raises:
+            TypeError: var is not gdb.Symbol or gdb.Value
+            PerCPUError: var does not fall into any percpu range
+            ValueError: nr_cpus is <= 0
+        """
+        if nr_cpus is None:
+            nr_cpus = self.last_cpu
+
+        if nr_cpus <= 0:
+            raise ValueError("nr_cpus must be > 0")
+
+        vals = dict()
+
+        var = self._resolve_percpu_var(var)
+        for cpu in range(0, nr_cpus):
+            vals[cpu] = self._get_percpu_var(var, cpu)
+        return vals

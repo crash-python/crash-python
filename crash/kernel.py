@@ -9,7 +9,7 @@ import crash.arch.x86_64
 import crash.arch.ppc64
 from crash.infra import CrashBaseClass, export
 from crash.types.list import list_for_each_entry
-from crash.types.percpu import get_percpu_var
+from crash.types.percpu import get_percpu_vars
 from crash.types.list import list_for_each_entry
 from crash.types.module import for_each_module, for_each_module_section
 import crash.cache.tasks
@@ -149,7 +149,7 @@ class CrashKernel(CrashBaseClass):
 
         task_list = self.init_task['tasks']
 
-        rqs = get_percpu_var(self.runqueues)
+        rqs = get_percpu_vars(self.runqueues)
         rqscurrs = {int(x["curr"]) : k for (k, x) in rqs.items()}
 
         self.pid_to_task_struct = {}
