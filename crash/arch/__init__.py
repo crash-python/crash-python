@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import List
+
 import gdb
 
 class CrashArchitecture(object):
     ident = "base-class"
-    aliases = None
+    aliases: List[str] = list()
     def __init__(self):
         pass
 

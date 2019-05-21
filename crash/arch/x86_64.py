@@ -33,12 +33,13 @@ class x86_64Architecture(CrashArchitecture):
         # Stop stack traces with addresses below this
         self.filter = KernelFrameFilter(0xffff000000000000)
 
-    def setup_thread_info(self, thread):
+    def setup_thread_info(self, thread: gdb.InferiorThread) -> None:
         task = thread.info.task_struct
         thread_info = task['stack'].cast(self.thread_info_p_type)
         thread.info.set_thread_info(thread_info)
 
-    def fetch_register_active(self, thread, register):
+    def fetch_register_active(self, thread: gdb.InferiorThread,
+                              register: gdb.Register) -> None:
         task = thread.info
         for reg in task.regs:
             if reg == "rip" and (register != 16 and register != -1):
@@ -48,7 +49,8 @@ class x86_64Architecture(CrashArchitecture):
             except KeyError as e:
                 pass
 
-    def fetch_register_scheduled_inactive(self, thread, register):
+    def fetch_register_scheduled_inactive(self, thread: gdb.InferiorThread,
+                                          register: gdb.Register) -> None:
         ulong_type = self.ulong_type
         task = thread.info.task_struct
 
@@ -61,7 +63,7 @@ class x86_64Architecture(CrashArchitecture):
         if register == 16 or register == -1:
             thread.registers['rip'].value = frame['ret_addr']
             if register == 16:
-                return True
+                return
 
         thread.registers['rbp'].value = frame['bp']
         thread.registers['rbx'].value = frame['bx']
@@ -75,7 +77,8 @@ class x86_64Architecture(CrashArchitecture):
         thread.info.stack_pointer = rsp
         thread.info.valid_stack = True
 
-    def fetch_register_scheduled_thread_return(self, thread, register):
+    def fetch_register_scheduled_thread_return(self, thread: gdb.InferiorThread,
+                                               register: gdb.Register):
         ulong_type = self.ulong_type
         task = thread.info.task_struct
 
@@ -114,7 +117,7 @@ class x86_64Architecture(CrashArchitecture):
         thread.info.valid_stack = True
 
     @classmethod
-    def get_stack_pointer(cls, thread_struct):
+    def get_stack_pointer(cls, thread_struct: gdb.Value) -> gdb.Value:
         return thread_struct['sp']
 
 register(x86_64Architecture)

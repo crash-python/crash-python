@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Union
+from typing import Union, Tuple, List, Iterator, Dict
 
 import gdb
 import uuid
@@ -11,6 +11,7 @@ from crash.util.symbols import Types
 from crash.exceptions import MissingTypeError, MissingSymbolError
 
 TypeSpecifier = Union [ gdb.Type, gdb.Value, str, gdb.Symbol ]
+AddressSpecifier = Union [ gdb.Value, str, int ]
 
 class OffsetOfError(Exception):
     """Generic Exception for offsetof errors"""
@@ -74,7 +75,7 @@ class _InvalidComponentNameError(_InvalidComponentBaseError):
 
 types = Types([ 'char *', 'uuid_t' ])
 
-def container_of(val, gdbtype, member):
+def container_of(val: gdb.Value, gdbtype: TypeSpecifier, member) -> gdb.Value:
     """
     Returns an object that contains the specified object at the given
     offset.
@@ -131,7 +132,8 @@ def struct_has_member(gdbtype: TypeSpecifier, name: str) -> bool:
     except InvalidComponentError:
         return False
 
-def get_symbol_value(symname, block=None, domain=None):
+def get_symbol_value(symname: str, block: gdb.Block=None,
+                     domain: int=None) -> gdb.Value:
     """
     Returns the value associated with a named symbol
 
@@ -153,7 +155,8 @@ def get_symbol_value(symname, block=None, domain=None):
         return sym.value()
     raise MissingSymbolError("Cannot locate symbol {}".format(symname))
 
-def safe_get_symbol_value(symname, block=None, domain=None):
+def safe_get_symbol_value(symname: str, block: gdb.Block=None,
+                          domain: int=None) -> gdb.Value:
     """
     Returns the value associated with a named symbol
 
@@ -173,7 +176,7 @@ def safe_get_symbol_value(symname, block=None, domain=None):
     except MissingSymbolError:
         return None
 
-def resolve_type(val):
+def resolve_type(val: TypeSpecifier) -> gdb.Type:
     """
     Resolves a gdb.Type given a type, value, string, or symbol
 
@@ -238,7 +241,8 @@ def __offsetof(val, spec, error):
 
     return (offset, gdbtype)
 
-def offsetof_type(val, spec, error=True):
+def offsetof_type(val: TypeSpecifier, spec: str,
+                  error: bool=True) -> Union[Tuple[int, gdb.Type], None]:
     """
     Returns the offset and type of a named member of a structure
 
@@ -285,7 +289,8 @@ def offsetof_type(val, spec, error=True):
         else:
             return None
 
-def offsetof(val, spec, error=True):
+def offsetof(val: TypeSpecifier, spec: str,
+             error: bool=True) -> Union[int, None]:
     """
     Returns the offset of a named member of a structure
 
@@ -309,7 +314,7 @@ def offsetof(val, spec, error=True):
         return res[0]
     return None
 
-def find_member_variant(gdbtype, variants):
+def find_member_variant(gdbtype: TypeSpecifier, variants: List[str]) -> str:
     """
     Examines the given type and returns the first found member name
 
@@ -333,7 +338,7 @@ def find_member_variant(gdbtype, variants):
     raise TypeError("Unrecognized '{}': could not find member '{}'"
                     .format(str(gdbtype), variants[0]))
 
-def safe_lookup_type(name, block=None):
+def safe_lookup_type(name: str, block: gdb.Block=None) -> Union[gdb.Type, None]:
     """
     Looks up a gdb.Type without throwing an exception on failure
 
@@ -350,7 +355,7 @@ def safe_lookup_type(name, block=None):
     except gdb.error:
         return None
 
-def array_size(value):
+def array_size(value: gdb.Value) -> int:
     """
     Returns the number of elements in an array
 
@@ -362,7 +367,7 @@ def array_size(value):
     """
     return value.type.sizeof // value[0].type.sizeof
 
-def get_typed_pointer(val, gdbtype):
+def get_typed_pointer(val: AddressSpecifier, gdbtype: gdb.Type) -> gdb.Type:
     """
     Returns a pointer to the requested type at the given address
 
@@ -399,7 +404,7 @@ def get_typed_pointer(val, gdbtype):
 
     return val
 
-def array_for_each(value):
+def array_for_each(value: gdb.Value) -> Iterator[gdb.Value]:
     """
     Yields each element in an array separately
 

@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Dict
+
 from math import log, ceil
 import gdb
 from crash.util import container_of, find_member_variant
@@ -22,7 +24,7 @@ class Page(object):
     vmemmap_base = 0xffffea0000000000
     vmemmap = None
     directmap_base = 0xffff880000000000
-    pageflags = dict()
+    pageflags: Dict[str, int] = dict()
 
     PG_tail = None
     PG_slab = None
@@ -36,6 +38,8 @@ class Page(object):
     NODES_WIDTH = None
     # TODO have arch provide this?
     BITS_PER_LONG = None
+
+    PAGE_SIZE = 4096
 
     sparsemem = False
 

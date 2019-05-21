@@ -40,7 +40,7 @@ def for_each_bio_in_stack(bio: gdb.Value) -> Iterable[decoders.Decoder]:
         yield decoder
         decoder = next(decoder)
 
-def dev_to_gendisk(dev):
+def dev_to_gendisk(dev: gdb.Value) -> gdb.Value:
     """
     Converts a struct device that is embedded in a struct gendisk
     back to the struct gendisk.
@@ -55,7 +55,7 @@ def dev_to_gendisk(dev):
     """
     return container_of(dev, types.gendisk_type, 'part0.__dev')
 
-def dev_to_part(dev):
+def dev_to_part(dev: gdb.Value) -> gdb.Value:
     """
     Converts a struct device that is embedded in a struct hd_struct
     back to the struct hd_struct.
@@ -71,7 +71,7 @@ def dev_to_part(dev):
     """
     return container_of(dev, types.hd_struct_type, '__dev')
 
-def gendisk_to_dev(gendisk):
+def gendisk_to_dev(gendisk: gdb.Value) -> gdb.Value:
     """
     Converts a struct gendisk that embeds a struct device to
     the struct device.
@@ -87,7 +87,7 @@ def gendisk_to_dev(gendisk):
 
     return gendisk['part0']['__dev'].address
 
-def part_to_dev(part):
+def part_to_dev(part: gdb.Value) -> gdb.Value:
     """
     Converts a struct hd_struct that embeds a struct device to
     the struct device.
@@ -147,7 +147,7 @@ def for_each_block_device(subtype: gdb.Value=None) -> Iterable[gdb.Value]:
             raise RuntimeError("Encountered unexpected device type {}"
                                .format(dev['type']))
 
-def for_each_disk():
+def for_each_disk() -> Iterable[gdb.Value]:
     """
     Iterates over each block device registered with the block class
     that corresponds to an entire disk.
@@ -157,7 +157,7 @@ def for_each_disk():
 
     return for_each_block_device(symvals.disk_type)
 
-def gendisk_name(gendisk):
+def gendisk_name(gendisk: gdb.Value) -> str:
     """
     Returns the name of the provided block device.
 
@@ -189,7 +189,7 @@ def gendisk_name(gendisk):
                         .format(types.gendisk_type, types.hd_struct_type,
                         gendisk.type.unqualified()))
 
-def block_device_name(bdev):
+def block_device_name(bdev: gdb.Value) -> str:
     """
     Returns the name of the provided block device.
 
@@ -205,7 +205,7 @@ def block_device_name(bdev):
     """
     return gendisk_name(bdev['bd_disk'])
 
-def is_bdev_inode(inode):
+def is_bdev_inode(inode: gdb.Value) -> bool:
     """
     Tests whether the provided struct inode describes a block device
 
@@ -221,7 +221,7 @@ def is_bdev_inode(inode):
     """
     return inode['i_sb'] == symvals.blockdev_superblock
 
-def inode_to_block_device(inode):
+def inode_to_block_device(inode: gdb.Value) -> gdb.Value:
     """
     Returns the block device associated with this inode.
 
@@ -243,7 +243,7 @@ def inode_to_block_device(inode):
         raise TypeError("inode does not correspond to block device")
     return container_of(inode, types.bdev_inode_type, 'vfs_inode')['bdev']
 
-def inode_on_bdev(inode):
+def inode_on_bdev(inode: gdb.Value) -> gdb.Value:
     """
     Returns the block device associated with this inode.
 
