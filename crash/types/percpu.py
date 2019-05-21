@@ -20,7 +20,6 @@ class PerCPUError(TypeError):
         super().__init__(self._fmt.format(var))
 
 SymbolOrValue = Union[gdb.Value, gdb.Symbol]
-PerCPUReturn = Union[gdb.Value, Dict[int, gdb.Value]]
 
 class TypesPerCPUClass(CrashBaseClass):
     """
@@ -248,87 +247,7 @@ class TypesPerCPUClass(CrashBaseClass):
             return True
         return False
 
-    def get_percpu_var_nocheck(self, var: SymbolOrValue, cpu: int=None,
-                               nr_cpus: int=None) -> PerCPUReturn:
-        """
-        Retrieve a per-cpu variable for one or all CPUs without performing
-        range checks
-
-        Args:
-            var: The symbol or value to use to resolve the percpu location
-            cpu (optional): The cpu for which to return the per-cpu value.
-                A value of None will return a dictionary of [cpu, value]
-                for all CPUs.
-            nr_cpus(optional): The count of CPUs for which to return values.
-                :obj:`None` or unspecified will use the highest possible
-                CPU count.
-
-        Returns:
-            :obj:`gdb.Value`: If cpu is specified, the value corresponding to
-                the specified CPU.  The value is of the same type passed via
-                var.
-            :obj:`dict`(:obj:`int`, :obj:`gdb.Value`): If cpu is not specified,
-                the values corresponding to every CPU in a dictionary indexed by CPU
-                number.  The type of the :obj:`gdb.Value` used as the
-                :obj:`dict` value is the same type as the :obj:`gdb.Value`
-                or :obj:`gdb.Symbol` passed via var.
-
-        Raises:
-            :obj:`TypeError`: var is not :obj:`gdb.Symbol` or :obj:`gdb.Value`
-            :obj:`ValueError`: cpu is less than ``0``
-            :obj:`ValueError`: nr_cpus is less-or-equal to ``0``
-        """
-        if nr_cpus is None:
-            nr_cpus = self._last_cpu
-        if nr_cpus < 0:
-            raise ValueError("nr_cpus must be > 0")
-        if cpu is None:
-            vals = {}
-            for cpu in range(0, nr_cpus):
-                vals[cpu] = self.get_percpu_var_nocheck(var, cpu, nr_cpus)
-            return vals
-        elif cpu < 0:
-            raise ValueError("cpu must be >= 0")
-
-        addr = self.__per_cpu_offset[cpu]
-        if addr > 0:
-            addr += self._relocated_offset(var)
-
-        val = gdb.Value(addr).cast(var.type)
-        if var.type != self.void_p_type:
-            val = val.dereference()
-        return val
-
-    @export
-    def get_percpu_var(self, var: SymbolOrValue, cpu: int=None,
-                       nr_cpus: int=None) -> PerCPUReturn:
-        """
-        Retrieve a per-cpu variable for one or all CPUs 
-
-        Args:
-            var: The symbol or value to use to resolve the percpu location
-            cpu (optional): The cpu for which to return the per-cpu value.
-                A value of None will return a dictionary of [cpu, value]
-                for all CPUs.
-            nr_cpus(optional): The count of CPUs for which to return values.
-                :obj:`None` or unspecified will use the highest possible
-                CPU count.
-
-        Returns:
-            :obj:`gdb.Value`: If cpu is specified, the value corresponding to
-                the specified CPU.  The value is of the same type passed via
-                var.
-            :obj:`dict`(:obj:`int`, :obj:`gdb.Value`): If cpu is not specified,
-                the values corresponding to every CPU in a dictionary indexed by CPU
-                number.  The type of the :obj:`gdb.Value` used as the
-                :obj:`dict` value is the same type as the :obj:`gdb.Value`
-                or :obj:`gdb.Symbol` passed via var.
-
-        Raises:
-            :obj:`TypeError`: var is not :obj:`gdb.Symbol` or :obj:`gdb.Value`
-            :obj:`ValueError`: cpu is less than ``0``
-            :obj:`ValueError`: nr_cpus is less-or-equal to ``0``
-        """
+    def _resolve_percpu_var(self, var):
         orig_var = var
         if isinstance(var, gdb.Symbol) or isinstance(var, gdb.MinSymbol):
             var = var.value()
@@ -341,7 +260,7 @@ class TypesPerCPUClass(CrashBaseClass):
                 var = var.address
             # Pointer to a percpu
             elif self.is_percpu_var(var):
-                if var.type != self.void_p_type:
+                if var.type != types.void_p_type:
                         var = var.dereference().address
                 assert(self.is_percpu_var(var))
             else:
@@ -352,4 +271,74 @@ class TypesPerCPUClass(CrashBaseClass):
         else:
             raise PerCPUError(orig_var)
 
-        return self.get_percpu_var_nocheck(var, cpu, nr_cpus)
+        return var
+
+    def _get_percpu_var(self, var: SymbolOrValue, cpu: int) -> gdb.Value:
+        if cpu < 0:
+            raise ValueError("cpu must be >= 0")
+
+        addr = self.__per_cpu_offset[cpu]
+        if addr > 0:
+            addr += self._relocated_offset(var)
+
+        val = gdb.Value(addr).cast(var.type)
+        if var.type != self.void_p_type:
+            val = val.dereference()
+        return val
+
+    @export
+    def get_percpu_var(self, var: SymbolOrValue, cpu: int) -> gdb.Value:
+        """
+        Retrieve a per-cpu variable for one or all CPUs 
+
+        Args:
+            var: The symbol or value to use to resolve the percpu location
+            cpu: The cpu for which to return the per-cpu value.
+
+        Returns:
+            :obj:`gdb.Value`: The value corresponding to the specified CPU.
+            The value is of the same type passed via var.
+
+        Raises:
+            :obj:`TypeError`: var is not :obj:`gdb.Symbol` or :obj:`gdb.Value`
+            :obj:`.PerCPUError`: var does not fall into any percpu range
+            :obj:`ValueError`: cpu is less than ``0``
+        """
+        var = self._resolve_percpu_var(var)
+        return self._get_percpu_var(var, cpu)
+
+    @export
+    def get_percpu_vars(self, var: SymbolOrValue,
+                        nr_cpus: int=None) -> Dict[int, gdb.Value]:
+        """
+        Retrieve a per-cpu variable for all CPUs
+
+        Args:
+            var: The symbol or value to use to resolve the percpu location
+            nr_cpus (optional): The number of CPUs for which to return results
+                ``None`` (or unspecified) will use the highest possible
+                CPU count.
+
+        Returns:
+            :obj:`dict`(:obj:`int`, :obj:`gdb.Value`): The values corresponding
+            to every CPU in a dictionary indexed by CPU number.  The type of the
+            :obj:`gdb.Value` used as the :obj:`dict` value is the same type as
+            the :obj:`gdb.Value` or :obj:`gdb.Symbol` passed as var.
+
+        Raises:
+            :obj:`TypeError`: var is not ``gdb.Symbol`` or ``gdb.Value``
+            :obj:`.PerCPUError`: var does not fall into any percpu range
+            :obj:`ValueError`: nr_cpus is <= ``0``
+        """
+        if nr_cpus is None:
+            nr_cpus = self.last_cpu
+
+        if nr_cpus <= 0:
+            raise ValueError("nr_cpus must be > 0")
+
+        vals = dict()
+
+        var = self._resolve_percpu_var(var)
+        for cpu in range(0, nr_cpus):
+            vals[cpu] = self._get_percpu_var(var, cpu)
+        return vals
