@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Iterable, Tuple
+
 import gdb
 
 from crash.util.symbols import Types
@@ -12,7 +14,7 @@ class NoQueueError(RuntimeError):
 
 types = Types([ 'struct request' ])
 
-def for_each_request_in_queue(queue):
+def for_each_request_in_queue(queue: gdb.Value) -> Iterable[gdb.Value]:
     """
     Iterates over each struct request in request_queue
 
@@ -32,7 +34,7 @@ def for_each_request_in_queue(queue):
     return list_for_each_entry(queue['queue_head'], types.request_type,
                                'queuelist')
 
-def request_age_ms(request):
+def request_age_ms(request: gdb.Value) -> int:
     """
     Returns the age of the request in milliseconds
 
@@ -49,7 +51,7 @@ def request_age_ms(request):
     """
     return kernel.jiffies_to_msec(kernel.jiffies - request['start_time'])
 
-def requests_in_flight(queue):
+def requests_in_flight(queue: gdb.Value) -> Tuple[int, int]:
     """
     Report how many requests are in flight for this queue
 

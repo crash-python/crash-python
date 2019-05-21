@@ -3,7 +3,9 @@
 
 import gdb
 
+from argparse import Namespace
 from crash.commands import Command, ArgumentParser
+from crash.types.task import LinuxTask
 from crash.subsystem.filesystem.mount import MNT_NOSUID, MNT_NODEV, MNT_NOEXEC
 from crash.subsystem.filesystem.mount import MNT_NOATIME, MNT_NODIRATIME
 from crash.subsystem.filesystem.mount import MNT_RELATIME, MNT_READONLY
@@ -49,7 +51,8 @@ NAME
         for mnt in for_each_mount():
             self.show_one_mount(mnt, args)
 
-    def show_one_mount(self, mnt, args, task=None):
+    def show_one_mount(self, mnt: gdb.Value, args: Namespace,
+                       task: LinuxTask=None) -> None:
         if mnt.type.code == gdb.TYPE_CODE_PTR:
             mnt = mnt.dereference()
 
