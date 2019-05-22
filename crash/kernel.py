@@ -301,9 +301,10 @@ class CrashKernel(object):
         self.arch = archclass()
 
         self.target = gdb.current_target()
-        self.vmcore = self.target.kdump
+        if self.target.shortname == 'kdumpfile':
+            self.vmcore = self.target.kdump
+            self.target.fetch_registers = self.fetch_registers
 
-        self.target.fetch_registers = self.fetch_registers
         self.crashing_thread = None
 
     # When working without a symbol table, we still need to be able
@@ -619,7 +620,7 @@ class CrashKernel(object):
             cpu = None
             regs = None
             active = int(task.address) in rqscurrs
-            if active:
+            if active and self.target.shortname == 'kdumpfile':
                 cpu = rqscurrs[int(task.address)]
                 regs = self.vmcore.attr.cpu[cpu].reg
 
@@ -636,6 +637,10 @@ class CrashKernel(object):
                 self.crashing_thread = thread
 
             self.arch.setup_thread_info(thread)
+
+            if not active:
+                self.arch.fetch_register_scheduled_inactive(thread, -1)
+
             ltask.attach_thread(thread)
             ltask.set_get_stack_pointer(self.arch.get_stack_pointer)
 
