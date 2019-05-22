@@ -85,7 +85,7 @@ def gendisk_to_dev(gendisk: gdb.Value) -> gdb.Value:
         gdb.Value<struct device>: The converted struct device
     """
 
-    return gendisk['part0']['__dev'].address
+    return gendisk['part0']['__dev']
 
 def part_to_dev(part: gdb.Value) -> gdb.Value:
     """
@@ -100,7 +100,7 @@ def part_to_dev(part: gdb.Value) -> gdb.Value:
     Returns:
         gdb.Value<struct device>: The converted struct device
     """
-    return part['__dev'].address
+    return part['__dev']
 
 
 def for_each_block_device(subtype: gdb.Value=None) -> Iterable[gdb.Value]:
@@ -118,7 +118,7 @@ def for_each_block_device(subtype: gdb.Value=None) -> Iterable[gdb.Value]:
     Args:
         subtype (gdb.Value<struct device_type>, optional): The struct
             device_type that will be used to match and filter.  Typically
-            'disk_type' or 'device_type'
+            'disk_type' or 'part_type'
 
     Yields:
         gdb.Value<struct gendisk> or
@@ -127,8 +127,9 @@ def for_each_block_device(subtype: gdb.Value=None) -> Iterable[gdb.Value]:
             the filter criteria.
 
     Raises:
-        RuntimeError: An unknown device type was encountered during
-            iteration.
+        RuntimeError: An unknown device type was encountered during iteration.
+        TypeError: The provided subtype was not of `struct device_type' or
+            `struct device type *'
     """
 
     if subtype:
@@ -205,6 +206,7 @@ def block_device_name(bdev: gdb.Value) -> str:
     """
     return gendisk_name(bdev['bd_disk'])
 
+
 def is_bdev_inode(inode: gdb.Value) -> bool:
     """
     Tests whether the provided struct inode describes a block device
@@ -262,7 +264,7 @@ def inode_on_bdev(inode: gdb.Value) -> gdb.Value:
     if is_bdev_inode(inode):
         return inode_to_block_device(inode)
     else:
-        return inode['i_sb']['s_bdev']
+        return inode['i_sb']['s_bdev'].dereference()
 
 def _check_types(result):
     try:
