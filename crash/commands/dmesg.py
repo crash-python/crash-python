@@ -6,7 +6,7 @@ import os.path
 import argparse
 import re
 
-from crash.commands import Command, ArgumentParser
+from crash.commands import Command, ArgumentParser, CommandError
 from crash.exceptions import DelayedAttributeError
 from crash.util.symbols import Types, Symvals
 
@@ -262,7 +262,7 @@ EXAMPLES
         except LogTypeException as lte:
             pass
         except LogInvalidOption as lio:
-            raise gdb.GdbError(str(lio))
+            raise CommandError(str(lio))
 
         print("Can't find valid log")
 
