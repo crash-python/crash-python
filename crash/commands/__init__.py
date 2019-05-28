@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Dict
+
 import gdb
 
 import os
@@ -21,7 +23,7 @@ class ArgumentParser(argparse.ArgumentParser):
         raise CommandLineError(message)
 
 class Command(gdb.Command):
-    commands = {}
+    commands: Dict[str, gdb.Command] = dict()
     def __init__(self, name, parser=None):
         self.name = "py" + name
         if parser is None:

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Union
+from typing import Union, Tuple, List, Iterator, Dict
 
 import gdb
 import uuid
@@ -12,6 +12,7 @@ from crash.exceptions import MissingTypeError, MissingSymbolError
 from crash.exceptions import ArgumentTypeError, NotStructOrUnionError
 
 TypeSpecifier = Union [ gdb.Type, gdb.Value, str, gdb.Symbol ]
+AddressSpecifier = Union [ gdb.Value, str, int ]
 
 class InvalidComponentError(LookupError):
     """An error occured while resolving the member specification"""
@@ -49,7 +50,7 @@ class _InvalidComponentNameError(_InvalidComponentBaseError):
 
 types = Types([ 'char *', 'uuid_t' ])
 
-def container_of(val, gdbtype, member):
+def container_of(val: gdb.Value, gdbtype: gdb.Type, member) -> gdb.Value:
     """
     Returns an object that contains the specified object at the given
     offset.
@@ -57,8 +58,7 @@ def container_of(val, gdbtype, member):
     Args:
         val (gdb.Value): The value to be converted.  It can refer to an
             allocated structure or a pointer.
-        gdbtype (gdb.Type, gdb.Value, str, gdb.Symbol):
-            The type of the object that will be generated
+        gdbtype (gdb.Type): The type of the object that will be generated
         member (str):
             The name of the member in the target struct that contains `val`.
 
@@ -70,10 +70,11 @@ def container_of(val, gdbtype, member):
     """
     if not isinstance(val, gdb.Value):
         raise ArgumentTypeError('val', type(val), gdb.Value)
+    if not isinstance(gdbtype, gdb.Type):
+        raise ArgumentTypeError('gdbtype', type(gdbtype), gdb.Type)
     charp = types.char_p_type
     if val.type.code != gdb.TYPE_CODE_PTR:
         val = val.address
-    gdbtype = resolve_type(gdbtype)
     offset = offsetof(gdbtype, member)
     return (val.cast(charp) - offset).cast(gdbtype.pointer()).dereference()
 
@@ -100,13 +101,15 @@ def struct_has_member(gdbtype: TypeSpecifier, name: str) -> bool:
         TypeError: An invalid argument has been provided.
 
     """
+    gdbtype = resolve_type(gdbtype)
     try:
         x = offsetof(gdbtype, name)
         return True
     except InvalidComponentError:
         return False
 
-def get_symbol_value(symname, block=None, domain=None):
+def get_symbol_value(symname: str, block: gdb.Block=None,
+                     domain: int=None) -> gdb.Value:
     """
     Returns the value associated with a named symbol
 
@@ -128,7 +131,8 @@ def get_symbol_value(symname, block=None, domain=None):
         return sym.value()
     raise MissingSymbolError("Cannot locate symbol {}".format(symname))
 
-def safe_get_symbol_value(symname, block=None, domain=None):
+def safe_get_symbol_value(symname: str, block: gdb.Block=None,
+                          domain: int=None) -> gdb.Value:
     """
     Returns the value associated with a named symbol
 
@@ -148,7 +152,7 @@ def safe_get_symbol_value(symname, block=None, domain=None):
     except MissingSymbolError:
         return None
 
-def resolve_type(val):
+def resolve_type(val: TypeSpecifier) -> gdb.Type:
     """
     Resolves a gdb.Type given a type, value, string, or symbol
 
@@ -213,14 +217,15 @@ def __offsetof(val, spec, error):
 
     return (offset, gdbtype)
 
-def offsetof_type(val, spec, error=True):
+def offsetof_type(gdbtype: gdb.Type, member_name: str,
+                  error: bool=True) -> Union[Tuple[int, gdb.Type], None]:
     """
     Returns the offset and type of a named member of a structure
 
     Args:
-        val (gdb.Type, gdb.Symbol, gdb.Value, or str): The type that
-            contains the specified member, must be a struct or union
-        spec (str): The member of the member to resolve
+        gdbtype (gdb.Type): The type that contains the specified member,
+            must be a struct or union
+        member_name (str): The member of the member to resolve
         error (bool, optional, default=True): Whether to consider lookup
             failures an error
 
@@ -230,17 +235,9 @@ def offsetof_type(val, spec, error=True):
             gdb.Type: The type of the resolved member
 
     Raises:
-        ArgumentTypeError: val is not of type gdb.Type
-        InvalidComponentError: spec is not valid for the type
+        ArgumentTypeError: gdbtype is not of type gdb.Type
+        InvalidComponentError: member_name is not valid for the type
     """
-    gdbtype = None
-    try:
-        gdbtype = resolve_type(val)
-    except MissingTypeError as e:
-        pass
-    except TypeError as e:
-        pass
-
     if not isinstance(gdbtype, gdb.Type):
         raise ArgumentTypeError('gdbtype', gdbtype, gdb.Type)
 
@@ -253,21 +250,22 @@ def offsetof_type(val, spec, error=True):
         raise NotStructOrUnionError('gdbtype', gdbtype)
 
     try:
-        return __offsetof(gdbtype, spec, error)
+        return __offsetof(gdbtype, member_name, error)
     except _InvalidComponentBaseError as e:
         if error:
-            raise InvalidComponentError(gdbtype, spec, str(e))
+            raise InvalidComponentError(gdbtype, member_name, str(e))
         else:
             return None
 
-def offsetof(val, spec, error=True):
+def offsetof(gdbtype: gdb.Type, member_name: str,
+             error: bool=True) -> Union[int, None]:
     """
     Returns the offset of a named member of a structure
 
     Args:
-        val (gdb.Type, gdb.Symbol, gdb.Value, or str): The type that
-            contains the specified member, must be a struct or union
-        spec (str): The member of the member to resolve
+        gdbtype (gdb.Type): The type that contains the specified member,
+            must be a struct or union
+        member_name (str): The member of the member to resolve
         error (bool, optional, default=True): Whether to consider lookup
             failures an error
 
@@ -276,15 +274,15 @@ def offsetof(val, spec, error=True):
         None: The member could not be resolved
 
     Raises:
-        ArgumentTypeError: val is not a valid type
-        InvalidComponentError: spec is not valid for the type
+        ArgumentTypeError: gdbtype is not a valid type
+        InvalidComponentError: member_name is not valid for the type
     """
-    res = offsetof_type(val, spec, error)
+    res = offsetof_type(gdbtype, member_name, error)
     if res:
         return res[0]
     return None
 
-def find_member_variant(gdbtype, variants):
+def find_member_variant(gdbtype: gdb.Type, variants: List[str]) -> str:
     """
     Examines the given type and returns the first found member name
 
@@ -308,7 +306,7 @@ def find_member_variant(gdbtype, variants):
     raise TypeError("Unrecognized '{}': could not find member '{}'"
                     .format(str(gdbtype), variants[0]))
 
-def safe_lookup_type(name, block=None):
+def safe_lookup_type(name: str, block: gdb.Block=None) -> Union[gdb.Type, None]:
     """
     Looks up a gdb.Type without throwing an exception on failure
 
@@ -325,7 +323,7 @@ def safe_lookup_type(name, block=None):
     except gdb.error:
         return None
 
-def array_size(value):
+def array_size(value: gdb.Value) -> int:
     """
     Returns the number of elements in an array
 
@@ -337,7 +335,7 @@ def array_size(value):
     """
     return value.type.sizeof // value[0].type.sizeof
 
-def get_typed_pointer(val, gdbtype):
+def get_typed_pointer(val: AddressSpecifier, gdbtype: gdb.Type) -> gdb.Type:
     """
     Returns a pointer to the requested type at the given address
 
@@ -374,7 +372,7 @@ def get_typed_pointer(val, gdbtype):
 
     return val
 
-def array_for_each(value):
+def array_for_each(value: gdb.Value) -> Iterator[gdb.Value]:
     """
     Yields each element in an array separately
 

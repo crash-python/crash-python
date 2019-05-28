@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Iterator, Set
+
 import gdb
 from crash.util import container_of
 from crash.util.symbols import Types
@@ -17,8 +19,33 @@ class ListCycleError(CorruptListError):
 
 types = Types([ 'struct list_head' ])
 
-def list_for_each(list_head, include_head=False, reverse=False,
-        print_broken_links=True, exact_cycles=False):
+def list_for_each(list_head: gdb.Value, include_head: bool=False,
+                  reverse: bool=False, print_broken_links: bool=True,
+                  exact_cycles: bool=False) -> Iterator[gdb.Value]:
+    """
+    Iterate over a list and yield each node
+
+    Args:
+        list_head (gdb.Value<struct list_head or struct list_head *>):
+            The list to iterate
+        include_head (bool, optional, default=False):
+            Include the head of the list in iteration - useful
+            for lists with no anchors
+        reverse (bool, optional, default=False):
+            Iterate the list in reverse order (follow the prev links)
+        print_broken_links (bool, optional, default=True):
+            Print warnings about broken links
+        exact_cycles (bool, optional, default=False):
+            Detect and raise an exception if a cycle is detected in the list
+
+    Yields:
+        gdb.Value<struct list_head>: The next node in the list
+
+    Raises:
+        CorruptListError: the list is corrupted
+        ListCycleError: the list contains cycles
+        BufferError: portions of the list cannot be read
+    """
     pending_exception = None
     if not isinstance(list_head, gdb.Value):
         raise ArgumentTypeError('list_head', list_head, gdb.Value)
@@ -40,7 +67,7 @@ def list_for_each(list_head, include_head=False, reverse=False,
         prev_ = 'next'
 
     if exact_cycles:
-        visited = set()
+        visited: Set[int] = set()
 
     if include_head:
         yield list_head.address
@@ -105,10 +132,33 @@ def list_for_each(list_head, include_head=False, reverse=False,
     if pending_exception is not None:
         raise pending_exception
 
-def list_for_each_entry(list_head, gdbtype, member,
-                        include_head=False, reverse=False,
-                        print_broken_links=True,
-                        exact_cycles=False):
+def list_for_each_entry(list_head: gdb.Value, gdbtype: gdb.Type,
+                        member: str, include_head: bool=False,
+                        reverse: bool=False, print_broken_links: bool=True,
+                        exact_cycles: bool=False) -> Iterator[gdb.Value]:
+    """
+    Iterate over a list and yield each node's containing object
+
+    Args:
+        list_head (gdb.Value<struct list_head or struct list_head *>):
+            The list to iterate
+        gdbtype (gdb.Type): The type of the containing object
+        member (str): The name of the member in the containing object that
+            corresponds to the list_head
+        include_head (bool, optional, default=False):
+            Include the head of the list in iteration - useful for
+            lists with no anchors
+        reverse (bool, optional, default=False):
+            Iterate the list in reverse order (follow the prev links)
+        print_broken_links (bool, optional, default=True):
+            Print warnings about broken links
+        exact_cycles (bool, optional, default=False):
+            Detect and raise an exception if a cycle is detected in the list
+
+    Yields:
+        gdb.Value<gdbtype>: The next node in the list
+    """
+
     for node in list_for_each(list_head, include_head=include_head,
                               reverse=reverse,
                               print_broken_links=print_broken_links,

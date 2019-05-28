@@ -91,12 +91,10 @@ class TestList(unittest.TestCase):
         short_list = get_symbol("good_containers")
         expected_count = short_list.type.sizeof // short_list[0].type.sizeof
 
-        count = 0
-        for node in list_for_each_entry(normal_list, 'struct container',
-                                        'list'):
-            count += 1
-
-        self.assertTrue(count == expected_count)
+        with self.assertRaises(ArgumentTypeError):
+            for node in list_for_each_entry(normal_list, 'struct container',
+                                            'list'):
+                count += 1
 
     def test_normal_container_list_with_type(self):
         normal_list = get_symbol("good_container_list")
@@ -114,7 +112,7 @@ class TestList(unittest.TestCase):
         expected_count = short_list.type.sizeof // short_list[0].type.sizeof
 
         count = 0
-        with self.assertRaises(ListCycleError):
+        with self.assertRaises(ArgumentTypeError):
             for node in list_for_each_entry(cycle_list, 'struct container',
                                             'list', exact_cycles=True,
                                             print_broken_links=False):
@@ -139,7 +137,7 @@ class TestList(unittest.TestCase):
         expected_count = short_list.type.sizeof // short_list[0].type.sizeof
 
         count = 0
-        with self.assertRaises(CorruptListError):
+        with self.assertRaises(ArgumentTypeError):
             for node in list_for_each_entry(bad_list, 'struct container',
                                             'list', print_broken_links=False):
                 count += 1

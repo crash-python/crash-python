@@ -28,8 +28,8 @@ class TestUtil(unittest.TestCase):
             offset = offsetof(self, 'dontcare')
 
     def test_type_by_string_name(self):
-        offset = offsetof('struct test', 'test_member')
-        self.assertTrue(offset == 0)
+        with self.assertRaises(ArgumentTypeError):
+            offset = offsetof('struct test', 'test_member')
 
     def test_type_by_invalid_name(self):
         with self.assertRaises(ArgumentTypeError):
@@ -41,16 +41,16 @@ class TestUtil(unittest.TestCase):
 
     def test_struct_by_symbol(self):
         val = gdb.lookup_global_symbol("global_struct_symbol")
-        offset = offsetof(val, 'test_member')
-        self.assertTrue(offset == 0)
+        with self.assertRaises(ArgumentTypeError):
+            offset = offsetof(val, 'test_member')
 
     def test_struct_by_value(self):
         val = gdb.lookup_global_symbol("global_struct_symbol").value()
-        offset = offsetof(val, 'test_member')
-        self.assertTrue(offset == 0)
+        with self.assertRaises(ArgumentTypeError):
+            offset = offsetof(val, 'test_member')
 
     def test_ulong_by_name(self):
-        with self.assertRaises(NotStructOrUnionError):
+        with self.assertRaises(ArgumentTypeError):
             offset = offsetof('unsigned long', 'test_member')
 
     def test_ulong_by_type(self):
@@ -65,33 +65,33 @@ class TestUtil(unittest.TestCase):
 
     def test_ulong_by_symbol(self):
         t = gdb.lookup_global_symbol('global_ulong_symbol')
-        with self.assertRaises(NotStructOrUnionError):
+        with self.assertRaises(ArgumentTypeError):
             offset = offsetof(t, 'test_member')
 
     def test_ulong_by_value(self):
         t = gdb.lookup_global_symbol('global_ulong_symbol').value()
-        with self.assertRaises(NotStructOrUnionError):
+        with self.assertRaises(ArgumentTypeError):
             offset = offsetof(t, 'test_member')
 
     def test_void_pointer_by_symbol(self):
         t = gdb.lookup_global_symbol('global_void_pointer_symbol')
-        with self.assertRaises(NotStructOrUnionError):
+        with self.assertRaises(ArgumentTypeError):
             offset = offsetof(t, 'test_member')
 
     def test_void_pointer_by_value(self):
         t = gdb.lookup_global_symbol('global_void_pointer_symbol').value()
-        with self.assertRaises(NotStructOrUnionError):
+        with self.assertRaises(ArgumentTypeError):
             offset = offsetof(t, 'test_member')
 
     def test_union_by_symbol(self):
         t = gdb.lookup_global_symbol('global_union_symbol')
-        offset = offsetof(t, 'member1')
-        self.assertTrue(offset == 0)
+        with self.assertRaises(ArgumentTypeError):
+            offset = offsetof(t, 'member1')
 
     def test_union_by_value(self):
         t = gdb.lookup_global_symbol('global_union_symbol').value()
-        offset = offsetof(t, 'member1')
-        self.assertTrue(offset == 0)
+        with self.assertRaises(ArgumentTypeError):
+            offset = offsetof(t, 'member1')
 
     def test_struct(self):
         offset = offsetof(self.test_struct, 'test_member')
