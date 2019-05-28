@@ -4,6 +4,8 @@
 import unittest
 import gdb
 
+from crash.exceptions import ArgumentTypeError, UnexpectedGDBTypeError
+from crash.exceptions import InvalidArgumentError
 from crash.types.list import list_for_each, list_for_each_entry
 from crash.types.list import ListCycleError, CorruptListError
 
@@ -153,3 +155,57 @@ class TestList(unittest.TestCase):
             for node in list_for_each_entry(bad_list, struct_container,
                                             'list', print_broken_links=False):
                 count += 1
+
+    def test_list_for_each_with_bad_argument_base(self):
+        bad_type = gdb.lookup_type('unsigned long')
+        with self.assertRaises(InvalidArgumentError):
+            for node in list_for_each(bad_type):
+                pass
+
+    def test_list_for_each_entry_with_bad_argument_base(self):
+        bad_type = gdb.lookup_type('unsigned long')
+        struct_container = gdb.lookup_type('struct container')
+        with self.assertRaises(InvalidArgumentError):
+            for node in list_for_each_entry(bad_type, struct_container, 'list'):
+                pass
+
+    def test_list_for_each_with_bad_list_type_base(self):
+        short_list = get_symbol("good_containers")
+        struct_container = gdb.lookup_type('struct container')
+        with self.assertRaises(InvalidArgumentError):
+            for node in list_for_each(short_list):
+                pass
+
+    def test_list_for_each_entry_with_bad_list_type_base(self):
+        short_list = get_symbol("good_containers")
+        struct_container = gdb.lookup_type('struct container')
+        with self.assertRaises(InvalidArgumentError):
+            for node in list_for_each_entry(short_list, struct_container, 'list'):
+                pass
+    def test_list_for_each_with_bad_argument(self):
+        bad_type = gdb.lookup_type('unsigned long')
+        with self.assertRaises(ArgumentTypeError):
+            for node in list_for_each(bad_type):
+                pass
+
+    def test_list_for_each_entry_with_bad_argument(self):
+        bad_type = gdb.lookup_type('unsigned long')
+        struct_container = gdb.lookup_type('struct container')
+        with self.assertRaises(ArgumentTypeError):
+            for node in list_for_each_entry(bad_type, struct_container, 'list'):
+                pass
+
+    def test_list_for_each_with_bad_list_type(self):
+        short_list = get_symbol("good_containers")
+        struct_container = gdb.lookup_type('struct container')
+        with self.assertRaises(UnexpectedGDBTypeError):
+            for node in list_for_each(short_list):
+                pass
+
+    def test_list_for_each_entry_with_bad_list_type(self):
+        short_list = get_symbol("good_containers")
+        struct_container = gdb.lookup_type('struct container')
+        with self.assertRaises(UnexpectedGDBTypeError):
+            for node in list_for_each_entry(short_list, struct_container, 'list'):
+                pass
+

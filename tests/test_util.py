@@ -6,9 +6,8 @@ import gdb
 from crash.exceptions import MissingTypeError, MissingSymbolError
 from crash.util import offsetof, container_of, resolve_type
 from crash.util import get_symbol_value, safe_get_symbol_value
-from crash.util import InvalidComponentError
-from crash.util import InvalidArgumentError
-from crash.util import InvalidArgumentTypeError
+from crash.exceptions import ArgumentTypeError
+from crash.exceptions import NotStructOrUnionError
 from crash.util import InvalidComponentError
 
 def getsym(sym):
@@ -25,7 +24,7 @@ class TestUtil(unittest.TestCase):
         gdb.execute("file")
 
     def test_invalid_python_type(self):
-        with self.assertRaises(InvalidArgumentError):
+        with self.assertRaises(ArgumentTypeError):
             offset = offsetof(self, 'dontcare')
 
     def test_type_by_string_name(self):
@@ -33,7 +32,7 @@ class TestUtil(unittest.TestCase):
         self.assertTrue(offset == 0)
 
     def test_type_by_invalid_name(self):
-        with self.assertRaises(InvalidArgumentError):
+        with self.assertRaises(ArgumentTypeError):
             offset = offsetof('struct invalid_struct', 'test_member')
 
     def test_invalid_member(self):
@@ -51,37 +50,37 @@ class TestUtil(unittest.TestCase):
         self.assertTrue(offset == 0)
 
     def test_ulong_by_name(self):
-        with self.assertRaises(InvalidArgumentTypeError):
+        with self.assertRaises(NotStructOrUnionError):
             offset = offsetof('unsigned long', 'test_member')
 
     def test_ulong_by_type(self):
         t = gdb.lookup_type("unsigned long")
-        with self.assertRaises(InvalidArgumentTypeError):
+        with self.assertRaises(NotStructOrUnionError):
             offset = offsetof(t, 'test_member')
 
     def test_ulong_by_type_pointer(self):
         t = gdb.lookup_type("unsigned long").pointer()
-        with self.assertRaises(InvalidArgumentTypeError):
+        with self.assertRaises(NotStructOrUnionError):
             offset = offsetof(t, 'test_member')
 
     def test_ulong_by_symbol(self):
         t = gdb.lookup_global_symbol('global_ulong_symbol')
-        with self.assertRaises(InvalidArgumentTypeError):
+        with self.assertRaises(NotStructOrUnionError):
             offset = offsetof(t, 'test_member')
 
     def test_ulong_by_value(self):
         t = gdb.lookup_global_symbol('global_ulong_symbol').value()
-        with self.assertRaises(InvalidArgumentTypeError):
+        with self.assertRaises(NotStructOrUnionError):
             offset = offsetof(t, 'test_member')
 
     def test_void_pointer_by_symbol(self):
         t = gdb.lookup_global_symbol('global_void_pointer_symbol')
-        with self.assertRaises(InvalidArgumentTypeError):
+        with self.assertRaises(NotStructOrUnionError):
             offset = offsetof(t, 'test_member')
 
     def test_void_pointer_by_value(self):
         t = gdb.lookup_global_symbol('global_void_pointer_symbol').value()
-        with self.assertRaises(InvalidArgumentTypeError):
+        with self.assertRaises(NotStructOrUnionError):
             offset = offsetof(t, 'test_member')
 
     def test_union_by_symbol(self):
@@ -595,5 +594,5 @@ class TestUtil(unittest.TestCase):
         sym = getsym('embedded_struct_list_container')
         container = getsym('test_struct')
         self.assertTrue(sym.address != container.address)
-        with self.assertRaises(InvalidArgumentTypeError):
+        with self.assertRaises(NotStructOrUnionError):
             addr = container_of(sym, self.ulong, 'test_member')

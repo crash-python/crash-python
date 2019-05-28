@@ -4,6 +4,7 @@
 import gdb
 from crash.util import container_of
 from crash.util.symbols import Types
+from crash.exceptions import ArgumentTypeError, UnexpectedGDBTypeError
 
 class ListError(Exception):
     pass
@@ -19,16 +20,13 @@ types = Types([ 'struct list_head' ])
 def list_for_each(list_head, include_head=False, reverse=False,
         print_broken_links=True, exact_cycles=False):
     pending_exception = None
-    if isinstance(list_head, gdb.Symbol):
-        list_head = list_head.value()
     if not isinstance(list_head, gdb.Value):
-        raise TypeError("list_head must be gdb.Value representing 'struct list_head' or a 'struct list_head *' not {}"
-                        .format(type(list_head).__name__))
+        raise ArgumentTypeError('list_head', list_head, gdb.Value)
     if list_head.type == types.list_head_type.pointer():
         list_head = list_head.dereference()
     elif list_head.type != types.list_head_type:
-        raise TypeError("Must be struct list_head not {}"
-                        .format(str(list_head.type)))
+        raise UnexpectedGDBTypeError('list_head', types.list_head_type,
+                                     list_head.type)
     if list_head.type is not types.list_head_type:
         types.override('struct list_head', list_head.type)
     fast = None

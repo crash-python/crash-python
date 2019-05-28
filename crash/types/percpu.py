@@ -9,7 +9,7 @@ from crash.util.symbols import Types, Symvals, MinimalSymvals, MinimalSymbols
 from crash.util.symbols import MinimalSymbolCallbacks, SymbolCallbacks
 from crash.types.list import list_for_each_entry
 from crash.types.module import for_each_module
-from crash.exceptions import DelayedAttributeError
+from crash.exceptions import DelayedAttributeError, InvalidArgumentError
 from crash.types.bitmap import find_first_set_bit, find_last_set_bit
 from crash.types.bitmap import find_next_set_bit, find_next_zero_bit
 from crash.types.page import Page
@@ -278,7 +278,7 @@ class PerCPUState(object):
         if isinstance(var, gdb.Symbol) or isinstance(var, gdb.MinSymbol):
             var = var.value()
         if not isinstance(var, gdb.Value):
-            raise TypeError("Argument must be gdb.Symbol or gdb.Value")
+            raise InvalidArgumentError("Argument must be gdb.Symbol or gdb.Value")
 
         if var.type.code == gdb.TYPE_CODE_PTR:
             # The percpu contains pointers
@@ -325,7 +325,8 @@ class PerCPUState(object):
             The value is of the same type passed via var.
 
         Raises:
-            :obj:`TypeError`: var is not :obj:`gdb.Symbol` or :obj:`gdb.Value`
+            :obj:`.InvalidArgumentError`: var is not :obj:`gdb.Symbol` or
+                :obj:`gdb.Value`
             :obj:`.PerCPUError`: var does not fall into any percpu range
             :obj:`ValueError`: cpu is less than ``0``
         """
@@ -350,7 +351,8 @@ class PerCPUState(object):
             the :obj:`gdb.Value` or :obj:`gdb.Symbol` passed as var.
 
         Raises:
-            :obj:`TypeError`: var is not ``gdb.Symbol`` or ``gdb.Value``
+            :obj:`.InvalidArgumentError`: var is not :obj:`gdb.Symbol` or
+                :obj:`gdb.Value`
             :obj:`.PerCPUError`: var does not fall into any percpu range
             :obj:`ValueError`: nr_cpus is <= ``0``
         """
@@ -402,7 +404,8 @@ def get_percpu_var(var: SymbolOrValue, cpu: int) -> gdb.Value:
         The value is of the same type passed via var.
 
     Raises:
-        :obj:`TypeError`: var is not :obj:`gdb.Symbol` or :obj:`gdb.Value`
+        :obj:`.InvalidArgumentError`: var is not :obj:`gdb.Symbol`
+            or :obj:`gdb.Value`
         :obj:`.PerCPUError`: var does not fall into any percpu range
         :obj:`ValueError`: cpu is less than ``0``
     """
@@ -426,7 +429,8 @@ def get_percpu_vars(var: SymbolOrValue,
         the :obj:`gdb.Value` or :obj:`gdb.Symbol` passed as var.
 
     Raises:
-        :obj:`TypeError`: var is not :obj:`gdb.Symbol` or :obj:`gdb.Value`
+        :obj:`.InvalidArgumentError`: var is not :obj:`gdb.Symbol`
+            or :obj:`gdb.Value`
         :obj:`.PerCPUError`: var does not fall into any percpu range
         :obj:`ValueError`: nr_cpus is <= ``0``
     """
@@ -449,7 +453,7 @@ def percpu_counter_sum(var: SymbolOrValue) -> int:
     if not (var.type == types.percpu_counter_type or
             (var.type.code == gdb.TYPE_CODE_PTR and
              var.type.target() == types.percpu_counter_type)):
-        raise TypeError("var must be gdb.Symbol or gdb.Value describing `{}' not `{}'"
+        raise InvalidArgumentError("var must be gdb.Symbol or gdb.Value describing `{}' not `{}'"
                             .format(types.percpu_counter_type, var.type))
 
     total = int(var['count'])

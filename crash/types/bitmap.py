@@ -6,6 +6,7 @@ from typing import Iterable
 import gdb
 from math import log
 
+from crash.exceptions import InvalidArgumentError
 from crash.util.symbols import Types
 
 types = Types('unsigned long')
@@ -17,7 +18,7 @@ def _check_bitmap_type(bitmap: gdb.Value) -> None:
         (bitmap.type.code != gdb.TYPE_CODE_PTR or
          bitmap.type.target().code != types.unsigned_long_type.code or
          bitmap.type.target().sizeof != types.unsigned_long_type.sizeof)):
-        raise TypeError("bitmaps are expected to be arrays of unsigned long not `{}'"
+        raise InvalidArgumentError("bitmaps are expected to be arrays of unsigned long not `{}'"
                         .format(bitmap.type))
 
 def for_each_set_bit(bitmap: gdb.Value,

@@ -9,36 +9,11 @@ import uuid
 from typing import Dict
 from crash.util.symbols import Types
 from crash.exceptions import MissingTypeError, MissingSymbolError
+from crash.exceptions import ArgumentTypeError, NotStructOrUnionError
 
 TypeSpecifier = Union [ gdb.Type, gdb.Value, str, gdb.Symbol ]
 
-class OffsetOfError(Exception):
-    """Generic Exception for offsetof errors"""
-    def __init__(self, message):
-        super().__init__()
-        self.message = message
-
-    def __str__(self):
-        return self.message
-
-class InvalidArgumentError(OffsetOfError):
-    """The provided object could not be converted to gdb.Type"""
-    formatter = "cannot convert {} to gdb.Type"
-
-    def __init__(self, val):
-        msg = self.formatter.format(str(type(val)))
-        super().__init__(msg)
-        self.val = val
-
-class InvalidArgumentTypeError(OffsetOfError):
-    """The provided type is not a struct or union"""
-    formatter = "`{}' is not a struct or union"
-    def __init__(self, gdbtype):
-        msg = self.formatter.format(str(gdbtype))
-        super().__init__(msg)
-        self.type = gdbtype
-
-class InvalidComponentError(OffsetOfError):
+class InvalidComponentError(LookupError):
     """An error occured while resolving the member specification"""
     formatter = "cannot resolve '{}->{}' ({})"
     def __init__(self, gdbtype, spec, message):
@@ -49,7 +24,7 @@ class InvalidComponentError(OffsetOfError):
 
 # These exceptions are only raised by _offsetof and should not be
 # visible outside of this module.
-class _InvalidComponentBaseError(OffsetOfError):
+class _InvalidComponentBaseError(RuntimeError):
     """An internal error occured while resolving the member specification"""
     pass
 
@@ -94,7 +69,7 @@ def container_of(val, gdbtype, member):
         TypeError: val is not a gdb.Value
     """
     if not isinstance(val, gdb.Value):
-        raise TypeError("container_of expects gdb.Value")
+        raise ArgumentTypeError('val', type(val), gdb.Value)
     charp = types.char_p_type
     if val.type.code != gdb.TYPE_CODE_PTR:
         val = val.address
@@ -255,7 +230,7 @@ def offsetof_type(val, spec, error=True):
             gdb.Type: The type of the resolved member
 
     Raises:
-        InvalidArgumentError: val is not a valid type
+        ArgumentTypeError: val is not of type gdb.Type
         InvalidComponentError: spec is not valid for the type
     """
     gdbtype = None
@@ -267,7 +242,7 @@ def offsetof_type(val, spec, error=True):
         pass
 
     if not isinstance(gdbtype, gdb.Type):
-        raise InvalidArgumentError(val)
+        raise ArgumentTypeError('gdbtype', gdbtype, gdb.Type)
 
     # We'll be friendly and accept pointers as the initial type
     if gdbtype.code == gdb.TYPE_CODE_PTR:
@@ -275,13 +250,13 @@ def offsetof_type(val, spec, error=True):
 
     if gdbtype.code != gdb.TYPE_CODE_STRUCT and \
        gdbtype.code != gdb.TYPE_CODE_UNION:
-        raise InvalidArgumentTypeError(gdbtype)
+        raise NotStructOrUnionError('gdbtype', gdbtype)
 
     try:
         return __offsetof(gdbtype, spec, error)
     except _InvalidComponentBaseError as e:
         if error:
-            raise InvalidComponentError(gdbtype, spec, e.message)
+            raise InvalidComponentError(gdbtype, spec, str(e))
         else:
             return None
 
@@ -301,7 +276,7 @@ def offsetof(val, spec, error=True):
         None: The member could not be resolved
 
     Raises:
-        InvalidArgumentError: val is not a valid type
+        ArgumentTypeError: val is not a valid type
         InvalidComponentError: spec is not valid for the type
     """
     res = offsetof_type(val, spec, error)

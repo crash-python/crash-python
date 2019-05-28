@@ -4,6 +4,7 @@
 import gdb
 import uuid
 
+from crash.exceptions import InvalidArgumentError
 from crash.util import decode_uuid, struct_has_member, container_of
 from crash.util.symbols import Types
 from crash.subsystem.filesystem import is_fstype_super
@@ -58,11 +59,11 @@ def btrfs_inode(vfs_inode: gdb.Value, force: bool=False ) -> gdb.Value:
         gdb.Value<struct btrfs_inode>: The converted struct btrfs_inode
 
     Raises:
-        TypeError: the inode does not belong to btrfs
+        InvalidArgumentError: the inode does not belong to btrfs
         gdb.NotAvailableError: The target value was not available.
     """
     if not force and not is_btrfs_inode(vfs_inode):
-        raise TypeError("inode does not belong to btrfs")
+        raise InvalidArgumentError("inode does not belong to btrfs")
 
     return container_of(vfs_inode, types.btrfs_inode_type, 'vfs_inode')
 
@@ -84,11 +85,11 @@ def btrfs_fs_info(super_block: gdb.Value, force: bool=False) -> gdb.Value:
             btrfs_fs_info
 
     Raises:
-        TypeError: the super_block does not belong to btrfs
+        InvalidArgumentError: the super_block does not belong to btrfs
         gdb.NotAvailableError: The target value was not available.
     """
     if not force and not is_btrfs_super(super_block):
-        raise TypeError("super_block does not belong to btrfs")
+        raise InvalidArgumentError("super_block does not belong to btrfs")
 
     fs_info = super_block['s_fs_info'].cast(types.btrfs_fs_info_p_type)
     return fs_info.dereference()
@@ -107,7 +108,7 @@ def btrfs_fsid(super_block: gdb.Value, force: bool=False) -> uuid.UUID:
         uuid.UUID: The Python UUID Object for the btrfs fsid
 
     Raises:
-        TypeError: the super_block does not belong to btrfs
+        InvalidArgumentError: the super_block does not belong to btrfs
         gdb.NotAvailableError: The target value was not available.
     """
     fs_info = btrfs_fs_info(super_block, force)
@@ -129,7 +130,7 @@ def btrfs_metadata_uuid(sb: gdb.Value, force: bool=False) -> uuid.UUID:
         uuid.UUID: The Python UUID Object for the btrfs fsid
 
     Raises:
-        TypeError: the super_block does not belong to btrfs
+        InvalidArgumentError: the super_block does not belong to btrfs
         gdb.NotAvailableError: The target value was not available.
     """
     fs_info = btrfs_fs_info(sb, force)

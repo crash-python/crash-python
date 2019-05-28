@@ -10,7 +10,7 @@ from crash.util import container_of
 from crash.util.symbols import Types, Symvals, SymbolCallbacks, TypeCallbacks
 from crash.types.classdev import for_each_class_device
 from . import decoders
-import crash.exceptions
+from crash.exceptions import DelayedAttributeError, InvalidArgumentError
 
 types = Types([ 'struct gendisk', 'struct hd_struct', 'struct device',
                   'struct device_type', 'struct bdev_inode' ])
@@ -135,7 +135,7 @@ def for_each_block_device(subtype: gdb.Value=None) -> Iterable[gdb.Value]:
         if get_basic_type(subtype.type) == types.device_type_type:
             subtype = subtype.address
         elif get_basic_type(subtype.type) != types.device_type_type.pointer():
-            raise TypeError("subtype must be {} not {}"
+            raise InvalidArgumentError("subtype must be {} not {}"
                             .format(types.device_type_type.pointer(),
                                     subtype.type.unqualified()))
     for dev in for_each_class_device(symvals.block_class, subtype):
@@ -173,7 +173,7 @@ def gendisk_name(gendisk):
         str: the name of the block device
 
     Raises:
-        TypeError: gdb.Value does not describe a struct gendisk or
+        InvalidArgumentError: gdb.Value does not describe a struct gendisk or
             struct hd_struct
     """
     if gendisk.type.code == gdb.TYPE_CODE_PTR:
@@ -185,7 +185,7 @@ def gendisk_name(gendisk):
         parent = dev_to_gendisk(part_to_dev(gendisk)['parent'])
         return "{}{:d}".format(gendisk_name(parent), int(gendisk['partno']))
     else:
-        raise TypeError("expected {} or {}, not {}"
+        raise InvalidArgumentError("expected {} or {}, not {}"
                         .format(types.gendisk_type, types.hd_struct_type,
                         gendisk.type.unqualified()))
 
@@ -226,7 +226,7 @@ def inode_to_block_device(inode):
     Returns the block device associated with this inode.
 
     If the inode describes a block device, return that block device.
-    Otherwise, raise TypeError.
+    Otherwise, raise InvalidArgumentError.
 
     Args:
         inode(gdb.Value<struct inode>): The struct inode for which to
@@ -237,10 +237,10 @@ def inode_to_block_device(inode):
             with the provided struct inode
 
     Raises:
-        TypeError: inode does not describe a block device
+        InvalidArgumentError: inode does not describe a block device
     """
     if inode['i_sb'] != symvals.blockdev_superblock:
-        raise TypeError("inode does not correspond to block device")
+        raise InvalidArgumentError("inode does not correspond to block device")
     return container_of(inode, types.bdev_inode_type, 'vfs_inode')['bdev']
 
 def inode_on_bdev(inode):
@@ -275,7 +275,7 @@ def _check_types(result):
             raise TypeError("disk_type expected to be {} not {}"
                             .format(symvals.device_type_type,
                                     types.disk_type.type))
-    except crash.exceptions.DelayedAttributeError:
+    except DelayedAttributeError:
         pass
 
 symbol_cbs = SymbolCallbacks([ ( 'disk_type', _check_types ),

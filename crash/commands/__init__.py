@@ -27,7 +27,7 @@ class Command(gdb.Command):
         if parser is None:
             parser = ArgumentParser(prog=self.name)
         elif not isinstance(parser, ArgumentParser):
-            raise TypeError("parser must be ArgumentParser")
+            raise ArgumentTypeError('parser', parser, ArgumentParser)
 
         nl = ""
         if self.__doc__[-1] != '\n':

@@ -214,7 +214,7 @@ class LinuxTask(object):
         self._init_task_types(task_struct)
 
         if cpu is not None and not isinstance(cpu, int):
-            raise TypeError("cpu must be integer or None")
+            raise InvalidArgumentError("cpu must be integer or None")
 
         if not isinstance(task_struct, gdb.Value):
             raise ArgumentTypeError('task_struct', task_struct, gdb.Value)

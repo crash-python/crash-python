@@ -17,7 +17,7 @@ def klist_for_each(klist):
     if klist.type == types.klist_type.pointer():
         klist = klist.dereference()
     elif klist.type != types.klist_type:
-        raise TypeError("klist must be gdb.Value representing 'struct klist' or 'struct klist *' not {}"
+        raise InvalidArgumentError("klist must be gdb.Value representing 'struct klist' or 'struct klist *' not {}"
                         .format(klist.type))
     if klist.type is not types.klist_type:
         types.override('struct klist', klist.type)

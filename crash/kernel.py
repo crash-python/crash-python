@@ -15,7 +15,7 @@ from crash.types.module import for_each_module, for_each_module_section
 from elftools.elf.elffile import ELFFile
 from crash.util import get_symbol_value
 from crash.util.symbols import Types, Symvals, Symbols
-from crash.exceptions import MissingSymbolError
+from crash.exceptions import MissingSymbolError, InvalidArgumentError
 
 from typing import Pattern, Union, List, Dict, Any
 
@@ -122,7 +122,7 @@ class CrashKernel(object):
                 - /usr/lib/debug/lib/modules/<kernel-version>
         Raises:
             CrashKernelError: If the kernel debuginfo cannot be loaded.
-            TypeError: If any of the arguments are not None, str,
+            InvalidArgumentError: If any of the arguments are not None, str,
                        or list of str
 
         """
@@ -162,7 +162,7 @@ class CrashKernel(object):
                  x = [ "/" ]
             self.roots = x
         else:
-            raise TypeError("roots must be None, str, or list of str")
+            raise InvalidArgumentError("roots must be None, str, or list of str")
 
         if verbose:
             print("roots={}".format(self.roots))
@@ -195,7 +195,7 @@ class CrashKernel(object):
         elif isinstance(vmlinux_debuginfo, str):
             self.vmlinux_debuginfo = [ vmlinux_debuginfo ]
         else:
-            raise TypeError("vmlinux_debuginfo must be None, str, or list of str")
+            raise InvalidArgumentError("vmlinux_debuginfo must be None, str, or list of str")
 
         if verbose:
             print("vmlinux_debuginfo={}".format(self.vmlinux_debuginfo))
@@ -232,7 +232,7 @@ class CrashKernel(object):
 
             self.module_path = x
         else:
-            raise TypeError("module_path must be None, str, or list of str")
+            raise InvalidArgumentError("module_path must be None, str, or list of str")
 
         if verbose:
             print("module_path={}".format(self.module_path))
@@ -270,7 +270,7 @@ class CrashKernel(object):
 
             self.module_debuginfo_path = x
         else:
-            raise TypeError("module_debuginfo_path must be None, str, or list of str")
+            raise InvalidArgumentError("module_debuginfo_path must be None, str, or list of str")
 
         if verbose:
             print("module_debuginfo_path={}".format(self.module_debuginfo_path))

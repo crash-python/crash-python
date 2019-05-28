@@ -6,6 +6,7 @@ import uuid
 
 from typing import Union, Iterable
 
+from crash.exceptions import InvalidArgumentError
 from crash.types.list import list_for_each_entry
 from crash.util import container_of, decode_uuid_t, decode_flags
 from crash.util import struct_has_member
@@ -297,7 +298,7 @@ def xfs_inode(vfs_inode: gdb.Value, force: bool=False) -> gdb.Value:
         gdb.NotAvailableError: The target value was not available.
     """
     if not force and not is_xfs_inode(vfs_inode):
-        raise TypeError("inode does not belong to xfs")
+        raise InvalidArgumentError("inode does not belong to xfs")
 
     return container_of(vfs_inode, types.xfs_inode, 'i_vnode')
 
@@ -319,7 +320,7 @@ def xfs_mount(sb: gdb.Value, force: bool=False) -> gdb.Value:
         gdb.NotAvailableError: The target value was not available.
     """
     if not force and not is_xfs_super(sb):
-        raise TypeError("superblock does not belong to xfs")
+        raise InvalidArgumentError("superblock does not belong to xfs")
 
     return sb['s_fs_info'].cast(types.xfs_mount_p_type)
 
@@ -402,11 +403,11 @@ def item_to_buf_log_item(item: gdb.Value) -> gdb.Value:
         gdb.Value<struct xfs_buf_log_item>
 
     Raises:
-        TypeError: The type of log item is not XFS_LI_BUF
+        InvalidArgumentError: The type of log item is not XFS_LI_BUF
         gdb.NotAvailableError: The target value was not available.
     """
     if item['li_type'] != XFS_LI_BUF:
-        raise TypeError("item is not a buf log item")
+        raise InvalidArgumentError("item is not a buf log item")
     return container_of(item, types.xfs_buf_log_item_type, 'bli_item')
 
 def item_to_inode_log_item(item: gdb.Value) -> gdb.Value:
@@ -420,11 +421,11 @@ def item_to_inode_log_item(item: gdb.Value) -> gdb.Value:
         gdb.Value<struct xfs_inode_log_item>
 
     Raises:
-        TypeError: The type of log item is not XFS_LI_INODE
+        InvalidArgumentError: The type of log item is not XFS_LI_INODE
         gdb.NotAvailableError: The target value was not available.
     """
     if item['li_type'] != XFS_LI_INODE:
-        raise TypeError("item is not an inode log item")
+        raise InvalidArgumentError("item is not an inode log item")
     return container_of(item, types.xfs_inode_log_item_type, 'ili_item')
 
 def item_to_efi_log_item(item: gdb.Value) -> gdb.Value:
@@ -438,11 +439,11 @@ def item_to_efi_log_item(item: gdb.Value) -> gdb.Value:
         gdb.Value<struct xfs_efi_log_item>
 
     Raises:
-        TypeError: The type of log item is not XFS_LI_EFI
+        InvalidArgumentError: The type of log item is not XFS_LI_EFI
         gdb.NotAvailableError: The target value was not available.
     """
     if item['li_type'] != XFS_LI_EFI:
-        raise TypeError("item is not an EFI log item")
+        raise InvalidArgumentError("item is not an EFI log item")
     return container_of(item, types.xfs_efi_log_item_type, 'efi_item')
 
 def item_to_efd_log_item(item: gdb.Value) -> gdb.Value:
@@ -456,11 +457,11 @@ def item_to_efd_log_item(item: gdb.Value) -> gdb.Value:
         gdb.Value<struct xfs_efd_log_item>
 
     Raises:
-        TypeError: The type of log item is not XFS_LI_EFD
+        InvalidArgumentError: The type of log item is not XFS_LI_EFD
         gdb.NotAvailableError: The target value was not available.
     """
     if item['li_type'] != XFS_LI_EFD:
-        raise TypeError("item is not an EFD log item")
+        raise InvalidArgumentError("item is not an EFD log item")
     return container_of(item, types.xfs_efd_log_item_type, 'efd_item')
 
 def item_to_dquot_log_item(item: gdb.Value) -> gdb.Value:
@@ -474,11 +475,11 @@ def item_to_dquot_log_item(item: gdb.Value) -> gdb.Value:
         gdb.Value<struct xfs_dquot_log_item>
 
     Raises:
-        TypeError: The type of log item is not XFS_LI_DQUOT
+        InvalidArgumentError: The type of log item is not XFS_LI_DQUOT
         gdb.NotAvailableError: The target value was not available.
     """
     if item['li_type'] != XFS_LI_DQUOT:
-        raise TypeError("item is not an DQUOT log item")
+        raise InvalidArgumentError("item is not an DQUOT log item")
     return container_of(item, types.xfs_dq_logitem_type, 'qli_item')
 
 def item_to_quotaoff_log_item(item: gdb.Value) -> gdb.Value:
@@ -492,11 +493,11 @@ def item_to_quotaoff_log_item(item: gdb.Value) -> gdb.Value:
         gdb.Value<struct xfs_quotaoff_log_item>
 
     Raises:
-        TypeError: The type of log item is not XFS_LI_QUOTAOFF
+        InvalidArgumentError: The type of log item is not XFS_LI_QUOTAOFF
         gdb.NotAvailableError: The target value was not available.
     """
     if item['li_type'] != XFS_LI_QUOTAOFF:
-        raise TypeError("item is not an QUOTAOFF log item")
+        raise InvalidArgumentError("item is not an QUOTAOFF log item")
     return container_of(item, types.xfs_qoff_logitem_type, 'qql_item')
 
 def xfs_log_item_typed(item:gdb.Value) -> gdb.Value:
