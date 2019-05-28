@@ -30,9 +30,6 @@ def klist_for_each(klist):
 
 def klist_for_each_entry(klist, gdbtype, member):
     for node in klist_for_each(klist):
-        if node.type != types.klist_node_type:
-            raise TypeError("Type {} found. Expected {}."
-                        .format(node.type), types.klist_node_type.pointer())
         if node.type is not types.klist_node_type:
             types.override('struct klist_node', node.type)
         yield container_of(node, gdbtype, member)

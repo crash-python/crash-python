@@ -115,9 +115,6 @@ def list_for_each_entry(list_head, gdbtype, member,
                               reverse=reverse,
                               print_broken_links=print_broken_links,
                               exact_cycles=exact_cycles):
-        if node.type != types.list_head_type.pointer():
-            raise TypeError("Type {} found. Expected struct list_head *."
-                            .format(str(node.type)))
         yield container_of(node, gdbtype, member)
 
 def list_empty(list_head):
