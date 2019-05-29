@@ -59,9 +59,7 @@ class LinuxNonAutoPGT(LinuxPGT):
         except (addrxlat.NotPresentError, addrxlat.NoDataError):
             return addr + 'N/A'
 
-class VTOPCommand(Command):
-    """convert virtual address to physical
-
+vtop_help_text = """
 NAME
   vtop - virtual to physical
 
@@ -170,7 +168,10 @@ EXAMPLES
     c7200ae0  40104000  40b08000    73
 
     SWAP: /dev/sda8  OFFSET: 22716
-    """
+"""
+
+class VTOPCommand(Command):
+    """convert virtual address to physical"""
 
     def __init__(self):
         parser = ArgumentParser(prog="vtop")
@@ -187,6 +188,15 @@ EXAMPLES
         "vtop [-c [pid | taskp]] [-u|-k] address ...\n"
 
         super().__init__("vtop", parser)
+
+    def format_help(self) -> str:
+        """
+        Returns the help text for the vtop command
+
+        Returns:
+            :obj:`str`: The help text for the vtop command.
+        """
+        return vtop_help_text
 
     def execute(self, argv):
         ctx = addrxlat_context()

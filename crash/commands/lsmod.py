@@ -13,9 +13,7 @@ from crash.types.list import list_for_each_entry
 from crash.types.percpu import get_percpu_var
 import crash.types.percpu
 
-class ModuleCommand(Command):
-    """display module information
-
+lsmod_help_text = """
 NAME
   lsmod - display module information
 
@@ -33,8 +31,11 @@ DESCRIPTION
   -p       display the percpu base for the module and the size of its region
   -p CPU#  display the percpu base for the module and the size of its region
            for the specified CPU number
-
 """
+
+class ModuleCommand(Command):
+    """display module information"""
+
     def __init__(self):
         parser = ArgumentParser(prog="lsmod")
 
@@ -46,6 +47,15 @@ DESCRIPTION
         Command.__init__(self, "lsmod", parser)
 
         self.module_use_type = gdb.lookup_type('struct module_use')
+
+    def format_help(self) -> str:
+        """
+        Returns the help text for the lsmod command
+
+        Returns:
+            :obj:`str`: The help text for the lsmod command.
+        """
+        return lsmod_help_text
 
     def print_module_percpu(self, mod, cpu=-1):
         cpu = int(cpu)

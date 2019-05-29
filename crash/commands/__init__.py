@@ -31,13 +31,16 @@ class Command(gdb.Command):
         elif not isinstance(parser, ArgumentParser):
             raise ArgumentTypeError('parser', parser, ArgumentParser)
 
-        nl = ""
-        if self.__doc__[-1] != '\n':
-            nl = "\n"
-        parser.format_help = lambda: self.__doc__ + nl
         self.parser = parser
+        parser.format_help = self._format_help
         self.commands[self.name] = self
         gdb.Command.__init__(self, self.name, gdb.COMMAND_USER)
+
+    def _format_help(self) -> str:
+        try:
+            return self.format_help().strip() + "\n"
+        except AttributeError:
+            return "<no help text>\n"
 
     def invoke_uncaught(self, argstr, from_tty=False):
         argv = gdb.string_to_argv(argstr)

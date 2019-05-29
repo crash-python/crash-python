@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
-
 from argparse import Namespace
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandLineError
@@ -10,9 +8,7 @@ from crash.exceptions import DelayedAttributeError
 from crash.subsystem.filesystem import for_each_super_block, super_fstype
 from crash.subsystem.filesystem.btrfs import btrfs_fsid, btrfs_metadata_uuid
 
-class BtrfsCommand(Command):
-    """display Btrfs internal data structures
-
+btrfs_help_text = """
 NAME
   btrfs - display Btrfs internal data structures
 
@@ -20,7 +16,11 @@ SYNOPSIS
   btrfs <command> <superblock>
 
 COMMANDS
-  btrfs list [-m] - list all btrfs file systems (-m to show metadata uuid)"""
+  btrfs list [-m] - list all btrfs file systems (-m to show metadata uuid)
+"""
+
+class BtrfsCommand(Command):
+    """display Btrfs internal data structures"""
 
     def __init__(self, name):
         parser = ArgumentParser(prog=name)
@@ -31,6 +31,15 @@ COMMANDS
 
         parser.format_usage = lambda: 'btrfs <subcommand> [args...]\n'
         Command.__init__(self, name, parser)
+
+    def format_help(self) -> str:
+        """
+        Returns the help text for the btrfs command
+
+        Returns:
+            :obj:`str`: The help text for the btrfs command.
+        """
+        return btrfs_help_text
 
     def list_btrfs(self, args: Namespace) -> None:
         print_header = True

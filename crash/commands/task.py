@@ -6,9 +6,7 @@ from crash.commands import Command, ArgumentParser
 import crash.cache.tasks
 import argparse
 
-class TaskCommand(Command):
-    """select task by pid
-
+task_help_text = """
 NAME
   task - select task by pid
 
@@ -20,7 +18,11 @@ DESCRIPTION
 
 EXAMPLES
     task 1402
-    """
+"""
+
+class TaskCommand(Command):
+    """select task by pid"""
+
     def __init__(self, name):
 
         parser = ArgumentParser(prog=name)
@@ -29,6 +31,15 @@ EXAMPLES
 
         parser.format_usage = lambda: "thread <pid>\n"
         Command.__init__(self, name, parser)
+
+    def format_help(self) -> str:
+        """
+        Returns the help text for the task command
+
+        Returns:
+            :obj:`str`: The help text for the task command.
+        """
+        return task_help_text
 
     def execute(self, args):
         try:

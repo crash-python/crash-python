@@ -16,9 +16,7 @@ from crash.subsystem.filesystem.mount import mount_device, mount_fstype
 from crash.subsystem.filesystem.mount import mount_super, mount_flags
 from crash.subsystem.filesystem.mount import mount_root
 
-class MountCommand(Command):
-    """display mounted file systems
-
+mount_help_text = """
 NAME
   mount - display mounted file systems
 
@@ -26,6 +24,10 @@ NAME
   -v    display superblock and vfsmount addresses
   -d    display device obtained from super_block
 """
+
+class MountCommand(Command):
+    """display mounted file systems"""
+
     def __init__(self, name):
         parser = ArgumentParser(prog=name)
 
@@ -35,6 +37,15 @@ NAME
 
         parser.format_usage = lambda : "mount\n"
         super().__init__(name, parser)
+
+    def format_help(self) -> str:
+        """
+        Returns the help text for the mount command
+
+        Returns:
+            :obj:`str`: The help text for the mount command.
+        """
+        return mount_help_text
 
     def __getattr__(self, name):
         if name == 'charp':

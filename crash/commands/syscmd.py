@@ -6,9 +6,7 @@ from crash.commands import Command, ArgumentParser
 from crash.commands import CommandLineError
 from crash.cache.syscache import utsname, config, kernel
 
-class SysCommand(Command):
-    """system data
-
+sys_help_text = """
 NAME
   sys - system data
 
@@ -38,9 +36,10 @@ EXAMPLES
          VERSION: #24 SMP Mon Oct 11 17:41:40 CDT 1999
          MACHINE: i686  (500 MHz)
           MEMORY: 1 GB
+"""
 
-
-    """
+class SysCommand(Command):
+    """system data"""
     def __init__(self, name):
 
         parser = ArgumentParser(prog=name)
@@ -49,6 +48,15 @@ EXAMPLES
 
         parser.format_usage = lambda: "sys [config]\n"
         Command.__init__(self, name, parser)
+
+    def format_help(self) -> str:
+        """
+        Returns the help text for the sys command
+
+        Returns:
+            :obj:`str`: The help text for the sys command.
+        """
+        return sys_help_text
 
     @staticmethod
     def show_default():

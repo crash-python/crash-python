@@ -12,9 +12,7 @@ from crash.types.vmstat import VmStat
 from crash.util import get_symbol_value
 from crash.exceptions import MissingSymbolError
 
-class KmemCommand(Command):
-    """ kernel memory inspection
-
+kmem_help_text = """
 NAME
   kmem - kernel memory inspection
 
@@ -26,7 +24,10 @@ SYNOPSIS
 
 DESCRIPTION
   This command currently offers very basic kmem cache query and checking.
-    """
+"""
+
+class KmemCommand(Command):
+    """ kernel memory inspection"""
 
     def __init__(self, name):
         parser = ArgumentParser(prog=name)
@@ -39,6 +40,15 @@ DESCRIPTION
         group.add_argument('address', nargs='?')
 
         super().__init__(name, parser)
+
+    def format_help(self) -> str:
+        """
+        Returns the help text for the kmem command
+
+        Returns:
+            :obj:`str`: The help text for the kmem command.
+        """
+        return kmem_help_text
 
     def execute(self, args):
         if args.z:

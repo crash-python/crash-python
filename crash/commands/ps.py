@@ -153,9 +153,7 @@ class TaskFormat(object):
         """
         return self._format_header()
 
-class PSCommand(Command):
-    """display process status information
-
+ps_help_text = """
 NAME
   ps - display process status information
 
@@ -525,6 +523,9 @@ EXAMPLES
           15      2   2  ffff880212989710  IN   0.0      0      0  [migration/2]
           20      2   3  ffff8802129a9710  IN   0.0      0      0  [migration/3]
         """
+
+class PSCommand(Command):
+    """display process status information"""
     def __init__(self):
         parser = ArgumentParser(prog="ps")
 
@@ -552,6 +553,15 @@ EXAMPLES
         "ps [-k|-u|-G][-s][-p|-c|-t|-l|-a|-g|-r] [pid | taskp | command] ...\n"
 
         Command.__init__(self, "ps", parser)
+
+    def format_help(self) -> str:
+        """
+        Returns the help text for the ps command
+
+        Returns:
+            :obj:`str`: The help text for the ps command.
+        """
+        return ps_help_text
 
     def task_state_string(self, task):
         state = task.task_state()

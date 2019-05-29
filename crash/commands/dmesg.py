@@ -20,9 +20,7 @@ class LogTypeException(Exception):
 class LogInvalidOption(Exception):
     pass
 
-class LogCommand(Command):
-    """dump system message buffer
-
+log_help_text = """
 NAME
   log - dump system message buffer
 
@@ -141,8 +139,11 @@ EXAMPLES
     SUBSYSTEM=pci
     DEVICE=+pci:0000:ff:03.1
     ...
+"""
 
-    """
+class LogCommand(Command):
+    """dump system message buffer"""
+
     def __init__(self, name):
         parser = ArgumentParser(prog=name)
 
@@ -152,6 +153,15 @@ EXAMPLES
 
         parser.format_usage = lambda: 'log [-tdm]\n'
         Command.__init__(self, name, parser)
+
+    def format_help(self) -> str:
+        """
+        Returns the help text for the log command
+
+        Returns:
+            :obj:`str`: The help text for the log command.
+        """
+        return log_help_text
 
     @classmethod
     def filter_unstructured_log(cls, log, args):

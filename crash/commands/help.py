@@ -3,11 +3,9 @@
 
 import gdb
 import argparse
-from crash.commands import Command, ArgumentParser
+from crash.commands import Command, CommandError, ArgumentParser
 
-class HelpCommand(Command):
-    """ this command
-
+help_text = """
 NAME
   help - display help for crash commands
 
@@ -20,33 +18,40 @@ DESCRIPTION
   text for that command will be printed.
 """
 
+class HelpCommand(Command):
+    """ this command"""
+
     def __init__(self):
         parser = ArgumentParser(prog="help")
         parser.add_argument('args', nargs=argparse.REMAINDER)
         super().__init__('help', parser)
 
+    def format_help(self) -> str:
+        """
+        Returns the help text for the help command
+
+        Returns:
+            :obj:`str`: The help text for the help command.
+        """
+        return help_text
+
     def execute(self, argv):
         if not argv.args:
             print("Available commands:")
             for cmd in sorted(self.commands):
-                text = self.commands[cmd].__doc__
-                if text:
-                    summary = text.split('\n')[0].strip()
-                else:
+                summary = self.commands[cmd].__doc__.strip()
+                if not summary:
                     summary = "no help text provided"
                 print("{:<15} - {}".format(cmd, summary))
         else:
             for cmd in argv.args:
                 try:
-                    text = self.commands[cmd].__doc__
-                    if text is None:
-                        print("No help text available.")
-                    f = text.find("")
-                    if f == -1:
-                        print(text)
-                    else:
-                        print(text[f+1:])
+                    text = self.commands[cmd].format_help().strip()
                 except KeyError:
-                    print("No such command `{}'".format(cmd))
+                    raise CommandError("No such command `{}'".format(cmd))
+                if text is None:
+                    print("No help text available.")
+                else:
+                    print(text)
 
 HelpCommand()
