@@ -20,7 +20,31 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('./mock'))
+sys.path.insert(0, os.path.abspath('.'))
 
+
+def run_apidoc(_):
+    try:
+        from sphinx.ext.apidoc import main
+        mod = "../crash"
+        out = "."
+    except ImportError as e:
+        from sphinx.apidoc import main
+        mod = "crash"
+        out = "doc-source"
+    import make_gdb_refs
+    import os
+    import sys
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    argv = [ '-M', '-e', '-H', 'API Reference', '-f',
+	    '-o', out, mod ]
+    main(argv)
+
+    make_gdb_refs.make_gdb_refs()
+
+def setup(app):
+	app.connect('builder-inited', run_apidoc)
 
 # -- General configuration ------------------------------------------------
 
@@ -182,6 +206,4 @@ texinfo_documents = [
      author, 'crash-python', 'One line description of project.',
      'Miscellaneous'),
 ]
-
-
 

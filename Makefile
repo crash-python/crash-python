@@ -49,7 +49,5 @@ lint3:
 doc: build FORCE
 	rm -rf docs
 	rm -f doc/source/crash.*rst doc/source/modules.rst
-	sphinx-apidoc -M -e -H "API Reference" -f -o doc-source crash
-	(cd doc-source ; python3 make-gdb-refs.py)
 	python3 setup.py -q build_sphinx
 FORCE:

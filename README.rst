@@ -75,6 +75,9 @@ writing ad-hoc extensions, commands, and analysis scripts.
       f_write_hint = WRITE_LIFE_NOT_SET,
       [...]
 
+Full documentation can be found at `crash-python.readthedocs.io
+<https://crash-python.readthedocs.io/en/latest/>`_.
+
 .. end-introduction
 
 Installation
@@ -133,6 +136,8 @@ The full options are documented with:
     $ pycrash --help
 
 .. end-quick-start
+
+
 
 
 License:

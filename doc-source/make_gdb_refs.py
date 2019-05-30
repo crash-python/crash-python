@@ -41,24 +41,25 @@ class MockBuilder(object):
     def get_target_uri(self, docname):
         return docname
 
-env = MockEnvironment()
-builder = MockBuilder()
+def make_gdb_refs():
+    env = MockEnvironment()
+    builder = MockBuilder()
 
-classes = MockDomain('py')
+    classes = MockDomain('py')
 
-classes.add_class_ref('gdb.Type', 'Types-In-Python.html')
-classes.add_class_ref('gdb.Symbol', 'Symbols-In-Python.html')
-classes.add_class_ref('gdb.Command', 'Commands-In-Python.html')
-classes.add_class_ref('gdb.Inferior', 'Inferiors-In-Python.html')
-classes.add_class_ref('gdb.Objfile', 'Objfiles-In-Python.html')
-classes.add_class_ref('gdb.Value', 'Values-From-Inferior.html')
-classes.add_class_ref('gdb.InferiorThread', 'Threads-In-Python.html')
-classes.add_class_ref('gdb.Frame', 'Frames-In-Python.html')
-classes.add_class_ref('gdb.NotAvailableErorr', 'Exception-Handling.html')
-classes.add_class_ref('gdb.MemoryError', 'Exception-Handling.html')
-classes.add_class_ref('gdb.error', 'Exception-Handling.html')
-classes.add_class_ref('gdb.GdbError', 'Exception-Handling.html')
+    classes.add_class_ref('gdb.Type', 'Types-In-Python.html')
+    classes.add_class_ref('gdb.Symbol', 'Symbols-In-Python.html')
+    classes.add_class_ref('gdb.Command', 'Commands-In-Python.html')
+    classes.add_class_ref('gdb.Inferior', 'Inferiors-In-Python.html')
+    classes.add_class_ref('gdb.Objfile', 'Objfiles-In-Python.html')
+    classes.add_class_ref('gdb.Value', 'Values-From-Inferior.html')
+    classes.add_class_ref('gdb.InferiorThread', 'Threads-In-Python.html')
+    classes.add_class_ref('gdb.Frame', 'Frames-In-Python.html')
+    classes.add_class_ref('gdb.NotAvailableErorr', 'Exception-Handling.html')
+    classes.add_class_ref('gdb.MemoryError', 'Exception-Handling.html')
+    classes.add_class_ref('gdb.error', 'Exception-Handling.html')
+    classes.add_class_ref('gdb.GdbError', 'Exception-Handling.html')
 
-env.add_domain(classes)
+    env.add_domain(classes)
 
-InventoryFile.dump("gdb.inv", env, builder)
+    InventoryFile.dump("gdb.inv", env, builder)
