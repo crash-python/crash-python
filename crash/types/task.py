@@ -4,6 +4,8 @@
 from typing import Iterator, Callable, Dict
 
 import gdb
+from crash.exceptions import InvalidArgumentError, ArgumentTypeError
+from crash.exceptions import UnexpectedGDBTypeError
 from crash.util import array_size, struct_has_member
 from crash.util.symbols import Types, Symvals, SymbolCallbacks
 from crash.types.list import list_for_each_entry
@@ -179,9 +181,6 @@ class LinuxTask(object):
     Args:
         task_struct: The task to wrap.  The value must be of type
             ``struct task_struct``.
-        active: Whether this task is active in the debugging enviroment
-        cpu: Which CPU this task was using
-        regs: The registers associated with this task
 
     Attributes:
         task_struct (:obj:`gdb.Value`): The task being wrapped.  The value
@@ -208,13 +207,10 @@ class LinuxTask(object):
             :obj:`int`.
     """
     _valid = False
+    _task_state_has_exit_state = None
 
-    def __init__(self, task_struct: gdb.Value, active: bool=False,
-                 cpu: int=None, regs: Dict[str, int]=None):
+    def __init__(self, task_struct: gdb.Value):
         self._init_task_types(task_struct)
-
-        if cpu is not None and not isinstance(cpu, int):
-            raise InvalidArgumentError("cpu must be integer or None")
 
         if not isinstance(task_struct, gdb.Value):
             raise ArgumentTypeError('task_struct', task_struct, gdb.Value)
@@ -225,12 +221,12 @@ class LinuxTask(object):
                                              types.task_struct_type)
 
         self.task_struct = task_struct
-        self.active = active
-        self.cpu = cpu
-        self.regs = regs
+        self.active = False
+        self.cpu = -1
+        self.regs: Dict[str, int] = dict()
 
-        self.thread_info = None
-        self.thread = None
+        self.thread_info: gdb.Value = None
+        self.thread: gdb.InferiorThread = None
 
         # mem data
         self.mem_valid = False
@@ -252,11 +248,29 @@ class LinuxTask(object):
             # a simple pointer comparison.
             types.override('struct task_struct', task.type)
             fields = types.task_struct_type.fields()
-            cls.task_state_has_exit_state = 'exit_state' in fields
+            cls._task_state_has_exit_state = 'exit_state' in fields
             cls._pick_get_rss()
             cls._pick_last_run()
             cls.init_mm = get_value('init_mm')
             cls._valid = True
+
+    def set_active(self, cpu: int, regs: Dict[str, int]) -> None:
+        """
+        Set this task as active in the debugging environment
+
+        Args:
+            cpu: Which CPU this task was using
+            regs: The registers associated with this task
+
+        Raises:
+            :obj:`.InvalidArgumentError`: The cpu was not a valid integer.
+        """
+        if not (isinstance(cpu, int) and cpu >= 0):
+            raise InvalidArgumentError("cpu must be integer >= 0")
+
+        self.active = True
+        self.cpu = cpu
+        self.regs = regs
 
     def attach_thread(self, thread: gdb.InferiorThread) -> None:
         """
@@ -320,7 +334,7 @@ class LinuxTask(object):
             :obj:`int`: The state flags for this task.
         """
         state = int(self.task_struct['state'])
-        if self.task_state_has_exit_state:
+        if self._task_state_has_exit_state:
             state |= int(self.task_struct['exit_state'])
         return state
 

@@ -619,14 +619,15 @@ class CrashKernel(object):
             crashing_cpu = -1
 
         for task in for_each_all_tasks():
-            cpu = None
-            regs = None
+            ltask = LinuxTask(task)
+
             active = int(task.address) in rqscurrs
             if active:
                 cpu = rqscurrs[int(task.address)]
                 regs = self.vmcore.attr.cpu[cpu].reg
+                ltask.set_active(cpu, regs)
 
-            ltask = LinuxTask(task, active, cpu, regs)
+
             ptid = (LINUX_KERNEL_PID, task['pid'], 0)
 
             try:
