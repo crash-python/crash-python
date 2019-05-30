@@ -14,17 +14,17 @@ types = Types([ 'struct btrfs_inode', 'struct btrfs_fs_info *',
 
 def is_btrfs_super(super_block: gdb.Value) -> bool:
     """
-    Tests whether a super_block belongs to btrfs.
+    Tests whether a ``struct super_block`` belongs to btrfs.
 
     Args:
-        super_block (gdb.Value<struct super_block>): The struct super_block
-            to test
+        super_block: The ``struct super_block`` to test.
+            The value must be of type ``struct super_block``.
 
     Returns:
-        bool: Whether the super_block belongs to btrfs
+        :obj:`bool`: Whether the super_block belongs to btrfs
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     return is_fstype_super(super_block, "btrfs")
 
@@ -33,13 +33,14 @@ def is_btrfs_inode(vfs_inode: gdb.Value) -> bool:
     Tests whether a inode belongs to btrfs.
 
     Args:
-        vfs_inode (gdb.Value<struct inode>): The struct inode to test
+        vfs_inode: The ``struct inode`` to test.  The value must be
+            of type ``struct inode``.
 
     Returns:
-        bool: Whether the inode belongs to btrfs
+        :obj:`bool`: Whether the inode belongs to btrfs
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     return is_btrfs_super(vfs_inode['i_sb'])
 
@@ -47,20 +48,21 @@ def btrfs_inode(vfs_inode: gdb.Value, force: bool=False ) -> gdb.Value:
     """
     Converts a VFS inode to a btrfs inode
 
-    This method converts a struct inode to a struct btrfs_inode.
+    This method converts a ``struct inode`` to a ``struct btrfs_inode``.
 
     Args:
-        vfs_inode (gdb.Value<struct inode>): The struct inode to convert
-            to a struct btrfs_inode
+        vfs_inode: The ``struct inode`` to convert to a ``struct btrfs_inode``.
+            The value must be of type ``struct inode``.
 
-        force (bool): Ignore type checking.
+        force: Ignore type checking.
 
     Returns:
-        gdb.Value<struct btrfs_inode>: The converted struct btrfs_inode
+        :obj:`gdb.Value`: The converted ``struct btrfs_inode``.
+        The value will be of type ``struct btrfs_inode``.
 
     Raises:
-        InvalidArgumentError: the inode does not belong to btrfs
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`.InvalidArgumentError`: the inode does not belong to btrfs
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     if not force and not is_btrfs_inode(vfs_inode):
         raise InvalidArgumentError("inode does not belong to btrfs")
@@ -74,19 +76,19 @@ def btrfs_fs_info(super_block: gdb.Value, force: bool=False) -> gdb.Value:
     This method resolves a struct btrfs_fs_info from a struct super_block
 
     Args:
-        super_block (gdb.Value<struct super_block>): The struct super_block
-            to use to resolve a struct btrfs_fs_info.  A pointer to a
-            struct super_block is also acceptable.
+        super_block: The ``struct super_block`` to use to resolve a'
+            ``struct btrfs_fs_info``.  A pointer to a ``struct super_block``
+            is also acceptable.
 
-        force (bool): Ignore type checking.
+        force: Ignore type checking.
 
     Returns:
-        gdb.Value<struct btrfs_fs_info>: The resolved struct
-            btrfs_fs_info
+        :obj:`gdb.Value: The resolved ``struct btrfs_fs_info``.  The value will
+        be of type ``struct btrfs_fs_info``.
 
     Raises:
-        InvalidArgumentError: the super_block does not belong to btrfs
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`.InvalidArgumentError`: the super_block does not belong to btrfs
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     if not force and not is_btrfs_super(super_block):
         raise InvalidArgumentError("super_block does not belong to btrfs")
@@ -99,17 +101,17 @@ def btrfs_fsid(super_block: gdb.Value, force: bool=False) -> uuid.UUID:
     Returns the btrfs fsid (UUID) for the specified superblock.
 
     Args:
-        super_block (gdb.Value<struct super_block>): The struct super_block
-            for which to return the btrfs fsid.
+        super_block: The ``struct super_block`` for which to return the
+            btrfs fsid.  The value must be of type ``struct super_block``.
 
-        force (bool): Ignore type checking.
+        force: Ignore type checking.
 
     Returns:
-        uuid.UUID: The Python UUID Object for the btrfs fsid
+        :obj:`uuid.UUID`: The Python UUID Object for the btrfs fsid
 
     Raises:
-        InvalidArgumentError: the super_block does not belong to btrfs
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`.InvalidArgumentError`: the super_block does not belong to btrfs
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     fs_info = btrfs_fs_info(super_block, force)
     if struct_has_member(types.btrfs_fs_info_type, 'fsid'):
@@ -121,17 +123,18 @@ def btrfs_metadata_uuid(sb: gdb.Value, force: bool=False) -> uuid.UUID:
     Returns the btrfs metadata uuid for the specified superblock.
 
     Args:
-        super_block (gdb.Value<struct super_block>): The struct super_block
-            for which to return the btrfs metadata uuid.
+        super_block: The ``struct super_block`` for which to return the
+            btrfs metadata uuid.  The value must be of type
+            ``struct super_block``.
 
-        force (bool): Ignore type checking.
+        force: Ignore type checking.
 
     Returns:
-        uuid.UUID: The Python UUID Object for the btrfs fsid
+        :obj:`uuid.UUID`: The Python UUID Object for the btrfs fsid
 
     Raises:
-        InvalidArgumentError: the super_block does not belong to btrfs
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`.InvalidArgumentError`: the super_block does not belong to btrfs
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     fs_info = btrfs_fs_info(sb, force)
     if struct_has_member(types.btrfs_fs_info_type, 'metadata_uuid'):

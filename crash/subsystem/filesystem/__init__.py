@@ -81,14 +81,14 @@ def super_fstype(sb: gdb.Value) -> str:
     Returns the file system type's name for a given superblock.
 
     Args:
-        sb (gdb.Value<struct super_block>): The struct super_block for
-            which to return the file system type's name
+        sb: The ``struct super_block`` for which to return the file system
+            type's name.  The value must be of type ``struct super_block``.
 
     Returns:
-        str: The file system type's name
+        :obj:`str`:The file system type's name
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     return sb['s_type']['name'].string()
 
@@ -97,14 +97,14 @@ def super_flags(sb: gdb.Value) -> str:
     Returns the flags associated with the given superblock.
 
     Args:
-        sb (gdb.Value<struct super_block>): The struct super_block for
-            which to return the flags.
+        sb: The ``struct super_block`` for which to return the flags.
+            The value must be of type ``struct super_block``.
 
     Returns:
-        str: The flags field in human-readable form.
+        :obj:`str`:The flags field in human-readable form.
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     return decode_flags(sb['s_flags'], SB_FLAGS)
 
@@ -112,14 +112,12 @@ def for_each_super_block() -> Iterable[gdb.Value]:
     """
     Iterate over the list of super blocks and yield each one.
 
-    Args:
-        None
-
     Yields:
-        gdb.Value<struct super_block>
+        :obj:`gdb.Value`: One value for each super block.  Each value
+        will be of type ``struct super_block``.
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     for sb in list_for_each_entry(symvals.super_blocks,
                                   types.super_block_type, 's_list'):
@@ -131,16 +129,17 @@ def get_super_block(desc: AddressSpecifier, force: bool=False) -> gdb.Value:
     a struct super_block at that address.
 
     Args:
-        desc (gdb.Value, str, or int): The address for which to provide
-            a casted pointer
-        force (bool): Skip testing whether the value is available.
+        desc: The address for which to provide a casted pointer.  The address
+            may be specified using an existing Value, an integer address,
+            or a hexadecimal address represented as a 0x-prefixed string.
+        force: Skip testing whether the value is available.
 
     Returns:
-        gdb.Value<struct super_block>: The super_block at the requested
-            location
+        :obj:`gdb.Value`: The super block at the requested location.
+        The value will be ``struct super_block``.
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     sb = get_typed_pointer(desc, types.super_block_type).dereference()
     if not force:
@@ -158,15 +157,16 @@ def is_fstype_super(super_block: gdb.Value, name: str) -> bool:
     This uses a naive string comparison so modules are not required.
 
     Args:
-        super_block (gdb.Value<struct super_block>):
-            The struct super_block to test
-        name (str): The name of the file system type
+        super_block: The struct super_block to test.  The value must be
+            of type ``struct super_block``.
+        name: The name of the file system type
 
     Returns:
-        bool: whether the super_block belongs to the specified file system
+        :obj:`bool`: whether the ``struct super_block`` belongs to the
+        specified file system
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     return super_fstype(super_block) == name
 
@@ -175,13 +175,14 @@ def is_fstype_inode(inode: gdb.Value, name: str) -> bool:
     Tests whether the inode belongs to a particular file system type.
 
     Args:
-        inode (gdb.Value<struct inode>): The struct inode to test
-        name (str): The name of the file system type
+        inode: The struct inode to test.  The value must be of
+            type ``struct inode``.
+        name: The name of the file system type
 
     Returns:
-        bool: whether the inode belongs to the specified file system
+        :obj:`bool`: whether the inode belongs to the specified file system
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     return is_fstype_super(inode['i_sb'], name)

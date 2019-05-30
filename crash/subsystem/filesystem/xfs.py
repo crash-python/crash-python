@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+"""
+The crash.subsystem.filesystem.xfs module offers helpers to work with
+XFS file systems.
+"""
 
 import gdb
 import uuid
@@ -205,24 +209,34 @@ class XFSBufDecoder(Decoder):
 class XFSBufBioDecoder(Decoder):
     """
     Decodes a bio with an xfsbuf ->bi_end_io
-    """
-    description = "{:x} bio: xfs buffer on {}"
-    __endio__ = 'xfs_buf_bio_end_io'
-    types = Types([ 'struct xfs_buf *' ])
 
-    def __init__(self, bio):
+    Args:
+        bio: The struct bio to decode.  The value must be of type
+            ``struct bio``.
+
+    Attributes:
+        xfsbuf (gdb.Value): The xfsbuf structure.  It is of type
+            ``struct xfs_buf *``.
+        devname (str): The string representation of the device name
+    """
+    _description = "{:x} bio: xfs buffer on {}"
+    __endio__ = 'xfs_buf_bio_end_io'
+    _types = Types([ 'struct xfs_buf *' ])
+
+    def __init__(self, bio: gdb.Value):
         super(XFSBufBioDecoder, self).__init__()
         self.bio = bio
 
     def interpret(self):
-        self.xfsbuf = bio['bi_private'].cast(cls.types.xfs_buf_p_type)
+        """Interpret the xfsbuf bio to populate its attributes"""
+        self.xfsbuf = bio['bi_private'].cast(cls._types.xfs_buf_p_type)
         self.devname = block_device_name(bio['bi_bdev'])
 
     def __next__(self):
         return XFSBufDecoder(xfs.xfsbuf)
 
     def __str__(self):
-        return self.description.format(self.bio, self.devname)
+        return self._description.format(self.bio, self.devname)
 
 XFSBufBioDecoder.register()
 
@@ -232,48 +246,48 @@ types = Types([ 'struct xfs_log_item', 'struct xfs_buf_log_item',
                   'struct xfs_qoff_logitem', 'struct xfs_inode',
                   'struct xfs_mount *', 'struct xfs_buf *' ])
 
-class XFS(object):
+class _XFS(object):
     """
     XFS File system state class.  Not meant to be instantiated directly.
     """
-    ail_head_name = None
+    _ail_head_name = None
 
     @classmethod
     def _detect_ail_version(cls, gdbtype):
         if struct_has_member(gdbtype, 'ail_head'):
-            cls.ail_head_name = 'ail_head'
+            cls._ail_head_name = 'ail_head'
         else:
-            cls.ail_head_name = 'xa_ail'
+            cls._ail_head_name = 'xa_ail'
 
 def is_xfs_super(super_block: gdb.Value) -> bool:
     """
-    Tests whether a super_block belongs to XFS.
+    Tests whether a ``struct super_block`` belongs to XFS.
 
     Args:
-        super_block (gdb.Value<struct super_block>):
-            The struct super_block to test
+        super_block: The struct super_block to test. The value must be of type
+            ``struct super_block``.
 
     Returns:
-        bool: Whether the super_block belongs to XFS
+        :obj:`bool`: Whether the super_block belongs to XFS
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     return is_fstype_super(super_block, "xfs")
 
 def is_xfs_inode(vfs_inode: gdb.Value) -> bool:
     """
-    Tests whether a generic VFS inode belongs to XFS
+    Tests whether a generic ``struct inode`` belongs to XFS
 
     Args:
-        vfs_inode (gdb.value(<struct inode>):
-            The struct inode to test whether it belongs to XFS
+        vfs_inode: The struct inode to test whether it belongs to XFS.
+            The value must be of type ``struct inode``.
 
     Returns:
-        bool: Whether the inode belongs to XFS
+        :obj:`bool`: Whether the inode belongs to XFS
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
 
     return is_fstype_inode(vfs_inode, "xfs")
@@ -282,20 +296,21 @@ def xfs_inode(vfs_inode: gdb.Value, force: bool=False) -> gdb.Value:
     """
     Converts a VFS inode to a xfs inode
 
-    This method converts a struct inode to a struct xfs_inode.
+    This method converts a ``struct inode`` to a ``struct xfs_inode``.
 
     Args:
-        vfs_inode (gdb.Value<struct inode>):
-            The struct inode to convert to a struct xfs_inode
+        vfs_inode: The ``struct inode`` to convert to a ``struct xfs_inode``
+            The value must be of type ``struct inode``.
 
-        force (bool): ignore type checking
+        force: ignore type checking
 
     Returns:
-        gdb.Value<struct xfs_inode>: The converted struct xfs_inode
+        :obj:`gdb.Value`: The converted ``struct xfs_inode``.  The value
+        will be of type ``struct xfs_inode``.
 
     Raises:
         TypeError: The inode does not belong to xfs
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     if not force and not is_xfs_inode(vfs_inode):
         raise InvalidArgumentError("inode does not belong to xfs")
@@ -306,18 +321,20 @@ def xfs_mount(sb: gdb.Value, force: bool=False) -> gdb.Value:
     """
     Converts a VFS superblock to a xfs mount
 
-    This method converts a struct super_block to a struct xfs_mount *
+    This method converts a ``struct super_block`` to a ``struct xfs_mount *``
 
     Args:
-        super_block (gdb.Value<struct super_block>):
-            The struct super_block to convert to a struct xfs_fs_info.
+        super_block: The struct super_block to convert to a
+            ``struct xfs_fs_info``.  The value must be of type
+            ``struct super_block``.
 
     Returns:
-        gdb.Value<struct xfs_mount *>: The converted struct xfs_mount
+        :obj:`gdb.Value`: The converted ``struct xfs_mount``.  The value will be
+        of type ``struct xfs_mount *``.
 
     Raises:
-        TypeError: The superblock does not belong to xfs
-        gdb.NotAvailableError: The target value was not available.
+        InvalidArgumentError: The ``struct super_block`` does not belong to xfs
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     if not force and not is_xfs_super(sb):
         raise InvalidArgumentError("superblock does not belong to xfs")
@@ -329,14 +346,14 @@ def xfs_mount_flags(mp: gdb.Value) -> str:
     Return the XFS-internal mount flags in string form
 
     Args:
-        mp (gdb.Value<struct xfs_mount>):
-            The struct xfs_mount for the file system
+        mp: The ``struct xfs_mount`` for the file system.  The value must be of
+            type ``struct xfs_mount``.
 
     Returns:
-        str: The mount flags in string form
+        :obj:`str`: The mount flags in string form
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     return decode_flags(mp['m_flags'], XFS_MOUNT_FLAGS)
 
@@ -345,14 +362,14 @@ def xfs_mount_uuid(mp: gdb.Value) -> uuid.UUID:
     Return the UUID for an XFS file system in string form
 
     Args:
-        mp gdb.Value(<struct xfs_mount>):
-            The struct xfs_mount for the file system
+        mp: The ``struct xfs_mount`` for the file system.  The value must be of
+            type ``struct xfs_mount``.
 
     Returns:
-        uuid.UUID: The Python UUID object that describes the xfs UUID
+        :obj:`uuid.UUID`: The Python UUID object that describes the xfs UUID
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     return decode_uuid_t(mp['m_sb']['sb_uuid'])
 
@@ -364,15 +381,17 @@ def xfs_for_each_ail_entry(ail: gdb.Value) -> Iterable[gdb.Value]:
     Iterates over the XFS Active Item Log and returns each item
 
     Args:
-        ail (gdb.Value<struct xfs_ail>): The XFS AIL to iterate
+        ail: The XFS AIL to iterate.  The value must be of type
+            ``struct xfs_ail``.
 
     Yields:
-        gdb.Value<struct xfs_log_item>
+        :obj:`gdb.Value`: A log item from the AIL.  Each value will be of
+        type ``struct xfs_log_item``.
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
-    head = ail[XFS.ail_head_name]
+    head = ail[_XFS._ail_head_name]
     for item in list_for_each_entry(head, types.xfs_log_item_type, 'li_ail'):
             yield item
 
@@ -381,13 +400,15 @@ def xfs_for_each_ail_log_item(mp: gdb.Value) -> Iterable[gdb.Value]:
     Iterates over the XFS Active Item Log and returns each item
 
     Args:
-        mp (gdb.Value<struct xfs_mount>): The XFS mount to iterate
+        mp: The XFS mount to iterate.  The value must be of type `struct
+            xfs_mount`.
 
     Yields:
-        gdb.Value<struct xfs_log_item>
+        :obj:`gdb.Value`: A log item from AIL owned by this mount.
+        The value will be of type ``struct xfs_log_item``.
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     for item in xfs_for_each_ail_entry(mp['m_ail']):
             yield item
@@ -397,14 +418,16 @@ def item_to_buf_log_item(item: gdb.Value) -> gdb.Value:
     Converts an xfs_log_item to an xfs_buf_log_item
 
     Args:
-        item (gdb.Value<struct xfs_log_item>): The log item to convert
+        item: The log item to convert.  The value must be of
+            type ``struct xfs_log_item``.
 
     Returns:
-        gdb.Value<struct xfs_buf_log_item>
+        :obj:`gdb.Value`: The converted log item.  The value will be of
+        type ``struct xfs_buf_log_item``.
 
     Raises:
-        InvalidArgumentError: The type of log item is not XFS_LI_BUF
-        gdb.NotAvailableError: The target value was not available.
+        InvalidArgumentError: The type of log item is not ``XFS_LI_BUF``
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     if item['li_type'] != XFS_LI_BUF:
         raise InvalidArgumentError("item is not a buf log item")
@@ -415,14 +438,16 @@ def item_to_inode_log_item(item: gdb.Value) -> gdb.Value:
     Converts an xfs_log_item to an xfs_inode_log_item
 
     Args:
-        item (gdb.Value<struct xfs_log_item>): The log item to convert
+        item: The log item to convert.  The value must of of type
+            ``struct xfs_log_item``.
 
     Returns:
-        gdb.Value<struct xfs_inode_log_item>
+        :obj:`gdb.Value`: The converted log item.  The value will be of
+        type ``struct xfs_inode_log_item``.
 
     Raises:
-        InvalidArgumentError: The type of log item is not XFS_LI_INODE
-        gdb.NotAvailableError: The target value was not available.
+        InvalidArgumentError: The type of log item is not ``XFS_LI_INODE``
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     if item['li_type'] != XFS_LI_INODE:
         raise InvalidArgumentError("item is not an inode log item")
@@ -433,14 +458,16 @@ def item_to_efi_log_item(item: gdb.Value) -> gdb.Value:
     Converts an xfs_log_item to an xfs_efi_log_item
 
     Args:
-        item (gdb.Value<struct xfs_log_item>): The log item to convert
+        item: The log item to convert.  The value must of of type
+            ``struct xfs_log_item``.
 
     Returns:
-        gdb.Value<struct xfs_efi_log_item>
+        :obj:`gdb.Value`: The converted log item.  The value will be of
+        type ``struct xfs_efi_log_item``.
 
     Raises:
-        InvalidArgumentError: The type of log item is not XFS_LI_EFI
-        gdb.NotAvailableError: The target value was not available.
+        InvalidArgumentError: The type of log item is not ``XFS_LI_EFI``
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     if item['li_type'] != XFS_LI_EFI:
         raise InvalidArgumentError("item is not an EFI log item")
@@ -451,14 +478,16 @@ def item_to_efd_log_item(item: gdb.Value) -> gdb.Value:
     Converts an xfs_log_item to an xfs_efd_log_item
 
     Args:
-        item (gdb.Value<struct xfs_log_item>): The log item to convert
+        item: The log item to convert.  The value must of of type
+        ``struct xfs_log_item``.
 
     Returns:
-        gdb.Value<struct xfs_efd_log_item>
+        :obj:`gdb.Value`: The converted log item.  The value will be of
+        type ``struct xfs_efd_log_item``.
 
     Raises:
-        InvalidArgumentError: The type of log item is not XFS_LI_EFD
-        gdb.NotAvailableError: The target value was not available.
+        InvalidArgumentError: The type of log item is not ``XFS_LI_EFD``
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     if item['li_type'] != XFS_LI_EFD:
         raise InvalidArgumentError("item is not an EFD log item")
@@ -469,14 +498,16 @@ def item_to_dquot_log_item(item: gdb.Value) -> gdb.Value:
     Converts an xfs_log_item to an xfs_dquot_log_item
 
     Args:
-        item (gdb.Value<struct xfs_log_item>): The log item to convert
+        item: The log item to convert.  The value must of of type
+            ``struct xfs_log_item``.
 
     Returns:
-        gdb.Value<struct xfs_dquot_log_item>
+        :obj:`gdb.Value`: The converted log item.  The value will be of
+        type ``struct xfs_dquot_log_item``.
 
     Raises:
-        InvalidArgumentError: The type of log item is not XFS_LI_DQUOT
-        gdb.NotAvailableError: The target value was not available.
+        InvalidArgumentError: The type of log item is not ``XFS_LI_DQUOT``
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     if item['li_type'] != XFS_LI_DQUOT:
         raise InvalidArgumentError("item is not an DQUOT log item")
@@ -487,14 +518,16 @@ def item_to_quotaoff_log_item(item: gdb.Value) -> gdb.Value:
     Converts an xfs_log_item to an xfs_quotaoff_log_item
 
     Args:
-        item (gdb.Value<struct xfs_log_item>): The log item to convert
+        item: The log item to convert.  The value must be of type
+            ``struct xfs_log_item``.
 
     Returns:
-        gdb.Value<struct xfs_quotaoff_log_item>
+        :obj:`gdb.Value`: The converted log item.  The value will be of
+        type ``struct xfs_quotaoff_log_item``
 
     Raises:
-        InvalidArgumentError: The type of log item is not XFS_LI_QUOTAOFF
-        gdb.NotAvailableError: The target value was not available.
+        InvalidArgumentError: The type of log item is not ``XFS_LI_QUOTAOFF``
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     if item['li_type'] != XFS_LI_QUOTAOFF:
         raise InvalidArgumentError("item is not an QUOTAOFF log item")
@@ -505,21 +538,24 @@ def xfs_log_item_typed(item:gdb.Value) -> gdb.Value:
     Returns the log item converted from the generic type to the actual type
 
     Args:
-        item (gdb.Value<struct xfs_log_item>): The struct xfs_log_item to
-            convert.
+        item: The ``struct xfs_log_item`` to convert.  The value must be
+            of type ``struct xfs_log_item``.
 
     Returns:
-        Depending on the item type, one of:
-        gdb.Value<struct xfs_buf_log_item_type>
-        gdb.Value<struct xfs_inode_log_item_type>
-        gdb.Value<struct xfs_efi_log_item_type>
-        gdb.Value<struct xfs_efd_log_item_type>
-        gdb.Value<struct xfs_dq_logitem>
-        gdb.Value<int> (for UNLINK item)
+        :obj:`gdb.Value`:
+
+        Depending on type, the value will be any of the following types:
+
+            - ``struct xfs_buf_log_item_type``
+            - ``struct xfs_inode_log_item_type``
+            - ``struct xfs_efi_log_item_type``
+            - ``struct xfs_efd_log_item_type``
+            - ``struct xfs_dq_logitem``
+            - ``int`` (for ``XFS_LI_IUNLINK`` item)
 
     Raises:
         RuntimeError: An unexpected item type was encountered
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     li_type = int(item['li_type'])
     if li_type == XFS_LI_BUF:
@@ -542,17 +578,18 @@ def xfs_log_item_typed(item:gdb.Value) -> gdb.Value:
 
 def xfs_format_xfsbuf(buf: gdb.Value) -> str:
     """
-    Returns a human-readable format of struct xfs_buf
+    Returns a human-readable format of ``struct xfs_buf``
 
     Args:
-        buf (gdb.Value<struct xfs_buf>):
-            The struct xfs_buf to decode
+        buf: The ``struct xfs_buf`` to decode.  The value must be of type
+            ``struct xfs_buf``.
 
     Returns:
-        str: The human-readable representation of the struct xfs_buf
+        :obj:`str`: The human-readable representation of the
+            ``struct xfs_buf``.
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     state = ""
     bflags = decode_flags(buf['b_flags'], XFS_BUF_FLAGS)
@@ -572,20 +609,25 @@ def xfs_for_each_ail_log_item_typed(mp: gdb.Value) -> gdb.Value:
     to the specific type.
 
     Args:
-        mp (gdb.Value<struct xfs_mount>): The XFS mount to iterate
+        mp: The XFS mount to iterate.  The value must be of
+            type ``struct xfs_mount``.
 
     Yields:
-        Depending on the item type, one of:
-        gdb.Value<struct xfs_buf_log_item_type>
-        gdb.Value<struct xfs_inode_log_item_type>
-        gdb.Value<struct xfs_efi_log_item_type>
-        gdb.Value<struct xfs_efd_log_item_type>
-        gdb.Value<struct xfs_dq_logitem>
+        :obj:`gdb.Value`:
+
+        Depending on type, the value will be any of the following types:
+
+        - ``struct xfs_buf_log_item_type``
+        - ``struct xfs_inode_log_item_type``
+        - ``struct xfs_efi_log_item_type``
+        - ``struct xfs_efd_log_item_type``
+        - ``struct xfs_dq_logitem``
+        - ``int`` (for UNLINK item)
 
     Raises:
-        gdb.NotAvailableError: The target value was not available.
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     for item in types.xfs_for_each_ail_log_item(mp):
         yield types.xfs_log_item_typed(item)
 
-type_cbs = TypeCallbacks([ ('struct xfs_ail', XFS._detect_ail_version) ])
+type_cbs = TypeCallbacks([ ('struct xfs_ail', _XFS._detect_ail_version) ])

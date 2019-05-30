@@ -1,7 +1,20 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+"""
+The crash.subsystem.filesystem.mount module contains helpers used to
+access the file system namespace.
+
+.. _mount_structure:
+
+*NOTE*: Linux v3.3 split ``struct mount`` from ``struct vfsmount``.  Prior
+kernels do not have ``struct mount``.  In functions documented as using a
+:obj:`gdb.Value` describing a ``struct mount``, a ``struct vfsmount``
+will be required and/or returned instead.
+"""
 
 import gdb
+
+from typing import Iterator
 
 from crash.subsystem.filesystem import super_fstype
 from crash.types.list import list_for_each_entry
@@ -41,16 +54,16 @@ MNT_FLAGS_HIDDEN.update(MNT_FLAGS)
 types = Types([ 'struct mount', 'struct vfsmount' ])
 symvals = Symvals([ 'init_task' ])
 
-class Mount(object):
+class _Mount(object):
     @classmethod
-    def for_each_mount_impl(cls, task):
-        raise NotImplementedError("Mount.for_each_mount is unhandled on this kernel version.")
+    def _for_each_mount_impl(cls, task):
+        raise NotImplementedError("_Mount.for_each_mount is unhandled on this kernel version.")
 
     @classmethod
     def for_each_mount_nsproxy(cls, task):
         """
         An implementation of for_each_mount that uses the task's
-        nsproxy to locate the mount namespace.  See for_each_mount
+        nsproxy to locate the mount namespace.  See :ref:`for_each_mount`
         for more details.
         """
         return list_for_each_entry(task['nsproxy']['mnt_ns']['list'],
@@ -60,7 +73,7 @@ class Mount(object):
     def _check_task_interface(cls, symval):
         try:
             nsproxy = symvals.init_task['nsproxy']
-            cls.for_each_mount_impl = cls.for_each_mount_nsproxy
+            cls._for_each_mount_impl = cls.for_each_mount_nsproxy
         except KeyError:
             print("check_task_interface called but no init_task?")
             pass
@@ -72,41 +85,46 @@ def _check_mount_type(gdbtype):
         # Older kernels didn't separate mount from vfsmount
         types.mount_type = types.vfsmount_type
 
-def for_each_mount(task=None):
+def for_each_mount(task: gdb.Value=None) -> Iterator[gdb.Value]:
     """
     Iterate over each mountpoint in the namespace of the specified task
 
-    If no task is given, the init_task is used.
+    If no task is given, the ``init_task`` symbol is used.
 
     The type of the mount structure returned depends on whether
-    'struct mount' exists on the kernel version being debugged.
+    ``struct mount`` exists on the kernel version being debugged :ref:`structure <mount_structure>`.
 
     Args:
-        task (gdb.Value<struct task_struct>, default=<symbol:init_task>):
-            The task which contains the namespace to iterate.
+        task: The task which contains the namespace to iterate.  The
+            :obj:`gdb.Value` must describe a ``struct task_struct``.  If
+            unspecified, the value for the ``init_task`` symbol will be
+            used.
 
     Yields:
-        gdb.Value<struct vfsmount or struct mount>:
-            A mountpoint attached to the namespace.
+        :obj:`gdb.Value`: A mountpoint attached to the namespace.
+        The value will be of type ``struct mount``
+        :ref:`structure <mount_structure>` .
 
+    Raises:
+        :obj:`gdb.NotAvailableError`: The target value is not available.
     """
     if task is None:
         task = symvals.init_task
-    return Mount.for_each_mount_impl(task)
+    return _Mount._for_each_mount_impl(task)
 
 def mount_flags(mnt: gdb.Value, show_hidden: bool=False) -> str:
     """
-    Returns the human-readable flags of the mount structure
+    Returns the human-readable flags of the ``struct mount``
+    :ref:`structure <mount_structure>`.
 
     Args:
-        mnt (gdb.Value<struct vfsmount or struct mount>):
-            The mount structure for which to return flags
+        mnt: The :ref:`mount structure <mount_structure>` for which to
+            return flags
 
-        show_hidden (bool, default=False):
-            Whether to return hidden flags
+        show_hidden: Whether to return hidden flags
 
     Returns:
-        str: The mount flags in human-readable form
+        :obj:`str`: The mount flags in human-readable form
     """
     if struct_has_member(mnt, 'mnt'):
         mnt = mnt['mnt']
@@ -119,12 +137,12 @@ def mount_super(mnt: gdb.Value) -> gdb.Value:
     Returns the struct super_block associated with a mount
 
     Args:
-        mnt: gdb.Value<struct vfsmount or struct mount>:
-            The mount structure for which to return the super_block
+        mnt: The :ref:`mount structure <mount_structure>` for which to
+            return the super_block
 
     Returns:
-        gdb.Value<struct super_block>:
-            The super_block associated with the mount
+        :obj:`gdb.Value`: The super_block associated with the mount.
+            The value will be of type ``struct super_block``.
     """
     try:
         sb = mnt['mnt']['mnt_sb']
@@ -137,12 +155,12 @@ def mount_root(mnt: gdb.Value) -> gdb.Value:
     Returns the struct dentry corresponding to the root of a mount
 
     Args:
-        mnt: gdb.Value<struct vfsmount or struct mount>:
-            The mount structure for which to return the root dentry
+        mnt: The :ref:`mount structure <mount_structure>` for which to
+            return the root dentry
 
     Returns:
-        gdb.Value<struct dentry>:
-            The dentry that corresponds to the root of the mount
+        :obj:`gdb.Value`: The dentry that corresponds to the root of
+            the mount.  The value will be of type ``struct dentry``.
     """
     try:
         mnt = mnt['mnt']
@@ -156,11 +174,11 @@ def mount_fstype(mnt: gdb.Value) -> str:
     Returns the file system type of the mount
 
     Args:
-        mnt (gdb.Value<struct vfsmount or struct mount>):
-            The mount structure for which to return the file system tyoe
+        mnt: The :ref:`mount structure <mount_structure>` for which to
+            return the file system type
 
     Returns:
-        str: The file system type of the mount in string form
+        :obj:`str`: The file system type of the mount in string form
     """
     return super_fstype(mount_super(mnt))
 
@@ -169,12 +187,14 @@ def mount_device(mnt: gdb.Value) -> str:
     Returns the device name that this mount is using
 
     Args:
-        gdb.Value<struct vfsmount or mount>:
-            The mount structure for which to get the device name
+        mnt: The :ref:`mount structure <mount_structure>` for which to
+            get the device name
 
     Returns:
-        str: The device name in string form
+        :obj:`str`: The device name in string form
 
+    Raises:
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     devname = mnt['mnt_devname'].string()
     if devname is None:
@@ -192,23 +212,25 @@ def _real_mount(vfsmnt):
         return vfsmnt
     return container_of(vfsmnt, types.mount_type, 'mnt')
 
-def d_path(mnt, dentry, root=None):
+def d_path(mnt: gdb.Value, dentry: gdb.Value, root: gdb.Value=None):
     """
     Returns a file system path described by a mount and dentry
 
     Args:
-        mnt (gdb.Value<struct vfsmount or struct mount>):
-            The mount for the start of the path
+        mnt: The :ref:`mount structure <mount_structure>` for the start
+            of the path
 
-        dentry (gdb.Value<struct dentry>):
-            The dentry for the start of the path
-
-        root (gdb.Value<struct vfsmount or struct mount>, default=None):
-            The mount at which to stop resolution.  If None,
-            the current root of the namespace.
+        dentry: The dentry for the start of the path.  The value must be
+            of type ``struct dentry``.
+        root: The :ref:`mount structure <mount_structure>` at which to
+            stop resolution.  If unspecified or ``None``, the current root
+            of the namespace is used.
 
     Returns:
-        str: The path in string form
+        :obj:`str`: The path in string form
+
+    Raises:
+        :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     if root is None:
         root = symvals.init_task['fs']['root']
@@ -253,4 +275,4 @@ def d_path(mnt, dentry, root=None):
     return name
 
 type_cbs = TypeCallbacks([ ('struct vfsmount', _check_mount_type ) ])
-symbols_cbs = SymbolCallbacks([ ('init_task', Mount._check_task_interface ) ])
+symbols_cbs = SymbolCallbacks([ ('init_task', _Mount._check_task_interface ) ])

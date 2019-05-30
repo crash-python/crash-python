@@ -20,11 +20,12 @@ def klist_for_each(klist: gdb.Value) -> Iterable[gdb.Value]:
     Iterate over a klist and yield each node
 
     Args:
-        klist (gdb.Value<struct klist or struct klist *>):
-            The list to iterate
+        klist: The list to iterate.  The value must be of type
+            ``struct klist`` or ``struct klist *``.
 
     Yields:
-        gdb.Value<struct klist_node>: The next node in the list
+        :obj:`gdb.Value`: The next node in the list.  The value is of type
+            ``struct klist_node``.
     """
     if klist.type == types.klist_type.pointer():
         klist = klist.dereference()
@@ -46,14 +47,15 @@ def klist_for_each_entry(klist: gdb.Value, gdbtype: gdb.Type,
     Iterate over a klist and yield each node's containing object
 
     Args:
-        klist (gdb.Value<struct klist or struct klist *>):
-            The list to iterate
-        gdbtype (gdb.Type): The type of the containing object
-        member (str): The name of the member in the containing object that
+        klist: The list to iterate.  The value must be of type
+            ``struct klist`` or ``struct klist *``.
+        gdbtype: The type of the containing object
+        member: The name of the member in the containing object that
             corresponds to the klist_node
 
     Yields:
-        gdb.Value<gdbtype>: The next node in the list
+        :obj:`gdb.Value`: The next node in the list.  The value is of the
+        specified type.
     """
     for node in klist_for_each(klist):
         if node.type is not types.klist_node_type:

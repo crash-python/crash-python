@@ -1,2 +1,5 @@
 *.pyc
 *~
+doc-source/crash*.rst
+doc-source/modules.rst
+docs

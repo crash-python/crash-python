@@ -1,5 +1,13 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+"""
+The crash.types.bitmap module provides helpers for iterating and scanning
+in-memory bitmaps.
+
+.. _bitmap_note:
+
+A bitmap is represented as either an array of ``unsigned long`` or as ``unsigned long *``.  Each routine below that accepts a gdb.Value requires that it be of either type.
+"""
 
 from typing import Iterable
 
@@ -27,13 +35,16 @@ def for_each_set_bit(bitmap: gdb.Value,
     Yield each set bit in a bitmap
 
     Args:
-        bitmap (gdb.Value<unsigned long[] or unsigned long *>:
-            The bitmap to iterate
-        size_in_bytes (int): The size of the bitmap if the type is
-            unsigned long *.
+        bitmap: The :ref:`bitmap <bitmap_note>` to iterate.
+        size_in_bytes: The size of the bitmap if the type is
+            ``unsigned long *``.
 
     Yields:
-        int: The position of a bit that is set
+        :obj:`int`: The position of a bit that is set
+
+    Raises:
+        :obj:`.InvalidArgumentError`: The :obj:`gdb.Value` is not of
+            type ``unsigned long[]`` or ``unsigned long *``.
     """
     _check_bitmap_type(bitmap)
 
@@ -95,20 +106,24 @@ def _find_first_set_bit(val: gdb.Value) -> int:
 def find_next_zero_bit(bitmap: gdb.Value, start: int,
                        size_in_bytes: int=None) -> int:
     """
-    Return the next unset bit in the bitmap starting at position `start',
+    Return the next unset bit in the bitmap starting at position start,
     inclusive.
 
     Args:
-        bitmap (gdb.Value<unsigned long[] or unsigned long *>:
-            The bitmap to test
-        start (int): The bit number to use as a starting position.  If
+        bitmap: The :ref:`bitmap <bitmap_note>` to scan.
+        start: The bit number to use as a starting position.  If
             the bit at this position is unset, it will be the first
             bit number yielded.
-        size_in_bytes (int): The size of the bitmap if the type is
-            unsigned long *.
+        size_in_bytes: The size of the bitmap if the type is
+            ``unsigned long *``.
 
     Returns:
-        int: The position of the first bit that is unset or 0 if all are set
+        :obj:`int`: The position of the first bit that is unset or
+        ``0`` if all are set
+
+    Raises:
+        :obj:`.InvalidArgumentError`: The :obj:`gdb.Value` is not of
+            type ``unsigned long[]`` or ``unsigned long *``.
     """
     _check_bitmap_type(bitmap)
 
@@ -147,34 +162,41 @@ def find_first_zero_bit(bitmap: gdb.Value, size_in_bytes: int=None) -> int:
     Return the first unset bit in the bitmap
 
     Args:
-        bitmap (gdb.Value<unsigned long[] or unsigned long *>:
-            The bitmap to scan
-        start (int): The bit number to use as a starting position.  If
+        bitmap: The :ref:`bitmap <bitmap_note>` to scan.
+        start: The bit number to use as a starting position.  If
             the bit at this position is unset, it will be the first
             bit number yielded.
 
     Returns:
-        int: The position of the first bit that is unset
+        :obj:`int`: The position of the first bit that is unset
+
+    Raises:
+        :obj:`.InvalidArgumentError`: The :obj:`gdb.Value` is not of
+            type ``unsigned long[]`` or ``unsigned long *``.
     """
     return find_next_zero_bit(bitmap, 0, size_in_bytes)
 
 def find_next_set_bit(bitmap: gdb.Value, start: int,
                       size_in_bytes: int=None) -> int:
     """
-    Return the next set bit in the bitmap starting at position `start',
+    Return the next set bit in the bitmap starting at position start,
     inclusive.
 
     Args:
-        bitmap (gdb.Value<unsigned long[] or unsigned long *>:
-            The bitmap to scan
-        start (int): The bit number to use as a starting position.  If
+        bitmap: The :ref:`bitmap <bitmap_note>` to scan.
+        start: The bit number to use as a starting position.  If
             the bit at this position is unset, it will be the first
             bit number yielded.
-        size_in_bytes (int): The size of the bitmap if the type is
-            unsigned long *.
+        size_in_bytes: The size of the bitmap if the type is
+            ``unsigned long *``.
 
     Returns:
-        int: The position of the next bit that is set, or 0 if all are unset
+        :obj:`int`: The position of the next bit that is set, or
+        ``0`` if all are unset
+
+    Raises:
+        :obj:`.InvalidArgumentError`: The :obj:`gdb.Value` is not of
+            type ``unsigned long[]`` or ``unsigned long *``.
     """
     _check_bitmap_type(bitmap)
 
@@ -213,13 +235,17 @@ def find_first_set_bit(bitmap: gdb.Value, size_in_bytes: int=None) -> int:
     Return the first set bit in the bitmap
 
     Args:
-        bitmap (gdb.Value<unsigned long[] or unsigned long *>:
-            The bitmap to scan
-        size_in_bytes (int): The size of the bitmap if the type is
-            unsigned long *.
+        bitmap: The :ref:`bitmap <bitmap_note>` to scan.
+        size_in_bytes: The size of the bitmap if the type is
+            ``unsigned long *``.
 
     Returns:
-        int: The position of the first bit that is set, or 0 if all are unset
+        :obj:`int`: The position of the first bit that is set, or
+        ``0`` if all are unset
+
+    Raises:
+        :obj:`.InvalidArgumentError`: The :obj:`gdb.Value` is not of
+            type ``unsigned long[]`` or ``unsigned long *``.
     """
     return find_next_set_bit(bitmap, 0, size_in_bytes)
 
@@ -260,11 +286,17 @@ def find_last_set_bit(bitmap: gdb.Value, size_in_bytes: int=None) -> int:
     Return the last set bit in the bitmap
 
     Args:
-        bitmap (gdb.Value<unsigned long[] or unsigned long *>:
-            The bitmap to scan
+        bitmap: The :ref:`bitmap <bitmap_note>` to scan.
+        size_in_bytes: The size of the bitmap if the type is
+            ``unsigned long *``.
 
     Returns:
-        int: The position of the last bit that is set, or 0 if all are unset
+        :obj:`int`: The position of the last bit that is set, or
+        ``0`` if all are unset
+
+    Raises:
+        :obj:`.InvalidArgumentError`: The :obj:`gdb.Value` is not
+            of type ``unsigned long[]`` or ``unsigned long *``.
     """
     _check_bitmap_type(bitmap)
 

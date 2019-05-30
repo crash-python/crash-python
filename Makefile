@@ -34,7 +34,10 @@ man-install: man
 	$(INSTALL) -d -m 755 $(DESTDIR)$(man1dir)
 	$(INSTALL) -m 644 $(GZ_MAN1) $(DESTDIR)$(man1dir)
 
-install: man-install
+build: crash tests kernel-tests
+	python3 setup.py -q build
+
+install: man-install build
 	python3 setup.py install
 
 lint: lint3
@@ -42,3 +45,11 @@ lint: lint3
 
 lint3:
 	pylint --py3k -r n crash
+
+doc: build FORCE
+	rm -rf docs
+	rm -f doc/source/crash.*rst doc/source/modules.rst
+	sphinx-apidoc -M -e -H "API Reference" -f -o doc-source crash
+	(cd doc-source ; python3 make-gdb-refs.py)
+	python3 setup.py -q build_sphinx
+FORCE:

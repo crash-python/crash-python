@@ -26,25 +26,25 @@ def list_for_each(list_head: gdb.Value, include_head: bool=False,
     Iterate over a list and yield each node
 
     Args:
-        list_head (gdb.Value<struct list_head or struct list_head *>):
-            The list to iterate
-        include_head (bool, optional, default=False):
-            Include the head of the list in iteration - useful
-            for lists with no anchors
-        reverse (bool, optional, default=False):
-            Iterate the list in reverse order (follow the prev links)
-        print_broken_links (bool, optional, default=True):
-            Print warnings about broken links
-        exact_cycles (bool, optional, default=False):
-            Detect and raise an exception if a cycle is detected in the list
+        list_head: The list to iterate.  The value must be of type
+            ``struct list_head`` or ``struct list_head *``.
+        include_head (optional): Include the head of the list in
+            iteration - useful for lists with no anchors
+        reverse (optional): Iterate the list in reverse order
+            (follow the ``prev`` links)
+        print_broken_links (optional): Print warnings about broken links
+        exact_cycles (optional): Detect and raise an exception if
+            a cycle is detected in the list
 
     Yields:
-        gdb.Value<struct list_head>: The next node in the list
+        gdb.Value: The next node in the list.  The value is
+        of type ``struct list_head``.
 
     Raises:
-        CorruptListError: the list is corrupted
-        ListCycleError: the list contains cycles
-        BufferError: portions of the list cannot be read
+        :obj:`.CorruptListError`: the list is corrupted
+        :obj:`.ListCycleError`: the list contains cycles
+        :obj:`BufferError`: portions of the list cannot be read
+        :obj:`gdb.NotAvailableError`: The target value is not available.
     """
     pending_exception = None
     if not isinstance(list_head, gdb.Value):
@@ -140,23 +140,29 @@ def list_for_each_entry(list_head: gdb.Value, gdbtype: gdb.Type,
     Iterate over a list and yield each node's containing object
 
     Args:
-        list_head (gdb.Value<struct list_head or struct list_head *>):
-            The list to iterate
-        gdbtype (gdb.Type): The type of the containing object
-        member (str): The name of the member in the containing object that
+        list_head: The list to iterate.  The value must be of type
+            ``struct list_head`` or ``struct list_head *``.
+        gdbtype: The type of the containing object
+        member: The name of the member in the containing object that
             corresponds to the list_head
-        include_head (bool, optional, default=False):
+        include_head (optional):
             Include the head of the list in iteration - useful for
             lists with no anchors
-        reverse (bool, optional, default=False):
+        reverse (optional):
             Iterate the list in reverse order (follow the prev links)
-        print_broken_links (bool, optional, default=True):
+        print_broken_links (optional):
             Print warnings about broken links
-        exact_cycles (bool, optional, default=False):
+        exact_cycles (optional):
             Detect and raise an exception if a cycle is detected in the list
 
     Yields:
-        gdb.Value<gdbtype>: The next node in the list
+        gdb.Value: The next node in the list.  The value is of the
+        specified type.
+    Raises:
+        :obj:`.CorruptListError`: the list is corrupted
+        :obj:`.ListCycleError`: the list contains cycles
+        :obj:`BufferError`: portions of the list cannot be read
+        :obj:`gdb.NotAvailableError`: The target value is not available.
     """
 
     for node in list_for_each(list_head, include_head=include_head,
@@ -165,7 +171,20 @@ def list_for_each_entry(list_head: gdb.Value, gdbtype: gdb.Type,
                               exact_cycles=exact_cycles):
         yield container_of(node, gdbtype, member)
 
-def list_empty(list_head):
+def list_empty(list_head: gdb.Value) -> bool:
+    """
+    Test whether a list is empty
+
+    Args:
+        list_head: The list to test.  The value must be of type
+            ``struct list_head`` or ``struct list_head *``.
+
+    Returns:
+        :obj:`bool`: Whether the list is empty.
+
+    Raises:
+        :obj:`gdb.NotAvailableError`: The target value is not available.
+    """
     addr = int(list_head.address)
     if list_head.type.code == gdb.TYPE_CODE_PTR:
         addr = int(list_head)
