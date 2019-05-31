@@ -56,11 +56,11 @@ class CrashAddressTranslation(object):
                                 type=addrxlat.OS_LINUX)
 
         self.is_non_auto = False
-        map = self.system.get_map(addrxlat.SYS_MAP_MACHPHYS_KPHYS)
-        for range in map:
-            if range.meth == addrxlat.SYS_METH_NONE:
+        xlatmap = self.system.get_map(addrxlat.SYS_MAP_MACHPHYS_KPHYS)
+        for addr_range in xlatmap:
+            if addr_range.meth == addrxlat.SYS_METH_NONE:
                 continue
-            meth = self.system.get_meth(range.meth)
+            meth = self.system.get_meth(addr_range.meth)
             if meth.kind != addrxlat.LINEAR or meth.off != 0:
                 self.is_non_auto = True
                 break
