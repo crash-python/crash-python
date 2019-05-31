@@ -591,22 +591,23 @@ def xfs_log_item_typed(item: gdb.Value) -> gdb.Value:
     """
     li_type = int(item['li_type'])
     if li_type == XFS_LI_BUF:
-        return item_to_buf_log_item(item)
+        typed_item = item_to_buf_log_item(item)
     elif li_type == XFS_LI_INODE:
-        return item_to_inode_log_item(item)
+        typed_item = item_to_inode_log_item(item)
     elif li_type == XFS_LI_EFI:
-        return item_to_efi_log_item(item)
+        typed_item = item_to_efi_log_item(item)
     elif li_type == XFS_LI_EFD:
-        return item_to_efd_log_item(item)
+        typed_item = item_to_efd_log_item(item)
     elif li_type == XFS_LI_IUNLINK:
         # There isn't actually any type information for this
-        return item['li_type']
+        typed_item = item['li_type']
     elif li_type == XFS_LI_DQUOT:
-        return item_to_dquot_log_item(item)
+        typed_item = item_to_dquot_log_item(item)
     elif li_type == XFS_LI_QUOTAOFF:
-        return item_to_quotaoff_log_item(item)
-
-    raise RuntimeError("Unknown AIL item type {:x}".format(li_type))
+        typed_item = item_to_quotaoff_log_item(item)
+    else:
+        raise RuntimeError("Unknown AIL item type {:x}".format(li_type))
+    return typed_item
 
 def xfs_format_xfsbuf(buf: gdb.Value) -> str:
     """
