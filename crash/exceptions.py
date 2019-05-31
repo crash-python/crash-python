@@ -45,16 +45,20 @@ class ArgumentTypeError(InvalidArgumentError):
         else:
             return module + '.' + cls.__name__
 
-class UnexpectedGDBTypeError(InvalidArgumentError):
+class UnexpectedGDBTypeBaseError(InvalidArgumentError):
+    """Base class for unexpected gdb type exceptions"""
+    pass
+
+class UnexpectedGDBTypeError(UnexpectedGDBTypeBaseError):
     """The gdb.Type passed describes an inappropriate type for the operation"""
     formatter = "expected gdb.Type `{}' to describe `{}' not `{}'"
     def __init__(self, name, gdbtype, expected_type):
         msg = self.formatter.format(name, str(gdbtype), str(expected_type))
         super().__init__(msg)
 
-class NotStructOrUnionError(UnexpectedGDBTypeError):
+class NotStructOrUnionError(UnexpectedGDBTypeBaseError):
     """The provided type is not a struct or union"""
     formatter = "argument `{}' describes type `{}' which is not a struct or union"
     def __init__(self, name, gdbtype):
-        super().__init__(name, gdbtype, gdbtype)
         msg = self.formatter.format(name, str(gdbtype))
+        super().__init__(msg)
