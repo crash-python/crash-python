@@ -86,7 +86,7 @@ class Slab(object):
         objs_per_slab = self.kmem_cache.objs_per_slab
         bufsize = self.kmem_cache.buffer_size
 
-        if (idx >= objs_per_slab):
+        if idx >= objs_per_slab:
             self.__error(": free object index %d overflows %d" %
                          (idx, objs_per_slab))
             return False
@@ -408,7 +408,7 @@ class KmemCache(object):
         cpu_cache = self.gdb_obj[KmemCache.percpu_name]
 
         for cpu in for_each_online_cpu():
-            if (KmemCache.percpu_cache):
+            if KmemCache.percpu_cache:
                 array = get_percpu_var(cpu_cache, cpu)
             else:
                 array = cpu_cache[cpu].dereference()

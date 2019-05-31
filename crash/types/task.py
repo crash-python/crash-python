@@ -105,10 +105,10 @@ class TaskStateFlags(object):
             cls.TASK_NOLOAD = newbits << 3
             cls.TASK_NEW = newbits << 4
 
-            assert(cls.TASK_PARKED == 0x0040)
-            assert(cls.TASK_DEAD == 0x0080)
-            assert(cls.TASK_WAKEKILL == 0x0100)
-            assert(cls.TASK_WAKING == 0x0200)
+            assert cls.TASK_PARKED == 0x0040
+            assert cls.TASK_DEAD == 0x0080
+            assert cls.TASK_WAKEKILL == 0x0100
+            assert cls.TASK_WAKING == 0x0200
 
         # Linux 3.14 removed several elements from task_state_array
         # so we'll have to make some assumptions.
@@ -128,22 +128,22 @@ class TaskStateFlags(object):
             cls.TASK_NOLOAD = newbits << 4
             cls.TASK_NEW = newbits << 5
 
-            assert(cls.TASK_DEAD == 0x0040)
-            assert(cls.TASK_WAKEKILL == 0x0080)
-            assert(cls.TASK_WAKING == 0x0100)
-            assert(cls.TASK_PARKED == 0x0200)
+            assert cls.TASK_DEAD == 0x0040
+            assert cls.TASK_WAKEKILL == 0x0080
+            assert cls.TASK_WAKING == 0x0100
+            assert cls.TASK_PARKED == 0x0200
         else:
-            assert(cls.TASK_DEAD == 64)
-            assert(cls.TASK_WAKEKILL == 128)
-            assert(cls.TASK_WAKING == 256)
-            assert(cls.TASK_PARKED == 512)
+            assert cls.TASK_DEAD == 64
+            assert cls.TASK_WAKEKILL == 128
+            assert cls.TASK_WAKING == 256
+            assert cls.TASK_PARKED == 512
 
         if cls.has_flag('TASK_NOLOAD'):
-            assert(cls.TASK_NOLOAD == 1024)
+            assert cls.TASK_NOLOAD == 1024
             cls.TASK_IDLE = cls.TASK_NOLOAD | cls.TASK_UNINTERRUPTIBLE
-            assert(cls.TASK_IDLE == 1026)
+            assert cls.TASK_IDLE == 1026
         if cls.has_flag('TASK_NEW'):
-            assert(cls.TASK_NEW == 2048)
+            assert cls.TASK_NEW == 2048
 
         cls._check_state_bits()
 

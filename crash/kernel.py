@@ -146,7 +146,7 @@ class CrashKernel(object):
             if x is None:
                 x = ["/"]
             self.roots = x
-        elif (isinstance(roots, str)):
+        elif isinstance(roots, str):
             x = None
             if os.path.exists(roots):
                 if x is None:

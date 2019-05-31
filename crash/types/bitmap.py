@@ -152,7 +152,7 @@ def find_next_zero_bit(bitmap: gdb.Value, start: int,
         v = _find_first_set_bit(item)
         if v > 0:
             ret = n * (types.unsigned_long_type.sizeof << 3) + v
-            assert(ret >= start)
+            assert ret >= start
             return ret
 
         offset = 0
@@ -225,7 +225,7 @@ def find_next_set_bit(bitmap: gdb.Value, start: int,
         v = _find_first_set_bit(item)
         if v > 0:
             ret = n * (types.unsigned_long_type.sizeof << 3) + v
-            assert(ret >= start)
+            assert ret >= start
             return ret
 
         offset = 0

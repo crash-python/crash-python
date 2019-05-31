@@ -289,7 +289,7 @@ class PerCPUState(object):
             elif self.is_percpu_var(var):
                 if var.type != types.void_p_type:
                     var = var.dereference().address
-                assert(self.is_percpu_var(var))
+                assert self.is_percpu_var(var)
             else:
                 raise PerCPUError(orig_var)
         # object is a percpu
