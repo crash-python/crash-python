@@ -96,7 +96,7 @@ class ModuleCommand(Command):
                         print("Module\t\t\tPercpu Base\t\tSize")
                     else:
                         print("Module\t\t\tPercpu Base@CPU{:d}\t\tSize"
-                                .format(argv.p))
+                              .format(argv.p))
                 self.print_module_percpu(mod, argv.p)
                 continue
 
@@ -124,6 +124,6 @@ class ModuleCommand(Command):
                 count += 1
 
             print("{:16s}\t{:#x}\t{:d}\t{:d}{}"
-                        .format(modname, addr, size, count, module_use))
+                  .format(modname, addr, size, count, module_use))
 
 ModuleCommand()

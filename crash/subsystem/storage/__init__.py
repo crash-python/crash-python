@@ -11,10 +11,10 @@ from crash.util.symbols import Types, Symvals, SymbolCallbacks, TypeCallbacks
 from crash.types.classdev import for_each_class_device
 from crash.exceptions import DelayedAttributeError, InvalidArgumentError
 
-types = Types([ 'struct gendisk', 'struct hd_struct', 'struct device',
-                  'struct device_type', 'struct bdev_inode' ])
-symvals = Symvals([ 'block_class', 'blockdev_superblock', 'disk_type',
-                    'part_type' ])
+types = Types(['struct gendisk', 'struct hd_struct', 'struct device',
+               'struct device_type', 'struct bdev_inode'])
+symvals = Symvals(['block_class', 'blockdev_superblock', 'disk_type',
+                   'part_type'])
 
 def dev_to_gendisk(dev: gdb.Value) -> gdb.Value:
     """
@@ -79,7 +79,7 @@ def part_to_dev(part: gdb.Value) -> gdb.Value:
     return part['__dev']
 
 
-def for_each_block_device(subtype: gdb.Value=None) -> Iterable[gdb.Value]:
+def for_each_block_device(subtype: gdb.Value = None) -> Iterable[gdb.Value]:
     """
     Iterates over each block device registered with the block class.
 
@@ -112,8 +112,8 @@ def for_each_block_device(subtype: gdb.Value=None) -> Iterable[gdb.Value]:
             subtype = subtype.address
         elif get_basic_type(subtype.type) != types.device_type_type.pointer():
             raise InvalidArgumentError("subtype must be {} not {}"
-                            .format(types.device_type_type.pointer(),
-                                    subtype.type.unqualified()))
+                                       .format(types.device_type_type.pointer(),
+                                               subtype.type.unqualified()))
     for dev in for_each_class_device(symvals.block_class, subtype):
         if dev['type'] == symvals.disk_type.address:
             yield dev_to_gendisk(dev)
@@ -162,8 +162,9 @@ def gendisk_name(gendisk: gdb.Value) -> str:
         return "{}{:d}".format(gendisk_name(parent), int(gendisk['partno']))
     else:
         raise InvalidArgumentError("expected {} or {}, not {}"
-                        .format(types.gendisk_type, types.hd_struct_type,
-                        gendisk.type.unqualified()))
+                                   .format(types.gendisk_type,
+                                           types.hd_struct_type,
+                                           gendisk.type.unqualified()))
 
 def block_device_name(bdev: gdb.Value) -> str:
     """
@@ -257,6 +258,6 @@ def _check_types(result):
     except DelayedAttributeError:
         pass
 
-symbol_cbs = SymbolCallbacks([ ( 'disk_type', _check_types ),
-                               ( 'part_type', _check_types )] )
-type_cbs = TypeCallbacks([ ('struct device_type', _check_types ) ])
+symbol_cbs = SymbolCallbacks([('disk_type', _check_types),
+                              ('part_type', _check_types)])
+type_cbs = TypeCallbacks([('struct device_type', _check_types)])

@@ -10,9 +10,9 @@ from crash.commands import Command, ArgumentParser, CommandError
 from crash.exceptions import DelayedAttributeError
 from crash.util.symbols import Types, Symvals
 
-types = Types([ 'struct printk_log *' , 'char *' ])
-symvals = Symvals([ 'log_buf', 'log_buf_len', 'log_first_idx', 'log_next_idx',
-                    'clear_seq', 'log_first_seq', 'log_next_seq' ])
+types = Types(['struct printk_log *', 'char *'])
+symvals = Symvals(['log_buf', 'log_buf_len', 'log_first_idx', 'log_next_idx',
+                   'clear_seq', 'log_first_seq', 'log_next_seq'])
 
 class LogTypeException(Exception):
     pass

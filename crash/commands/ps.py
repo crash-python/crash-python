@@ -41,10 +41,10 @@ class TaskFormat(object):
         if argv.l:
             self.sort = lambda x: -x.info.last_run()
             self._format_one_task = self._format_last_run
-            self._format_header = lambda : ""
+            self._format_header = lambda: ""
 
     def _format_generic_header(self, col4name: str, col4width: int) -> str:
-        header  = f"    PID    PPID  CPU {col4name:^{col4width}}  ST  %MEM     "
+        header = f"    PID    PPID  CPU {col4name:^{col4width}}  ST  %MEM     "
         header += "VSZ    RSS  COMM"
 
         return header
@@ -93,7 +93,7 @@ class TaskFormat(object):
         else:
             active = " "
 
-        line  = f"{active} {pid:>5}   {parent_pid:>5}  {last_cpu:>3}  "
+        line = f"{active} {pid:>5}   {parent_pid:>5}  {last_cpu:>3}  "
         line += self._format_column4(task)
         line += f" {state:3}  {0:.1f} {total_vm:7d} {rss:6d}  {name}"
 
@@ -107,7 +107,7 @@ class TaskFormat(object):
         if task.active:
             cpu = task.cpu
 
-        line  = f"[{task.last_run():d}] [{state}]  PID: {pid:-5d}  "
+        line = f"[{task.last_run():d}] [{state}]  PID: {pid:-5d}  "
         line += f"TASK: {addr:x} CPU: {cpu:>2d}  COMMAND: \"{name}\""
 
         return line

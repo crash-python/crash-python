@@ -52,7 +52,7 @@ class DelayedCollection(object):
         self.attrs: Dict[str, DelayedValue] = {}
 
         if isinstance(names, str):
-            names = [ names ]
+            names = [names]
 
         for name in names:
             t = cls(name)
@@ -311,7 +311,7 @@ CallbackSpecifiers = Union[List[CallbackSpecifier], CallbackSpecifier]
 class CallbackCollection(object):
     def __init__(self, cls: Type[NamedCallback], cbs: CallbackSpecifiers):
         if isinstance(cbs, tuple):
-            cbs = [ cbs ]
+            cbs = [cbs]
 
         for cb in cbs:
             t = cls(cb[0], cb[1])
@@ -328,4 +328,3 @@ class SymbolCallbacks(CallbackCollection):
 class MinimalSymbolCallbacks(CallbackCollection):
     def __init__(self, cbs):
         super().__init__(MinimalSymbolCallback, cbs)
-

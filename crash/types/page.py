@@ -13,9 +13,9 @@ from crash.cache.syscache import config
 #TODO debuginfo won't tell us, depends on version?
 PAGE_MAPPING_ANON = 1
 
-types = Types([ 'unsigned long', 'struct page', 'enum pageflags',
-                'enum zone_type', 'struct mem_section'])
-symvals = Symvals([ 'mem_section' ])
+types = Types(['unsigned long', 'struct page', 'enum pageflags',
+               'enum zone_type', 'struct mem_section'])
+symvals = Symvals(['mem_section'])
 
 class Page(object):
     slab_cache_name = None
@@ -62,7 +62,7 @@ class Page(object):
 
         cls.slab_cache_name = find_member_variant(gdbtype, ('slab_cache', 'lru'))
         cls.slab_page_name = find_member_variant(gdbtype, ('slab_page', 'lru'))
-        cls.compound_head_name = find_member_variant(gdbtype, ('compound_head', 'first_page' ))
+        cls.compound_head_name = find_member_variant(gdbtype, ('compound_head', 'first_page'))
         cls.vmemmap = gdb.Value(cls.vmemmap_base).cast(gdbtype.pointer())
 
         cls.setup_page_type_done = True
@@ -202,18 +202,18 @@ class Page(object):
         self.pfn = pfn
         self.flags = int(obj["flags"])
 
-type_cbs = TypeCallbacks([ ('struct page', Page.setup_page_type ),
-                           ('enum pageflags', Page.setup_pageflags ),
-                           ('enum zone_type', Page.setup_zone_type ),
-                           ('struct mem_section', Page.setup_mem_section) ])
-msymbol_cbs = MinimalSymbolCallbacks([ ('kernel_config_data',
-                                        Page.setup_nodes_width ) ])
+type_cbs = TypeCallbacks([('struct page', Page.setup_page_type),
+                          ('enum pageflags', Page.setup_pageflags),
+                          ('enum zone_type', Page.setup_zone_type),
+                          ('struct mem_section', Page.setup_mem_section)])
+msymbol_cbs = MinimalSymbolCallbacks([('kernel_config_data',
+                                       Page.setup_nodes_width)])
 
 # TODO: this should better be generalized to some callback for
 # "config is available" without refering to the symbol name here
-symbol_cbs = SymbolCallbacks([ ('vmemmap_base', Page.setup_vmemmap_base ),
-                               ('page_offset_base',
-                                Page.setup_directmap_base ) ])
+symbol_cbs = SymbolCallbacks([('vmemmap_base', Page.setup_vmemmap_base),
+                              ('page_offset_base',
+                               Page.setup_directmap_base)])
 
 
 def pfn_to_page(pfn):

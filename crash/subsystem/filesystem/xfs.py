@@ -20,14 +20,14 @@ from crash.subsystem.storage import block_device_name
 from crash.subsystem.storage.decoders import Decoder
 
 # XFS inode locks
-XFS_IOLOCK_EXCL     = 0x01
-XFS_IOLOCK_SHARED   = 0x02
-XFS_ILOCK_EXCL      = 0x04
-XFS_ILOCK_SHARED    = 0x08
-XFS_MMAPLOCK_EXCL   = 0x10
+XFS_IOLOCK_EXCL = 0x01
+XFS_IOLOCK_SHARED = 0x02
+XFS_ILOCK_EXCL = 0x04
+XFS_ILOCK_SHARED = 0x08
+XFS_MMAPLOCK_EXCL = 0x10
 XFS_MMAPLOCK_SHARED = 0x20
 
-XFS_LOCK_MASK       = 0x3f
+XFS_LOCK_MASK = 0x3f
 
 XFS_LOCK_FLAGS = {
     XFS_IOLOCK_EXCL     : "XFS_IOLOCK_EXCL",
@@ -38,13 +38,13 @@ XFS_LOCK_FLAGS = {
     XFS_MMAPLOCK_SHARED : "XFS_MMAPLOCK_SHARED",
 }
 
-XFS_LI_EFI              = 0x1236
-XFS_LI_EFD              = 0x1237
-XFS_LI_IUNLINK          = 0x1238
-XFS_LI_INODE            = 0x123b  # aligned ino chunks, var-size ibufs
-XFS_LI_BUF              = 0x123c  # v2 bufs, variable sized inode bufs
-XFS_LI_DQUOT            = 0x123d
-XFS_LI_QUOTAOFF         = 0x123e
+XFS_LI_EFI = 0x1236
+XFS_LI_EFD = 0x1237
+XFS_LI_IUNLINK = 0x1238
+XFS_LI_INODE = 0x123b  # aligned ino chunks, var-size ibufs
+XFS_LI_BUF = 0x123c  # v2 bufs, variable sized inode bufs
+XFS_LI_DQUOT = 0x123d
+XFS_LI_QUOTAOFF = 0x123e
 
 XFS_LI_TYPES = {
     XFS_LI_EFI : "XFS_LI_EFI",
@@ -57,13 +57,13 @@ XFS_LI_TYPES = {
     XFS_LI_QUOTAOFF : "XFS_LI_QUOTAOFF",
 }
 
-XFS_BLI_HOLD            = 0x01
-XFS_BLI_DIRTY           = 0x02
-XFS_BLI_STALE           = 0x04
-XFS_BLI_LOGGED          = 0x08
+XFS_BLI_HOLD = 0x01
+XFS_BLI_DIRTY = 0x02
+XFS_BLI_STALE = 0x04
+XFS_BLI_LOGGED = 0x08
 XFS_BLI_INODE_ALLOC_BUF = 0x10
-XFS_BLI_STALE_INODE     = 0x20
-XFS_BLI_INODE_BUF       = 0x40
+XFS_BLI_STALE_INODE = 0x20
+XFS_BLI_INODE_BUF = 0x40
 
 XFS_BLI_FLAGS = {
     XFS_BLI_HOLD              :         "HOLD",
@@ -75,27 +75,27 @@ XFS_BLI_FLAGS = {
     XFS_BLI_INODE_BUF         :    "INODE_BUF",
 }
 
-XBF_READ        = (1 << 0)  # buffer intended for reading from device
-XBF_WRITE       = (1 << 1)  # buffer intended for writing to device
-XBF_MAPPED      = (1 << 2)  # buffer mapped (b_addr valid)
-XBF_ASYNC       = (1 << 4)  # initiator will not wait for completion
-XBF_DONE        = (1 << 5)  # all pages in the buffer uptodate
-XBF_DELWRI      = (1 << 6)  # buffer has dirty pages
-XBF_STALE       = (1 << 7)  # buffer has been staled, do not find it
-XBF_ORDERED     = (1 << 11) # use ordered writes
-XBF_READ_AHEAD  = (1 << 12) # asynchronous read-ahead
-XBF_LOG_BUFFER  = (1 << 13) # this is a buffer used for the log
+XBF_READ = (1 << 0)  # buffer intended for reading from device
+XBF_WRITE = (1 << 1)  # buffer intended for writing to device
+XBF_MAPPED = (1 << 2)  # buffer mapped (b_addr valid)
+XBF_ASYNC = (1 << 4)  # initiator will not wait for completion
+XBF_DONE = (1 << 5)  # all pages in the buffer uptodate
+XBF_DELWRI = (1 << 6)  # buffer has dirty pages
+XBF_STALE = (1 << 7)  # buffer has been staled, do not find it
+XBF_ORDERED = (1 << 11) # use ordered writes
+XBF_READ_AHEAD = (1 << 12) # asynchronous read-ahead
+XBF_LOG_BUFFER = (1 << 13) # this is a buffer used for the log
 
 # flags used only as arguments to access routines
-XBF_LOCK        = (1 << 14) # lock requested
-XBF_TRYLOCK     = (1 << 15) # lock requested, but do not wait
-XBF_DONT_BLOCK  = (1 << 16) # do not block in current thread
+XBF_LOCK = (1 << 14) # lock requested
+XBF_TRYLOCK = (1 << 15) # lock requested, but do not wait
+XBF_DONT_BLOCK = (1 << 16) # do not block in current thread
 
 # flags used only internally
-_XBF_PAGES      = (1 << 18) # backed by refcounted pages
+_XBF_PAGES = (1 << 18) # backed by refcounted pages
 _XBF_RUN_QUEUES = (1 << 19) # run block device task queue
-_XBF_KMEM       = (1 << 20) # backed by heap memory
-_XBF_DELWRI_Q   = (1 << 21) # buffer on delwri queue
+_XBF_KMEM = (1 << 20) # backed by heap memory
+_XBF_DELWRI_Q = (1 << 21) # buffer on delwri queue
 _XBF_LRU_DISPOSE = (1 << 24) # buffer being discarded
 
 XFS_BUF_FLAGS = {
@@ -118,17 +118,17 @@ XFS_BUF_FLAGS = {
     _XBF_LRU_DISPOSE     : "LRU_DISPOSE",
 }
 
-XFS_ILOG_CORE      = 0x001
-XFS_ILOG_DDATA     = 0x002
-XFS_ILOG_DEXT      = 0x004
-XFS_ILOG_DBROOT    = 0x008
-XFS_ILOG_DEV       = 0x010
-XFS_ILOG_UUID      = 0x020
-XFS_ILOG_ADATA     = 0x040
-XFS_ILOG_AEXT      = 0x080
-XFS_ILOG_ABROOT    = 0x100
-XFS_ILOG_DOWNER    = 0x200
-XFS_ILOG_AOWNER    = 0x400
+XFS_ILOG_CORE = 0x001
+XFS_ILOG_DDATA = 0x002
+XFS_ILOG_DEXT = 0x004
+XFS_ILOG_DBROOT = 0x008
+XFS_ILOG_DEV = 0x010
+XFS_ILOG_UUID = 0x020
+XFS_ILOG_ADATA = 0x040
+XFS_ILOG_AEXT = 0x080
+XFS_ILOG_ABROOT = 0x100
+XFS_ILOG_DOWNER = 0x200
+XFS_ILOG_AOWNER = 0x400
 XFS_ILOG_TIMESTAMP = 0x4000
 
 XFS_ILI_FLAGS = {
@@ -160,28 +160,28 @@ XFS_DQ_FLAGS = {
     XFS_DQ_FREEING : "FREEING",
 }
 
-XFS_MOUNT_WSYNC         = (1 << 0)
-XFS_MOUNT_UNMOUNTING    = (1 << 1)
-XFS_MOUNT_DMAPI         = (1 << 2)
-XFS_MOUNT_WAS_CLEAN     = (1 << 3)
-XFS_MOUNT_FS_SHUTDOWN   = (1 << 4)
-XFS_MOUNT_DISCARD       = (1 << 5)
-XFS_MOUNT_NOALIGN       = (1 << 7)
-XFS_MOUNT_ATTR2         = (1 << 8)
-XFS_MOUNT_GRPID         = (1 << 9)
-XFS_MOUNT_NORECOVERY    = (1 << 10)
-XFS_MOUNT_DFLT_IOSIZE   = (1 << 12)
-XFS_MOUNT_SMALL_INUMS   = (1 << 14)
-XFS_MOUNT_32BITINODES   = (1 << 15)
-XFS_MOUNT_NOUUID        = (1 << 16)
-XFS_MOUNT_BARRIER       = (1 << 17)
-XFS_MOUNT_IKEEP         = (1 << 18)
-XFS_MOUNT_SWALLOC       = (1 << 19)
-XFS_MOUNT_RDONLY        = (1 << 20)
-XFS_MOUNT_DIRSYNC       = (1 << 21)
+XFS_MOUNT_WSYNC = (1 << 0)
+XFS_MOUNT_UNMOUNTING = (1 << 1)
+XFS_MOUNT_DMAPI = (1 << 2)
+XFS_MOUNT_WAS_CLEAN = (1 << 3)
+XFS_MOUNT_FS_SHUTDOWN = (1 << 4)
+XFS_MOUNT_DISCARD = (1 << 5)
+XFS_MOUNT_NOALIGN = (1 << 7)
+XFS_MOUNT_ATTR2 = (1 << 8)
+XFS_MOUNT_GRPID = (1 << 9)
+XFS_MOUNT_NORECOVERY = (1 << 10)
+XFS_MOUNT_DFLT_IOSIZE = (1 << 12)
+XFS_MOUNT_SMALL_INUMS = (1 << 14)
+XFS_MOUNT_32BITINODES = (1 << 15)
+XFS_MOUNT_NOUUID = (1 << 16)
+XFS_MOUNT_BARRIER = (1 << 17)
+XFS_MOUNT_IKEEP = (1 << 18)
+XFS_MOUNT_SWALLOC = (1 << 19)
+XFS_MOUNT_RDONLY = (1 << 20)
+XFS_MOUNT_DIRSYNC = (1 << 21)
 XFS_MOUNT_COMPAT_IOSIZE = (1 << 22)
-XFS_MOUNT_FILESTREAMS   = (1 << 24)
-XFS_MOUNT_NOATTR2       = (1 << 25)
+XFS_MOUNT_FILESTREAMS = (1 << 24)
+XFS_MOUNT_NOATTR2 = (1 << 25)
 
 XFS_MOUNT_FLAGS = {
     XFS_MOUNT_WSYNC         : "WSYNC",
@@ -235,7 +235,7 @@ class XFSBufBioDecoder(Decoder):
     """
     _description = "{:x} bio: xfs buffer on {}"
     __endio__ = 'xfs_buf_bio_end_io'
-    _types = Types([ 'struct xfs_buf *' ])
+    _types = Types(['struct xfs_buf *'])
 
     def __init__(self, bio: gdb.Value):
         super(XFSBufBioDecoder, self).__init__()
@@ -254,11 +254,11 @@ class XFSBufBioDecoder(Decoder):
 
 XFSBufBioDecoder.register()
 
-types = Types([ 'struct xfs_log_item', 'struct xfs_buf_log_item',
-                  'struct xfs_inode_log_item', 'struct xfs_efi_log_item',
-                  'struct xfs_efd_log_item', 'struct xfs_dq_logitem',
-                  'struct xfs_qoff_logitem', 'struct xfs_inode',
-                  'struct xfs_mount *', 'struct xfs_buf *' ])
+types = Types(['struct xfs_log_item', 'struct xfs_buf_log_item',
+               'struct xfs_inode_log_item', 'struct xfs_efi_log_item',
+               'struct xfs_efd_log_item', 'struct xfs_dq_logitem',
+               'struct xfs_qoff_logitem', 'struct xfs_inode',
+               'struct xfs_mount *', 'struct xfs_buf *'])
 
 class _XFS(object):
     """
@@ -306,7 +306,7 @@ def is_xfs_inode(vfs_inode: gdb.Value) -> bool:
 
     return is_fstype_inode(vfs_inode, "xfs")
 
-def xfs_inode(vfs_inode: gdb.Value, force: bool=False) -> gdb.Value:
+def xfs_inode(vfs_inode: gdb.Value, force: bool = False) -> gdb.Value:
     """
     Converts a VFS inode to a xfs inode
 
@@ -331,7 +331,7 @@ def xfs_inode(vfs_inode: gdb.Value, force: bool=False) -> gdb.Value:
 
     return container_of(vfs_inode, types.xfs_inode, 'i_vnode')
 
-def xfs_mount(sb: gdb.Value, force: bool=False) -> gdb.Value:
+def xfs_mount(sb: gdb.Value, force: bool = False) -> gdb.Value:
     """
     Converts a VFS superblock to a xfs mount
 
@@ -407,7 +407,7 @@ def xfs_for_each_ail_entry(ail: gdb.Value) -> Iterable[gdb.Value]:
     """
     head = ail[_XFS._ail_head_name]
     for item in list_for_each_entry(head, types.xfs_log_item_type, 'li_ail'):
-            yield item
+        yield item
 
 def xfs_for_each_ail_log_item(mp: gdb.Value) -> Iterable[gdb.Value]:
     """
@@ -425,7 +425,7 @@ def xfs_for_each_ail_log_item(mp: gdb.Value) -> Iterable[gdb.Value]:
         :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     for item in xfs_for_each_ail_entry(mp['m_ail']):
-            yield item
+        yield item
 
 def item_to_buf_log_item(item: gdb.Value) -> gdb.Value:
     """
@@ -547,7 +547,7 @@ def item_to_quotaoff_log_item(item: gdb.Value) -> gdb.Value:
         raise InvalidArgumentError("item is not an QUOTAOFF log item")
     return container_of(item, types.xfs_qoff_logitem_type, 'qql_item')
 
-def xfs_log_item_typed(item:gdb.Value) -> gdb.Value:
+def xfs_log_item_typed(item: gdb.Value) -> gdb.Value:
     """
     Returns the log item converted from the generic type to the actual type
 
@@ -644,4 +644,4 @@ def xfs_for_each_ail_log_item_typed(mp: gdb.Value) -> gdb.Value:
     for item in types.xfs_for_each_ail_log_item(mp):
         yield types.xfs_log_item_typed(item)
 
-type_cbs = TypeCallbacks([ ('struct xfs_ail', _XFS._detect_ail_version) ])
+type_cbs = TypeCallbacks([('struct xfs_ail', _XFS._detect_ail_version)])

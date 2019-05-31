@@ -52,8 +52,8 @@ class CrashAddressTranslation(object):
             self.context = TranslationContext()
             self.system = addrxlat.System()
             self.system.os_init(self.context,
-                                arch = utsname.machine,
-                                type = addrxlat.OS_LINUX)
+                                arch=utsname.machine,
+                                type=addrxlat.OS_LINUX)
 
         self.is_non_auto = False
         map = self.system.get_map(addrxlat.SYS_MAP_MACHPHYS_KPHYS)

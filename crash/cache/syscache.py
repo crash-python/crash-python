@@ -20,7 +20,7 @@ from crash.infra.lookup import DelayedValue
 ImageLocation = Dict[str, Dict[str, int]]
 
 class CrashUtsnameCache(CrashCache):
-    symvals = Symvals([ 'init_uts_ns' ])
+    symvals = Symvals(['init_uts_ns'])
 
     def load_utsname(self):
         self.utsname = self.symvals.init_uts_ns['name']
@@ -36,8 +36,8 @@ class CrashUtsnameCache(CrashCache):
         self.utsname_cache = d
         return self.utsname_cache
 
-    utsname_fields = [ 'sysname', 'nodename', 'release',
-                       'version', 'machine', 'domainname' ]
+    utsname_fields = ['sysname', 'nodename', 'release',
+                      'version', 'machine', 'domainname']
     def __getattr__(self, name):
         if name == 'utsname_cache':
             return self.init_utsname_cache()
@@ -48,10 +48,10 @@ class CrashUtsnameCache(CrashCache):
         return getattr(self.__class__, name)
 
 class CrashConfigCache(CrashCache):
-    types = Types([ 'char *' ])
-    symvals = Symvals([ 'kernel_config_data' ])
-    msymvals = MinimalSymvals([ 'kernel_config_data',
-                                'kernel_config_data_end' ])
+    types = Types(['char *'])
+    symvals = Symvals(['kernel_config_data'])
+    msymvals = MinimalSymvals(['kernel_config_data',
+                               'kernel_config_data_end'])
 
     def __getattr__(self, name):
         if name == 'config_buffer':
@@ -152,7 +152,7 @@ class CrashConfigCache(CrashCache):
             return None
 
 class CrashKernelCache(CrashCache):
-    symvals = Symvals([ 'avenrun' ])
+    symvals = Symvals(['avenrun'])
 
     jiffies_ready = False
     adjust_jiffies = False
@@ -241,10 +241,8 @@ class CrashKernelCache(CrashCache):
         self.uptime = timedelta(seconds=self.adjusted_jiffies() // self.hz)
         return self.uptime
 
-symbol_cbs = SymbolCallbacks( [( 'jiffies',
-                                 CrashKernelCache.setup_jiffies ),
-                               ( 'jiffies_64',
-                                 CrashKernelCache.setup_jiffies ) ])
+symbol_cbs = SymbolCallbacks([('jiffies', CrashKernelCache.setup_jiffies),
+                              ('jiffies_64', CrashKernelCache.setup_jiffies)])
 
 utsname = CrashUtsnameCache()
 config = CrashConfigCache()

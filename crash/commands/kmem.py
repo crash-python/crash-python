@@ -65,7 +65,7 @@ class KmemCommand(Command):
 
             print("Checking done.")
             return
-          
+
         if not args.address:
             raise CommandLineError("no address specified")
 
@@ -86,7 +86,7 @@ class KmemCommand(Command):
         else:
             if obj[1] == 0:
                 print("Address on slab %s but not within valid object slot"
-                                % name)
+                      % name)
             elif not obj[2]:
                 print("FREE object %x from slab %s" % (obj[1], name))
             else:
@@ -99,9 +99,9 @@ class KmemCommand(Command):
                     ac_desc = "alien cache of node %d for node %d" % (ac["nid_src"], ac["nid_tgt"])
                 else:
                     raise CommandError(f"unexpected array cache type {str(ac)}")
-                    
+
                 print("FREE object %x from slab %s (in %s)" %
-                                           (obj[1], name, ac_desc))
+                      (obj[1], name, ac_desc))
 
     def __print_vmstat(self, vmstat, diffs):
         vmstat_names = VmStat.get_stat_names();
@@ -112,7 +112,7 @@ class KmemCommand(Command):
 
         for i in range(0, nr_items):
             print("%s: %d (%d)" % (vmstat_names[i].rjust(just),
-                                                vmstat[i], diffs[i]))
+                                   vmstat[i], diffs[i]))
 
     def print_vmstats(self):
         try:
@@ -123,10 +123,10 @@ class KmemCommand(Command):
         print("  VM_STAT:")
         #TODO put this... where?
         nr_items = VmStat.nr_stat_items
-    
+
         stats = [0] * nr_items
 
-        for item in range (0, nr_items):
+        for item in range(0, nr_items):
             # TODO abstract atomic?
             stats[item] = int(vm_stat[item]["counter"])
 
@@ -143,17 +143,17 @@ class KmemCommand(Command):
         vm_events = VmStat.get_events()
         names = VmStat.get_event_names()
         just = max(map(len, names))
-    
+
         for name, val in zip(names, vm_events):
             print("%s: %d" % (name.rjust(just), val))
 
     def print_zones(self):
         for zone in for_each_zone():
             zone_struct = zone.gdb_obj
-            
+
             print("NODE: %d  ZONE: %d  ADDR: %x  NAME: \"%s\"" %
-                    (zone_struct["node"], zone.zid, zone_struct.address,
-                                    zone_struct["name"].string()))
+                  (zone_struct["node"], zone.zid, zone_struct.address,
+                   zone_struct["name"].string()))
 
             if not zone.is_populated():
                 print("  [unpopulated]")
@@ -166,5 +166,5 @@ class KmemCommand(Command):
             self.__print_vmstat(vmstat, diffs)
 
             print()
-                
+
 KmemCommand("kmem")

@@ -29,7 +29,7 @@ class NamedCallback(ObjfileEventCallback):
         attrname (:obj:`str`): The name of symbol or type being resolved
             translated for use as an attribute name.
     """
-    def __init__(self, name: str, callback: Callback, attrname: str=None):
+    def __init__(self, name: str, callback: Callback, attrname: str = None):
         super().__init__()
 
         self.name = name
@@ -69,7 +69,7 @@ class MinimalSymbolCallback(NamedCallback):
         callback: The callback to execute when the minimal symbol is discovered
         symbol_file (optional): Name of the symbol file to use
     """
-    def __init__(self, name: str, callback: Callback, symbol_file: str=None):
+    def __init__(self, name: str, callback: Callback, symbol_file: str = None):
         super().__init__(name, callback)
 
         self.symbol_file = symbol_file
@@ -107,7 +107,7 @@ class SymbolCallback(NamedCallback):
           constant, i.e. SYMBOL_*_DOMAIN.
     """
     def __init__(self, name: str, callback: Callback,
-                 domain: int=gdb.SYMBOL_VAR_DOMAIN):
+                 domain: int = gdb.SYMBOL_VAR_DOMAIN):
         super().__init__(name, callback)
 
         self.domain = domain
@@ -169,7 +169,7 @@ class TypeCallback(NamedCallback):
         block (optional): The :obj:`gdb.Block` to search for the symbol
 
     """
-    def __init__(self, name: str, callback: Callback, block: gdb.Block=None):
+    def __init__(self, name: str, callback: Callback, block: gdb.Block = None):
         (name, attrname, self.pointer) = self.resolve_type(name)
 
         super().__init__(name, callback, attrname)

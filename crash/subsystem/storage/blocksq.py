@@ -12,7 +12,7 @@ from crash.cache.syscache import kernel
 class NoQueueError(RuntimeError):
     pass
 
-types = Types([ 'struct request' ])
+types = Types(['struct request'])
 
 def for_each_request_in_queue(queue: gdb.Value) -> Iterable[gdb.Value]:
     """

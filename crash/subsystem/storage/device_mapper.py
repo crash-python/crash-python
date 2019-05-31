@@ -19,7 +19,7 @@ class ClonedBioReqDecoder(Decoder):
             target.  The value must be of type ``struct bio``.
 
     """
-    _types = Types([ 'struct dm_rq_clone_bio_info *' ])
+    _types = Types(['struct dm_rq_clone_bio_info *'])
     __endio__ = 'end_clone_bio'
     _description = '{:x} bio: Request-based Device Mapper on {}'
 
@@ -43,7 +43,7 @@ class ClonedBioReqDecoder(Decoder):
 
     def __str__(self):
         self._description.format(int(self.bio),
-                                block_device_name(self.bio['bi_bdev']))
+                                 block_device_name(self.bio['bi_bdev']))
 
     def __next__(self):
         return decode_bio(self.info['orig'])
@@ -77,7 +77,7 @@ class ClonedBioDecoder(Decoder):
         tio (:obj:`gdb.Value`): The dm target i/o operation for this bio.  The
             value is of type ``struct dm_target_io``.
     """
-    _types = Types([ 'struct dm_target_io *' ])
+    _types = Types(['struct dm_target_io *'])
     _get_clone_bio_tio = None
     __endio__ = 'clone_endio'
     _description = "{:x} bio: device mapper clone: {}[{}] -> {}[{}]"
@@ -101,11 +101,10 @@ class ClonedBioDecoder(Decoder):
 
     def __str__(self):
         return self._description.format(
-                                int(self.bio),
-                                block_device_name(self.bio['bi_bdev']),
-                                int(self.bio['bi_sector']),
-                                block_device_name(self.next_bio['bi_bdev']),
-                                int(self.next_bio['bi_sector']))
+            int(self.bio), block_device_name(self.bio['bi_bdev']),
+            int(self.bio['bi_sector']),
+            block_device_name(self.next_bio['bi_bdev']),
+            int(self.next_bio['bi_sector']))
 
     def __next__(self):
         return decode_bio(self.next_bio)

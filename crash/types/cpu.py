@@ -17,7 +17,7 @@ from typing import List, Iterable
 # functions to iterate over online cpu's etc.
 class TypesCPUClass(object):
     """A state holder class for handling CPUs.  Not meant to be instantiated.
-    
+
     Attributes:
         cpus_online (:obj:`list` of :obj:`int`): A list of the IDs of all online CPUs.
         cpus_possible (:obj:`list` of :obj:`int`): A list of the IDs of all possible CPUs.
@@ -86,11 +86,11 @@ def highest_possible_cpu_nr() -> int:
         raise DelayedAttributeError('cpus_possible')
     return TypesCPUClass.cpus_possible[-1]
 
-symbol_cbs = SymbolCallbacks([ ('cpu_online_mask',
-                                TypesCPUClass._setup_online_mask),
-                               ('__cpu_online_mask',
-                                TypesCPUClass._setup_online_mask),
-                               ('cpu_possible_mask',
-                                TypesCPUClass._setup_possible_mask),
-                               ('__cpu_possible_mask',
-                                TypesCPUClass._setup_possible_mask) ])
+symbol_cbs = SymbolCallbacks([('cpu_online_mask',
+                               TypesCPUClass._setup_online_mask),
+                              ('__cpu_online_mask',
+                               TypesCPUClass._setup_online_mask),
+                              ('cpu_possible_mask',
+                               TypesCPUClass._setup_possible_mask),
+                              ('__cpu_possible_mask',
+                               TypesCPUClass._setup_possible_mask)])

@@ -17,11 +17,11 @@ class CorruptListError(ListError):
 class ListCycleError(CorruptListError):
     pass
 
-types = Types([ 'struct list_head' ])
+types = Types(['struct list_head'])
 
-def list_for_each(list_head: gdb.Value, include_head: bool=False,
-                  reverse: bool=False, print_broken_links: bool=True,
-                  exact_cycles: bool=False) -> Iterator[gdb.Value]:
+def list_for_each(list_head: gdb.Value, include_head: bool = False,
+                  reverse: bool = False, print_broken_links: bool = True,
+                  exact_cycles: bool = False) -> Iterator[gdb.Value]:
     """
     Iterate over a list and yield each node
 
@@ -133,9 +133,9 @@ def list_for_each(list_head: gdb.Value, include_head: bool=False,
         raise pending_exception
 
 def list_for_each_entry(list_head: gdb.Value, gdbtype: gdb.Type,
-                        member: str, include_head: bool=False,
-                        reverse: bool=False, print_broken_links: bool=True,
-                        exact_cycles: bool=False) -> Iterator[gdb.Value]:
+                        member: str, include_head: bool = False,
+                        reverse: bool = False, print_broken_links: bool = True,
+                        exact_cycles: bool = False) -> Iterator[gdb.Value]:
     """
     Iterate over a list and yield each node's containing object
 

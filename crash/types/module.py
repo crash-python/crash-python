@@ -7,8 +7,8 @@ import gdb
 from crash.types.list import list_for_each_entry
 from crash.util.symbols import Symvals, Types
 
-symvals = Symvals([ 'modules' ])
-types = Types([ 'struct module' ])
+symvals = Symvals(['modules'])
+types = Types(['struct module'])
 
 def for_each_module() -> Iterable[gdb.Value]:
     """

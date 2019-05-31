@@ -21,8 +21,8 @@ class Session(object):
         debug (bool, optional, default=False): Whether to enable verbose
             debugging output
     """
-    def __init__(self, kernel: CrashKernel, verbose: bool=False,
-                 debug: bool=False) -> None:
+    def __init__(self, kernel: CrashKernel, verbose: bool = False,
+                 debug: bool = False) -> None:
         print("crash-python initializing...")
         self.kernel = kernel
 
@@ -41,13 +41,13 @@ class Session(object):
         if self.kernel.crashing_thread:
             try:
                 result = gdb.execute("thread {}"
-                                      .format(self.kernel.crashing_thread.num),
+                                     .format(self.kernel.crashing_thread.num),
                                      to_string=True)
                 if debug:
                     print(result)
             except gdb.error as e:
                 print("Error while switching to crashed thread: {}"
-                                                                .format(str(e)))
+                      .format(str(e)))
                 print("Further debugging may not be possible.")
                 return
 

@@ -45,7 +45,7 @@ class Target(gdb.Target):
             self.kdump = kdumpfile(file=filename)
         except Exception as e:
             raise gdb.GdbError("Failed to open `{}': {}"
-                                .format(filename, str(e)))
+                               .format(filename, str(e)))
 
         self.kdump.attr['addrxlat.ostype'] = 'linux'
         ctx = self.kdump.get_addrxlat_ctx()

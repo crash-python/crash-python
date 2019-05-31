@@ -54,7 +54,7 @@ class MountCommand(Command):
             self.show_one_mount(mnt, args)
 
     def show_one_mount(self, mnt: gdb.Value, args: Namespace,
-                       task: LinuxTask=None) -> None:
+                       task: LinuxTask = None) -> None:
         if mnt.type.code == gdb.TYPE_CODE_PTR:
             mnt = mnt.dereference()
 

@@ -14,9 +14,9 @@ from crash.types.bitmap import for_each_set_bit
 import crash.types.zone
 from crash.exceptions import DelayedAttributeError
 
-symbols = Symbols([ 'numa_node' ])
-symvals = Symvals([ 'numa_cpu_lookup_table', 'node_data' ])
-types = Types([ 'pg_data_t', 'struct zone' ])
+symbols = Symbols(['numa_node'])
+symvals = Symvals(['numa_cpu_lookup_table', 'node_data'])
+types = Types(['pg_data_t', 'struct zone'])
 
 def numa_node_id(cpu: int) -> int:
     """
@@ -178,4 +178,3 @@ def for_each_online_node() -> Iterable[Node]:
     """
     for nid in for_each_online_nid():
         yield Node.from_nid(nid)
-

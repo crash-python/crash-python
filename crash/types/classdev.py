@@ -24,11 +24,11 @@ class ClassdevState(object):
             cls._class_is_private = False
 
 
-type_cbs = TypeCallbacks([ ('struct device',
-                            ClassdevState._setup_iterator_type) ])
+type_cbs = TypeCallbacks([('struct device',
+                           ClassdevState._setup_iterator_type)])
 
 def for_each_class_device(class_struct: gdb.Value,
-                          subtype: gdb.Value=None) -> Iterable[gdb.Value]:
+                          subtype: gdb.Value = None) -> Iterable[gdb.Value]:
     """
     Iterate over the list of class devices
 

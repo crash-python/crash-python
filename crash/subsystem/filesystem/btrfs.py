@@ -9,8 +9,8 @@ from crash.util import decode_uuid, struct_has_member, container_of
 from crash.util.symbols import Types
 from crash.subsystem.filesystem import is_fstype_super
 
-types = Types([ 'struct btrfs_inode', 'struct btrfs_fs_info *',
-                'struct btrfs_fs_info' ])
+types = Types(['struct btrfs_inode', 'struct btrfs_fs_info *',
+               'struct btrfs_fs_info'])
 
 def is_btrfs_super(super_block: gdb.Value) -> bool:
     """
@@ -44,7 +44,7 @@ def is_btrfs_inode(vfs_inode: gdb.Value) -> bool:
     """
     return is_btrfs_super(vfs_inode['i_sb'])
 
-def btrfs_inode(vfs_inode: gdb.Value, force: bool=False ) -> gdb.Value:
+def btrfs_inode(vfs_inode: gdb.Value, force: bool = False) -> gdb.Value:
     """
     Converts a VFS inode to a btrfs inode
 
@@ -69,7 +69,7 @@ def btrfs_inode(vfs_inode: gdb.Value, force: bool=False ) -> gdb.Value:
 
     return container_of(vfs_inode, types.btrfs_inode_type, 'vfs_inode')
 
-def btrfs_fs_info(super_block: gdb.Value, force: bool=False) -> gdb.Value:
+def btrfs_fs_info(super_block: gdb.Value, force: bool = False) -> gdb.Value:
     """
     Resolves a btrfs_fs_info from  a VFS superblock
 
@@ -96,7 +96,7 @@ def btrfs_fs_info(super_block: gdb.Value, force: bool=False) -> gdb.Value:
     fs_info = super_block['s_fs_info'].cast(types.btrfs_fs_info_p_type)
     return fs_info.dereference()
 
-def btrfs_fsid(super_block: gdb.Value, force: bool=False) -> uuid.UUID:
+def btrfs_fsid(super_block: gdb.Value, force: bool = False) -> uuid.UUID:
     """
     Returns the btrfs fsid (UUID) for the specified superblock.
 
@@ -118,7 +118,7 @@ def btrfs_fsid(super_block: gdb.Value, force: bool=False) -> uuid.UUID:
         return decode_uuid(fs_info['fsid'])
     return decode_uuid(fs_info['fs_devices']['fsid'])
 
-def btrfs_metadata_uuid(sb: gdb.Value, force: bool=False) -> uuid.UUID:
+def btrfs_metadata_uuid(sb: gdb.Value, force: bool = False) -> uuid.UUID:
     """
     Returns the btrfs metadata uuid for the specified superblock.
 

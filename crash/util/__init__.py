@@ -11,8 +11,8 @@ from crash.util.symbols import Types
 from crash.exceptions import MissingTypeError, MissingSymbolError
 from crash.exceptions import ArgumentTypeError, NotStructOrUnionError
 
-TypeSpecifier = Union [ gdb.Type, gdb.Value, str, gdb.Symbol ]
-AddressSpecifier = Union [ gdb.Value, str, int ]
+TypeSpecifier = Union[gdb.Type, gdb.Value, str, gdb.Symbol]
+AddressSpecifier = Union[gdb.Value, str, int]
 
 class InvalidComponentError(LookupError):
     """An error occured while resolving the member specification"""
@@ -48,7 +48,7 @@ class _InvalidComponentNameError(_InvalidComponentBaseError):
         self.member = member
         self.type = gdbtype
 
-types = Types([ 'char *', 'uuid_t' ])
+types = Types(['char *', 'uuid_t'])
 
 def container_of(val: gdb.Value, gdbtype: gdb.Type, member) -> gdb.Value:
     """
@@ -108,8 +108,8 @@ def struct_has_member(gdbtype: TypeSpecifier, name: str) -> bool:
     except InvalidComponentError:
         return False
 
-def get_symbol_value(symname: str, block: gdb.Block=None,
-                     domain: int=None) -> gdb.Value:
+def get_symbol_value(symname: str, block: gdb.Block = None,
+                     domain: int = None) -> gdb.Value:
     """
     Returns the value associated with a named symbol
 
@@ -131,8 +131,8 @@ def get_symbol_value(symname: str, block: gdb.Block=None,
         return sym.value()
     raise MissingSymbolError("Cannot locate symbol {}".format(symname))
 
-def safe_get_symbol_value(symname: str, block: gdb.Block=None,
-                          domain: int=None) -> gdb.Value:
+def safe_get_symbol_value(symname: str, block: gdb.Block = None,
+                          domain: int = None) -> gdb.Value:
     """
     Returns the value associated with a named symbol
 
@@ -218,7 +218,7 @@ def __offsetof(val, spec, error):
     return (offset, gdbtype)
 
 def offsetof_type(gdbtype: gdb.Type, member_name: str,
-                  error: bool=True) -> Union[Tuple[int, gdb.Type], None]:
+                  error: bool = True) -> Union[Tuple[int, gdb.Type], None]:
     """
     Returns the offset and type of a named member of a structure
 
@@ -258,7 +258,7 @@ def offsetof_type(gdbtype: gdb.Type, member_name: str,
             return None
 
 def offsetof(gdbtype: gdb.Type, member_name: str,
-             error: bool=True) -> Union[int, None]:
+             error: bool = True) -> Union[int, None]:
     """
     Returns the offset of a named member of a structure
 
@@ -306,7 +306,8 @@ def find_member_variant(gdbtype: gdb.Type, variants: List[str]) -> str:
     raise TypeError("Unrecognized '{}': could not find member '{}'"
                     .format(str(gdbtype), variants[0]))
 
-def safe_lookup_type(name: str, block: gdb.Block=None) -> Union[gdb.Type, None]:
+def safe_lookup_type(name: str,
+                     block: gdb.Block = None) -> Union[gdb.Type, None]:
     """
     Looks up a gdb.Type without throwing an exception on failure
 
@@ -387,7 +388,7 @@ def array_for_each(value: gdb.Value) -> Iterator[gdb.Value]:
         yield value[i]
 
 def decode_flags(value: gdb.Value, names: Dict[int, str],
-                 separator: str="|") -> str:
+                 separator: str = "|") -> str:
     """
     Present a bitfield of individual flags in a human-readable format.
 
@@ -444,8 +445,8 @@ def decode_uuid(value: gdb.Value) -> uuid.UUID:
         raise TypeError("value must be gdb.Value")
 
     if (value.type.code != gdb.TYPE_CODE_ARRAY or
-        value[0].type.sizeof != 1 or value.type.sizeof != 16):
-            raise TypeError("value must describe an array of 16 bytes")
+            value[0].type.sizeof != 1 or value.type.sizeof != 16):
+        raise TypeError("value must describe an array of 16 bytes")
 
     u = 0
     for i in range(0, 16):
@@ -472,7 +473,7 @@ def decode_uuid_t(value: gdb.Value) -> uuid.UUID:
 
     if value.type != types.uuid_t_type:
         if (value.type.code == gdb.TYPE_CODE_PTR and
-            value.type.target() == types.uuid_t_type):
+                value.type.target() == types.uuid_t_type):
             value = value.dereference()
         else:
             raise TypeError("value must describe a uuid_t")

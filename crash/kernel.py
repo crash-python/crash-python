@@ -48,15 +48,15 @@ LINUX_KERNEL_PID = 1
 PathSpecifier = Union[List[str], str]
 
 class CrashKernel(object):
-    types = Types([ 'char *' ])
-    symvals = Symvals([ 'init_task' ])
-    symbols = Symbols([ 'runqueues'])
+    types = Types(['char *'])
+    symvals = Symvals(['init_task'])
+    symbols = Symbols(['runqueues'])
 
-    def __init__(self, roots: PathSpecifier=None,
-                 vmlinux_debuginfo: PathSpecifier=None,
-                 module_path: PathSpecifier=None,
-                 module_debuginfo_path: PathSpecifier=None,
-                 verbose: bool=False, debug: bool=False):
+    def __init__(self, roots: PathSpecifier = None,
+                 vmlinux_debuginfo: PathSpecifier = None,
+                 module_path: PathSpecifier = None,
+                 module_debuginfo_path: PathSpecifier = None,
+                 verbose: bool = False, debug: bool = False):
         """
         Initialize a basic kernel semantic debugging session.
 
@@ -130,31 +130,31 @@ class CrashKernel(object):
         version = self.extract_version()
 
         if roots is None:
-            self.roots = [ "/" ]
+            self.roots = ["/"]
         elif (isinstance(roots, list) and len(roots) > 0 and
               isinstance(roots[0], str)):
             x = None
             for root in roots:
                 if os.path.exists(root):
                     if x is None:
-                        x = [ root ]
+                        x = [root]
                     else:
                         x.append(root)
                 else:
                     print("root {} does not exist".format(root))
 
             if x is None:
-                x = [ "/" ]
+                x = ["/"]
             self.roots = x
         elif (isinstance(roots, str)):
             x = None
             if os.path.exists(roots):
                 if x is None:
-                    x = [ roots ]
+                    x = [roots]
                 else:
                     x.append(roots)
             if x is None:
-                 x = [ "/" ]
+                x = ["/"]
             self.roots = x
         else:
             raise InvalidArgumentError("roots must be None, str, or list of str")
@@ -169,7 +169,7 @@ class CrashKernel(object):
                 "vmlinux-{}.debug".format(version),
                 "{}/{}.debug".format(debugroot, kernel),
                 "{}/boot/{}.debug".format(debugroot,
-                                                   os.path.basename(kernel)),
+                                          os.path.basename(kernel)),
                 "{}/boot/vmlinux-{}.debug".format(debugroot, version),
             ]
             for root in self.roots:
@@ -188,7 +188,7 @@ class CrashKernel(object):
               isinstance(vmlinux_debuginfo[0], str)):
             self.vmlinux_debuginfo = vmlinux_debuginfo
         elif isinstance(vmlinux_debuginfo, str):
-            self.vmlinux_debuginfo = [ vmlinux_debuginfo ]
+            self.vmlinux_debuginfo = [vmlinux_debuginfo]
         else:
             raise InvalidArgumentError("vmlinux_debuginfo must be None, str, or list of str")
 
@@ -283,7 +283,7 @@ class CrashKernel(object):
 
         if not obj.has_symbols():
             raise CrashKernelError("Couldn't locate debuginfo for {}"
-                                    .format(kernel))
+                                   .format(kernel))
 
         self.vermagic = self.extract_vermagic()
 
@@ -379,7 +379,7 @@ class CrashKernel(object):
             raise ModSourceVersionMismatchError(modpath, mi_srcversion,
                                                 mod_srcversion)
 
-    def load_modules(self, verbose: bool=False, debug: bool=False) -> None:
+    def load_modules(self, verbose: bool = False, debug: bool = False) -> None:
         import crash.cache.syscache
         version = crash.cache.syscache.utsname.release
         print("Loading modules for {}".format(version), end='')
@@ -428,7 +428,7 @@ class CrashKernel(object):
 
                 try:
                     result = gdb.execute("add-symbol-file {} {:#x} {}"
-                                            .format(modpath, addr, sections),
+                                         .format(modpath, addr, sections),
                                          to_string=True)
                 except gdb.error as e:
                     raise CrashKernelError("Error while loading module `{}': {}"
@@ -496,7 +496,7 @@ class CrashKernel(object):
         except KeyError:
             raise NoMatchingFileError(name)
 
-    def cache_file_tree(self, path, regex: Pattern[str]=None) -> None:
+    def cache_file_tree(self, path, regex: Pattern[str] = None) -> None:
         if not path in self.findmap:
             self.findmap[path] = {
                 'filters' : [],
@@ -527,7 +527,7 @@ class CrashKernel(object):
                 self.findmap[path]['files'][modname] = modpath
 
     def get_file_path_from_tree_search(self, path: str, name: str,
-                                   regex: Pattern[str]=None) -> str:
+                                       regex: Pattern[str] = None) -> str:
         self.cache_file_tree(path, regex)
 
         try:
@@ -555,7 +555,7 @@ class CrashKernel(object):
         return ".build_id/{}/{}.debug".format(build_id[0:2], build_id[2:])
 
     def try_load_debuginfo(self, objfile: gdb.Objfile,
-                           path: str, verbose: bool=False) -> bool:
+                           path: str, verbose: bool = False) -> bool:
         if not os.path.exists(path):
             return False
 
@@ -571,7 +571,8 @@ class CrashKernel(object):
         return False
 
     def load_module_debuginfo(self, objfile: gdb.Objfile,
-                              modpath: str=None, verbose: bool=False) -> None:
+                              modpath: str = None,
+                              verbose: bool = False) -> None:
         if modpath is None:
             modpath = objfile.filename
         if ".gz" in modpath:

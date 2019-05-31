@@ -6,7 +6,9 @@ in-memory bitmaps.
 
 .. _bitmap_note:
 
-A bitmap is represented as either an array of ``unsigned long`` or as ``unsigned long *``.  Each routine below that accepts a gdb.Value requires that it be of either type.
+A bitmap is represented as either an array of ``unsigned long`` or as
+``unsigned long *``.  Each routine below that accepts a gdb.Value
+requires that it be of either type.
 """
 
 from typing import Iterable
@@ -23,14 +25,14 @@ def _check_bitmap_type(bitmap: gdb.Value) -> None:
     if ((bitmap.type.code != gdb.TYPE_CODE_ARRAY or
          bitmap[0].type.code != types.unsigned_long_type.code or
          bitmap[0].type.sizeof != types.unsigned_long_type.sizeof) and
-        (bitmap.type.code != gdb.TYPE_CODE_PTR or
-         bitmap.type.target().code != types.unsigned_long_type.code or
-         bitmap.type.target().sizeof != types.unsigned_long_type.sizeof)):
+            (bitmap.type.code != gdb.TYPE_CODE_PTR or
+             bitmap.type.target().code != types.unsigned_long_type.code or
+             bitmap.type.target().sizeof != types.unsigned_long_type.sizeof)):
         raise InvalidArgumentError("bitmaps are expected to be arrays of unsigned long not `{}'"
-                        .format(bitmap.type))
+                                   .format(bitmap.type))
 
 def for_each_set_bit(bitmap: gdb.Value,
-                     size_in_bytes: int=None) -> Iterable[int]:
+                     size_in_bytes: int = None) -> Iterable[int]:
     """
     Yield each set bit in a bitmap
 
@@ -104,7 +106,7 @@ def _find_first_set_bit(val: gdb.Value) -> int:
     return r
 
 def find_next_zero_bit(bitmap: gdb.Value, start: int,
-                       size_in_bytes: int=None) -> int:
+                       size_in_bytes: int = None) -> int:
     """
     Return the next unset bit in the bitmap starting at position start,
     inclusive.
@@ -134,7 +136,7 @@ def find_next_zero_bit(bitmap: gdb.Value, start: int,
 
     if start > size_in_bytes << 3:
         raise IndexError("Element {} is out of range ({} elements)"
-                                                .format(start, elements))
+                         .format(start, elements))
 
     element = start // (types.unsigned_long_type.sizeof << 3)
     offset = start % (types.unsigned_long_type.sizeof << 3)
@@ -157,7 +159,7 @@ def find_next_zero_bit(bitmap: gdb.Value, start: int,
 
     return 0
 
-def find_first_zero_bit(bitmap: gdb.Value, size_in_bytes: int=None) -> int:
+def find_first_zero_bit(bitmap: gdb.Value, size_in_bytes: int = None) -> int:
     """
     Return the first unset bit in the bitmap
 
@@ -177,7 +179,7 @@ def find_first_zero_bit(bitmap: gdb.Value, size_in_bytes: int=None) -> int:
     return find_next_zero_bit(bitmap, 0, size_in_bytes)
 
 def find_next_set_bit(bitmap: gdb.Value, start: int,
-                      size_in_bytes: int=None) -> int:
+                      size_in_bytes: int = None) -> int:
     """
     Return the next set bit in the bitmap starting at position start,
     inclusive.
@@ -207,7 +209,7 @@ def find_next_set_bit(bitmap: gdb.Value, start: int,
 
     if start > size_in_bytes << 3:
         raise IndexError("Element {} is out of range ({} elements)"
-                                                .format(start, elements))
+                         .format(start, elements))
 
     element = start // (types.unsigned_long_type.sizeof << 3)
     offset = start % (types.unsigned_long_type.sizeof << 3)
@@ -230,7 +232,7 @@ def find_next_set_bit(bitmap: gdb.Value, start: int,
 
     return 0
 
-def find_first_set_bit(bitmap: gdb.Value, size_in_bytes: int=None) -> int:
+def find_first_set_bit(bitmap: gdb.Value, size_in_bytes: int = None) -> int:
     """
     Return the first set bit in the bitmap
 
@@ -281,7 +283,7 @@ def _find_last_set_bit(val: gdb.Value) -> int:
 
     return r
 
-def find_last_set_bit(bitmap: gdb.Value, size_in_bytes: int=None) -> int:
+def find_last_set_bit(bitmap: gdb.Value, size_in_bytes: int = None) -> int:
     """
     Return the last set bit in the bitmap
 

@@ -244,8 +244,8 @@ class GenericBioDecoder(Decoder):
 
     def __str__(self):
         return self._description.format(int(self.bio),
-                                       block_device_name(self.bio['bi_bdev']),
-                                       self.bio['bi_end_io'])
+                                        block_device_name(self.bio['bi_bdev']),
+                                        self.bio['bi_end_io'])
 
 def decode_bio(bio: gdb.Value) -> Decoder:
     """

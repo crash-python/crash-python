@@ -17,8 +17,8 @@ def get_value(symname):
     if sym[0]:
         return sym[0].value()
 
-types = Types(['struct task_struct', 'struct mm_struct', 'atomic_long_t' ])
-symvals = Symvals([ 'task_state_array', 'init_task' ])
+types = Types(['struct task_struct', 'struct mm_struct', 'atomic_long_t'])
+symvals = Symvals(['task_state_array', 'init_task'])
 
 # This is pretty painful.  These are all #defines so none of them end
 # up with symbols in the kernel.  The best approximation we have is
@@ -38,22 +38,22 @@ class TaskStateFlags(object):
 
     TASK_FLAG_UNINITIALIZED = -1
 
-    TASK_INTERRUPTIBLE: int=TASK_FLAG_UNINITIALIZED
-    TASK_UNINTERRUPTIBLE: int=TASK_FLAG_UNINITIALIZED
-    TASK_STOPPED: int=TASK_FLAG_UNINITIALIZED
-    EXIT_ZOMBIE: int=TASK_FLAG_UNINITIALIZED
-    TASK_DEAD: int=TASK_FLAG_UNINITIALIZED
-    EXIT_DEAD: int=TASK_FLAG_UNINITIALIZED
-    TASK_SWAPPING: int=TASK_FLAG_UNINITIALIZED
-    TASK_TRACING_STOPPED: int=TASK_FLAG_UNINITIALIZED
-    TASK_WAKEKILL: int=TASK_FLAG_UNINITIALIZED
-    TASK_WAKING: int=TASK_FLAG_UNINITIALIZED
-    TASK_PARKED: int=TASK_FLAG_UNINITIALIZED
-    __TASK_IDLE: int=TASK_FLAG_UNINITIALIZED
+    TASK_INTERRUPTIBLE: int = TASK_FLAG_UNINITIALIZED
+    TASK_UNINTERRUPTIBLE: int = TASK_FLAG_UNINITIALIZED
+    TASK_STOPPED: int = TASK_FLAG_UNINITIALIZED
+    EXIT_ZOMBIE: int = TASK_FLAG_UNINITIALIZED
+    TASK_DEAD: int = TASK_FLAG_UNINITIALIZED
+    EXIT_DEAD: int = TASK_FLAG_UNINITIALIZED
+    TASK_SWAPPING: int = TASK_FLAG_UNINITIALIZED
+    TASK_TRACING_STOPPED: int = TASK_FLAG_UNINITIALIZED
+    TASK_WAKEKILL: int = TASK_FLAG_UNINITIALIZED
+    TASK_WAKING: int = TASK_FLAG_UNINITIALIZED
+    TASK_PARKED: int = TASK_FLAG_UNINITIALIZED
+    __TASK_IDLE: int = TASK_FLAG_UNINITIALIZED
 
-    TASK_NOLOAD: int=TASK_FLAG_UNINITIALIZED
-    TASK_NEW: int=TASK_FLAG_UNINITIALIZED
-    TASK_IDLE: int=TASK_FLAG_UNINITIALIZED
+    TASK_NOLOAD: int = TASK_FLAG_UNINITIALIZED
+    TASK_NEW: int = TASK_FLAG_UNINITIALIZED
+    TASK_IDLE: int = TASK_FLAG_UNINITIALIZED
 
     def __init__(self):
         raise NotImplementedError("This class is not meant to be instantiated")
@@ -105,10 +105,10 @@ class TaskStateFlags(object):
             cls.TASK_NOLOAD = newbits << 3
             cls.TASK_NEW = newbits << 4
 
-            assert(cls.TASK_PARKED   == 0x0040)
-            assert(cls.TASK_DEAD     == 0x0080)
+            assert(cls.TASK_PARKED == 0x0040)
+            assert(cls.TASK_DEAD == 0x0080)
             assert(cls.TASK_WAKEKILL == 0x0100)
-            assert(cls.TASK_WAKING   == 0x0200)
+            assert(cls.TASK_WAKING == 0x0200)
 
         # Linux 3.14 removed several elements from task_state_array
         # so we'll have to make some assumptions.
@@ -128,15 +128,15 @@ class TaskStateFlags(object):
             cls.TASK_NOLOAD = newbits << 4
             cls.TASK_NEW = newbits << 5
 
-            assert(cls.TASK_DEAD     == 0x0040)
+            assert(cls.TASK_DEAD == 0x0040)
             assert(cls.TASK_WAKEKILL == 0x0080)
-            assert(cls.TASK_WAKING   == 0x0100)
-            assert(cls.TASK_PARKED   == 0x0200)
+            assert(cls.TASK_WAKING == 0x0100)
+            assert(cls.TASK_PARKED == 0x0200)
         else:
-            assert(cls.TASK_DEAD     == 64)
+            assert(cls.TASK_DEAD == 64)
             assert(cls.TASK_WAKEKILL == 128)
-            assert(cls.TASK_WAKING   == 256)
-            assert(cls.TASK_PARKED   == 512)
+            assert(cls.TASK_WAKING == 256)
+            assert(cls.TASK_PARKED == 512)
 
         if cls.has_flag('TASK_NOLOAD'):
             assert(cls.TASK_NOLOAD == 1024)
@@ -167,8 +167,8 @@ class TaskStateFlags(object):
             raise RuntimeError("Missing required task states: {}"
                                .format(",".join(missing)))
 
-symbol_cbs = SymbolCallbacks([ ('task_state_array',
-                                TaskStateFlags._task_state_flags_callback) ])
+symbol_cbs = SymbolCallbacks([('task_state_array',
+                               TaskStateFlags._task_state_flags_callback)])
 
 TF = TaskStateFlags
 
@@ -216,9 +216,9 @@ class LinuxTask(object):
             raise ArgumentTypeError('task_struct', task_struct, gdb.Value)
 
         if not (task_struct.type == types.task_struct_type or
-                 task_struct.type == types.task_struct_type.pointer()):
-                raise UnexpectedGDBTypeError('task_struct', task_struct,
-                                             types.task_struct_type)
+                task_struct.type == types.task_struct_type.pointer()):
+            raise UnexpectedGDBTypeError('task_struct', task_struct,
+                                         types.task_struct_type)
 
         self.task_struct = task_struct
         self.active = False
@@ -415,7 +415,7 @@ class LinuxTask(object):
         self.pgd_addr = int(mm['pgd'])
         self.mem_valid = True
 
-    def task_name(self, brackets: bool=False) -> str:
+    def task_name(self, brackets: bool = False) -> str:
         """
         Returns the ``comm`` field of this task
 
@@ -559,7 +559,7 @@ class LinuxTask(object):
                 raise RuntimeError("No method to retrieve RSS from task found.")
 
     def _get_rss(self) -> int:
-       raise NotImplementedError("_get_rss not implemented")
+        raise NotImplementedError("_get_rss not implemented")
 
     def get_rss(self):
         """
@@ -580,7 +580,7 @@ class LinuxTask(object):
         return int(self.task_struct['sched_info']['last_arrival'])
 
     def _get_last_run(self) -> int:
-       raise NotImplementedError("_get_last_run not implemented")
+        raise NotImplementedError("_get_last_run not implemented")
 
     @classmethod
     def _pick_last_run(cls):
@@ -616,7 +616,7 @@ def for_each_thread_group_leader() -> Iterator[gdb.Value]:
     """
     task_list = symvals.init_task['tasks']
     for task in list_for_each_entry(task_list, symvals.init_task.type,
-                                     'tasks', include_head=True):
+                                    'tasks', include_head=True):
         yield task
 
 def for_each_thread_in_group(task: gdb.Value) -> Iterator[gdb.Value]:

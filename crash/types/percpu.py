@@ -21,11 +21,11 @@ class PerCPUError(TypeError):
     def __init__(self, var):
         super().__init__(self._fmt.format(var))
 
-types = Types([ 'void *', 'char *', 'struct pcpu_chunk',
-                'struct percpu_counter' ])
-symvals = Symvals([ '__per_cpu_offset', 'pcpu_base_addr', 'pcpu_slot',
-                    'pcpu_nr_slots', 'pcpu_group_offsets' ])
-msymvals = MinimalSymvals( ['__per_cpu_start', '__per_cpu_end' ])
+types = Types(['void *', 'char *', 'struct pcpu_chunk',
+               'struct percpu_counter'])
+symvals = Symvals(['__per_cpu_offset', 'pcpu_base_addr', 'pcpu_slot',
+                   'pcpu_nr_slots', 'pcpu_group_offsets'])
+msymvals = MinimalSymvals(['__per_cpu_start', '__per_cpu_end'])
 
 SymbolOrValue = Union[gdb.Value, gdb.Symbol]
 
@@ -170,7 +170,8 @@ class PerCPUState(object):
         # party module dependency...
         use_area_map = struct_has_member(types.pcpu_chunk_type, 'map')
         for slot in range(symvals.pcpu_nr_slots):
-            for chunk in list_for_each_entry(symvals.pcpu_slot[slot], types.pcpu_chunk_type, 'list'):
+            for chunk in list_for_each_entry(symvals.pcpu_slot[slot],
+                                             types.pcpu_chunk_type, 'list'):
                 if use_area_map:
                     self._setup_dynamic_offset_cache_area_map(chunk)
                 else:
@@ -225,7 +226,7 @@ class PerCPUState(object):
     # the previous section.  It's possible to override this while
     # loading debuginfo but not when debuginfo is embedded.
     def _relocated_offset(self, var):
-        addr=int(var)
+        addr = int(var)
         start = msymvals['__per_cpu_start']
         size = self._static_ranges[start]
         if addr >= start and addr < start + size:
@@ -287,13 +288,13 @@ class PerCPUState(object):
             # Pointer to a percpu
             elif self.is_percpu_var(var):
                 if var.type != types.void_p_type:
-                        var = var.dereference().address
+                    var = var.dereference().address
                 assert(self.is_percpu_var(var))
             else:
                 raise PerCPUError(orig_var)
         # object is a percpu
         elif self.is_percpu_var(var.address):
-                var = var.address
+            var = var.address
         else:
             raise PerCPUError(orig_var)
 
@@ -314,7 +315,7 @@ class PerCPUState(object):
 
     def get_percpu_var(self, var: SymbolOrValue, cpu: int) -> gdb.Value:
         """
-        Retrieve a per-cpu variable for one or all CPUs 
+        Retrieve a per-cpu variable for one or all CPUs
 
         Args:
             var: The symbol or value to use to resolve the percpu location
@@ -334,7 +335,7 @@ class PerCPUState(object):
         return self._get_percpu_var(var, cpu)
 
     def get_percpu_vars(self, var: SymbolOrValue,
-                        nr_cpus: int=None) -> Dict[int, gdb.Value]:
+                        nr_cpus: int = None) -> Dict[int, gdb.Value]:
         """
         Retrieve a per-cpu variable for all CPUs
 
@@ -369,12 +370,12 @@ class PerCPUState(object):
             vals[cpu] = self._get_percpu_var(var, cpu)
         return vals
 
-msym_cbs = MinimalSymbolCallbacks([ ('__per_cpu_start',
-                                     PerCPUState._setup_per_cpu_size),
-                                    ('__per_cpu_end',
-                                     PerCPUState._setup_per_cpu_size) ])
-symbol_cbs = SymbolCallbacks([ ('__per_cpu_offset', PerCPUState._setup_nr_cpus),
-                               ('modules', PerCPUState._setup_module_ranges) ])
+msym_cbs = MinimalSymbolCallbacks([('__per_cpu_start',
+                                    PerCPUState._setup_per_cpu_size),
+                                   ('__per_cpu_end',
+                                    PerCPUState._setup_per_cpu_size)])
+symbol_cbs = SymbolCallbacks([('__per_cpu_offset', PerCPUState._setup_nr_cpus),
+                              ('modules', PerCPUState._setup_module_ranges)])
 
 _state = PerCPUState()
 
@@ -412,7 +413,7 @@ def get_percpu_var(var: SymbolOrValue, cpu: int) -> gdb.Value:
     return _state.get_percpu_var(var, cpu)
 
 def get_percpu_vars(var: SymbolOrValue,
-                    nr_cpus: int=None) -> Dict[int, gdb.Value]:
+                    nr_cpus: int = None) -> Dict[int, gdb.Value]:
     """
     Retrieve a per-cpu variable for all CPUs
 
@@ -454,7 +455,7 @@ def percpu_counter_sum(var: SymbolOrValue) -> int:
             (var.type.code == gdb.TYPE_CODE_PTR and
              var.type.target() == types.percpu_counter_type)):
         raise InvalidArgumentError("var must be gdb.Symbol or gdb.Value describing `{}' not `{}'"
-                            .format(types.percpu_counter_type, var.type))
+                                   .format(types.percpu_counter_type, var.type))
 
     total = int(var['count'])
 

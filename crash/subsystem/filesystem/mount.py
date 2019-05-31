@@ -21,17 +21,17 @@ from crash.types.list import list_for_each_entry
 from crash.util import container_of, decode_flags, struct_has_member
 from crash.util.symbols import Types, Symvals, TypeCallbacks, SymbolCallbacks
 
-MNT_NOSUID      = 0x01
-MNT_NODEV       = 0x02
-MNT_NOEXEC      = 0x04
-MNT_NOATIME     = 0x08
-MNT_NODIRATIME  = 0x10
-MNT_RELATIME    = 0x20
-MNT_READONLY    = 0x40
-MNT_SHRINKABLE  = 0x100
-MNT_WRITE_HOLD  = 0x200
-MNT_SHARED      = 0x1000
-MNT_UNBINDABLE  = 0x2000
+MNT_NOSUID = 0x01
+MNT_NODEV = 0x02
+MNT_NOEXEC = 0x04
+MNT_NOATIME = 0x08
+MNT_NODIRATIME = 0x10
+MNT_RELATIME = 0x20
+MNT_READONLY = 0x40
+MNT_SHRINKABLE = 0x100
+MNT_WRITE_HOLD = 0x200
+MNT_SHARED = 0x1000
+MNT_UNBINDABLE = 0x2000
 
 MNT_FLAGS = {
     MNT_NOSUID      : "MNT_NOSUID",
@@ -51,8 +51,8 @@ MNT_FLAGS_HIDDEN = {
 }
 MNT_FLAGS_HIDDEN.update(MNT_FLAGS)
 
-types = Types([ 'struct mount', 'struct vfsmount' ])
-symvals = Symvals([ 'init_task' ])
+types = Types(['struct mount', 'struct vfsmount'])
+symvals = Symvals(['init_task'])
 
 class _Mount(object):
     @classmethod
@@ -85,7 +85,7 @@ def _check_mount_type(gdbtype):
         # Older kernels didn't separate mount from vfsmount
         types.mount_type = types.vfsmount_type
 
-def for_each_mount(task: gdb.Value=None) -> Iterator[gdb.Value]:
+def for_each_mount(task: gdb.Value = None) -> Iterator[gdb.Value]:
     """
     Iterate over each mountpoint in the namespace of the specified task
 
@@ -112,7 +112,7 @@ def for_each_mount(task: gdb.Value=None) -> Iterator[gdb.Value]:
         task = symvals.init_task
     return _Mount._for_each_mount_impl(task)
 
-def mount_flags(mnt: gdb.Value, show_hidden: bool=False) -> str:
+def mount_flags(mnt: gdb.Value, show_hidden: bool = False) -> str:
     """
     Returns the human-readable flags of the ``struct mount``
     :ref:`structure <mount_structure>`.
@@ -203,7 +203,7 @@ def mount_device(mnt: gdb.Value) -> str:
 
 def _real_mount(vfsmnt):
     if (vfsmnt.type == types.mount_type or
-        vfsmnt.type == types.mount_type.pointer()):
+            vfsmnt.type == types.mount_type.pointer()):
         t = vfsmnt.type
         if t.code == gdb.TYPE_CODE_PTR:
             t = t.target()
@@ -212,7 +212,7 @@ def _real_mount(vfsmnt):
         return vfsmnt
     return container_of(vfsmnt, types.mount_type, 'mnt')
 
-def d_path(mnt: gdb.Value, dentry: gdb.Value, root: gdb.Value=None):
+def d_path(mnt: gdb.Value, dentry: gdb.Value, root: gdb.Value = None):
     """
     Returns a file system path described by a mount and dentry
 
@@ -274,5 +274,5 @@ def d_path(mnt: gdb.Value, dentry: gdb.Value, root: gdb.Value=None):
         name = '/'
     return name
 
-type_cbs = TypeCallbacks([ ('struct vfsmount', _check_mount_type ) ])
-symbols_cbs = SymbolCallbacks([ ('init_task', _Mount._check_task_interface ) ])
+type_cbs = TypeCallbacks([('struct vfsmount', _check_mount_type)])
+symbols_cbs = SymbolCallbacks([('init_task', _Mount._check_task_interface)])

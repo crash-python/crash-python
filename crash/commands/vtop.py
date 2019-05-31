@@ -8,7 +8,7 @@ from crash.addrxlat import CrashAddressTranslation
 import addrxlat
 
 class LinuxPGT(object):
-    table_names = ( 'PTE', 'PMD', 'PUD', 'PGD' )
+    table_names = ('PTE', 'PMD', 'PUD', 'PGD')
 
     def __init__(self, ctx, sys):
         self.context = ctx

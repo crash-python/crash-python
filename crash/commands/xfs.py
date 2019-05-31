@@ -112,7 +112,7 @@ class XFSCommand(Command):
         print("AIL @ {:x}".format(int(ail)))
         print("target={} last_pushed_lsn={} log_flush="
               .format(int(ail['xa_target']), int(ail['xa_last_pushed_lsn'])),
-                      end='')
+              end='')
         try:
             print("{}".format(int(ail['xa_log_flush'])))
         except:
@@ -163,7 +163,8 @@ class XFSCommand(Command):
     @classmethod
     def dump_buftarg(cls, targ: gdb.Value) -> None:
         for buf in list_for_each_entry(targ['bt_delwrite_queue'],
-            types.xfs_buf_p_type.target(), 'b_list'):
+                                       types.xfs_buf_p_type.target(),
+                                       'b_list'):
             print("{:x} {}".format(int(buf.address), xfs_format_xfsbuf(buf)))
 
     @classmethod

@@ -12,7 +12,7 @@ from crash.types.list import list_for_each_entry
 
 class Zone(object):
 
-    types = Types([' struct page' ])
+    types = Types(['struct page'])
 
     def __init__(self, obj, zid):
         self.gdb_obj = obj
@@ -29,7 +29,7 @@ class Zone(object):
         stats = [0] * VmStat.nr_stat_items
         vm_stat = self.gdb_obj["vm_stat"]
 
-        for item in range (0, VmStat.nr_stat_items):
+        for item in range(0, VmStat.nr_stat_items):
             # TODO abstract atomic?
             stats[item] = int(vm_stat[item]["counter"])
         return stats
@@ -38,7 +38,7 @@ class Zone(object):
         for cpu in for_each_online_cpu():
             pageset = get_percpu_var(self.gdb_obj["pageset"], cpu)
             vmdiff = pageset["vm_stat_diff"]
-            for item in range (0, VmStat.nr_stat_items):
+            for item in range(0, VmStat.nr_stat_items):
                 diffs[item] += int(vmdiff[item])
 
     def get_vmstat_diffs(self):
@@ -57,13 +57,13 @@ class Zone(object):
                 nr_free += 1
                 if page.get_nid() != self.nid or page.get_zid() != self.zid:
                     print("page {:#x} misplaced on {} of zone {}:{}, has flags for zone {}:{}".
-                        format(int(page_obj.address), "pcplist" if is_pcp else "freelist",
-                                self.nid, self.zid, page.get_nid(), page.get_zid()))
+                          format(int(page_obj.address), "pcplist" if is_pcp else "freelist",
+                                 self.nid, self.zid, page.get_nid(), page.get_zid()))
         nr_expected = area["count"] if is_pcp else area["nr_free"]
         if nr_free != nr_expected:
             print("nr_free mismatch in {} {}: expected {}, counted {}".
-                format("pcplist" if is_pcp else "area", area.address,
-                        nr_expected, nr_free))
+                  format("pcplist" if is_pcp else "area", area.address,
+                         nr_expected, nr_free))
 
     def check_free_pages(self):
         for area in array_for_each(self.gdb_obj["free_area"]):
@@ -82,4 +82,3 @@ def for_each_populated_zone():
     for zone in for_each_zone():
         if zone.is_populated():
             yield zone
-

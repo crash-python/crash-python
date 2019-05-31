@@ -29,8 +29,8 @@ class DIOBioDecoder(Decoder):
         offset (str): the starting offset on disk
     """
 
-    _types = Types([ 'struct dio *' ])
-    __endio__ = [ 'dio_bio_end_io', 'dio_bio_end_io' ]
+    _types = Types(['struct dio *'])
+    __endio__ = ['dio_bio_end_io', 'dio_bio_end_io']
     _description = "{:x} bio: Direct I/O for {} inode {}, sector {} on {}"
 
     def __init__(self, bio: gdb.Value):
@@ -111,7 +111,7 @@ class DecodeBioBH(Decoder):
             bio.  The value is of type ``struct buffer_head``.
 
     """
-    _types = Types([ 'struct buffer_head *' ])
+    _types = Types(['struct buffer_head *'])
     __endio__ = 'end_bio_bh_io_sync'
     _description = "{:x} bio: Bio representation of buffer head"
 
@@ -144,7 +144,7 @@ class DecodeSyncWBBH(Decoder):
         bh (:obj:`gdb.Value`): The ``struct buffer_head`` being decoded.
             The value is of type ``struct buffer_head``.
     """
-    __endio__  = 'end_buffer_write_sync'
+    __endio__ = 'end_buffer_write_sync'
     _description = "{:x} buffer_head: for dev {}, block {}, size {} (unassociated)"
 
     def __init__(self, bh):

@@ -11,7 +11,7 @@ from crash.types.cpu import for_each_online_cpu
 
 class VmStat(object):
     types = Types(['enum zone_stat_item', 'enum vm_event_item'])
-    symbols = Symbols([ 'vm_event_states' ])
+    symbols = Symbols(['vm_event_states'])
 
     nr_stat_items = None
     nr_event_items = None
@@ -23,12 +23,12 @@ class VmStat(object):
     def check_enum_type(cls, gdbtype):
         if gdbtype == cls.types.enum_zone_stat_item_type:
             (items, names) = cls.__populate_names(gdbtype,
-                                                   'NR_VM_ZONE_STAT_ITEMS')
+                                                  'NR_VM_ZONE_STAT_ITEMS')
             cls.nr_stat_items = items
             cls.vm_stat_names = names
         elif gdbtype == cls.types.enum_vm_event_item_type:
             (items, names) = cls.__populate_names(gdbtype,
-                                                   'NR_VM_EVENT_ITEMS')
+                                                  'NR_VM_EVENT_ITEMS')
             cls.nr_event_items = items
             cls.vm_event_names = names
         else:
@@ -36,15 +36,15 @@ class VmStat(object):
 
     @classmethod
     def __populate_names(cls, enum_type, items_name):
-            nr_items = enum_type[items_name].enumval
+        nr_items = enum_type[items_name].enumval
 
-            names = ["__UNKNOWN__"] * nr_items
+        names = ["__UNKNOWN__"] * nr_items
 
-            for field in enum_type.fields():
-                if field.enumval < nr_items:
-                    names[field.enumval] = field.name
+        for field in enum_type.fields():
+            if field.enumval < nr_items:
+                names[field.enumval] = field.name
 
-            return (nr_items, names)
+        return (nr_items, names)
 
     @classmethod
     def get_stat_names(cls):
@@ -66,7 +66,5 @@ class VmStat(object):
 
         return events
 
-type_cbs = TypeCallbacks([ ('enum zone_stat_item',
-                                     VmStat.check_enum_type),
-                                    ('enum vm_event_item',
-                                     VmStat.check_enum_type) ])
+type_cbs = TypeCallbacks([('enum zone_stat_item', VmStat.check_enum_type),
+                          ('enum vm_event_item', VmStat.check_enum_type)])
