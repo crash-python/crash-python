@@ -88,7 +88,7 @@ class ObjfileEventCallback(object):
     # symtab code.  The symtab observer is behind the python observers
     # in the execution queue so the cache flush executes /after/ us.
     @classmethod
-    def _flush_symbol_cache_callback(self, event):
+    def _flush_symbol_cache_callback(cls, event):
         gdb.execute("maint flush-symbol-cache")
 
     def _new_objfile_callback(self, event):
