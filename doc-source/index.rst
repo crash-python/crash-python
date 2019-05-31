@@ -29,7 +29,8 @@ Table of Contents
 
    installation
    user_guide
-   modules
+   kdump/modules
+   crash/modules
 
 Indices and tables
 ------------------

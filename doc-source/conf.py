@@ -26,19 +26,25 @@ sys.path.insert(0, os.path.abspath('.'))
 def run_apidoc(_):
     try:
         from sphinx.ext.apidoc import main
-        mod = "../crash"
+        crash_mod = "../crash"
+        kdump_mod = "../kdump"
         out = "."
     except ImportError as e:
         from sphinx.apidoc import main
-        mod = "crash"
+        crash_mod = "crash"
+        kdump_mod = "kdump"
         out = "doc-source"
     import make_gdb_refs
     import os
     import sys
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     cur_dir = os.path.abspath(os.path.dirname(__file__))
-    argv = [ '-M', '-e', '-H', 'API Reference', '-f',
-	    '-o', out, mod ]
+    argv = [ '-M', '-e', '-H', 'Crash API Reference', '-f',
+	    '-o', out + "/crash", crash_mod ]
+    main(argv)
+
+    argv = [ '-M', '-e', '-H', 'Kdump Target API Reference', '-f',
+	    '-o', out + "/kdump", kdump_mod ]
     main(argv)
 
     make_gdb_refs.make_gdb_refs()

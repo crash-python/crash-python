@@ -33,6 +33,7 @@ class Target(gdb.Target):
         self.debug = debug
         self.shortname = "kdumpfile"
         self.longname = "Use a Linux kernel kdump file as a target"
+        self.kdump: kdumpfile = None
 
         self.register()
 

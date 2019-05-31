@@ -30,6 +30,7 @@ if has_mypy; then
 	python
 	sys.path.insert(0, 'build/lib')
 	from mypy.main import main
+	main(None, args=["-p", "kdump", "--ignore-missing-imports"])
 	main(None, args=["-p", "crash", "--ignore-missing-imports"])
 	end
 	END

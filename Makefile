@@ -48,6 +48,6 @@ lint3:
 
 doc: build FORCE
 	rm -rf docs
-	rm -f doc/source/crash.*rst doc/source/modules.rst
+	rm -f doc-source/crash/.*rst doc-source/kdump/*.rst
 	python3 setup.py -q build_sphinx
 FORCE:
