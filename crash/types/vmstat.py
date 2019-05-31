@@ -1,13 +1,9 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
-from crash.util import container_of, find_member_variant
 from crash.util.symbols import Types, TypeCallbacks, Symbols
-import crash.types.node
 from crash.types.percpu import get_percpu_var
 from crash.types.cpu import for_each_online_cpu
-
 
 class VmStat(object):
     types = Types(['enum zone_stat_item', 'enum vm_event_item'])

@@ -3,11 +3,11 @@
 
 from typing import Iterable, Tuple
 
-import gdb
-
 from crash.util.symbols import Types
 from crash.types.list import list_for_each_entry
 from crash.cache.syscache import kernel
+
+import gdb
 
 class NoQueueError(RuntimeError):
     pass

@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
-import os.path
-import argparse
-import re
-
 from argparse import Namespace
+
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandLineError, CommandError
-from crash.exceptions import DelayedAttributeError
 from crash.types.list import list_for_each_entry, list_empty
 from crash.subsystem.filesystem import for_each_super_block, get_super_block
 from crash.subsystem.filesystem import super_flags
@@ -18,8 +13,8 @@ from crash.subsystem.filesystem.xfs import xfs_for_each_ail_log_item
 from crash.subsystem.filesystem.xfs import xfs_log_item_typed
 from crash.subsystem.filesystem.xfs import xfs_format_xfsbuf
 from crash.subsystem.filesystem.xfs import XFS_LI_TYPES
-from crash.subsystem.filesystem.xfs import XFS_LI_EFI, XFS_LI_EFD
-from crash.subsystem.filesystem.xfs import XFS_LI_IUNLINK, XFS_LI_INODE
+from crash.subsystem.filesystem.xfs import XFS_LI_EFI
+from crash.subsystem.filesystem.xfs import XFS_LI_INODE
 from crash.subsystem.filesystem.xfs import XFS_LI_BUF, XFS_LI_DQUOT
 from crash.subsystem.filesystem.xfs import XFS_LI_QUOTAOFF, XFS_BLI_FLAGS
 from crash.subsystem.filesystem.xfs import XFS_DQ_FLAGS
@@ -27,6 +22,8 @@ from crash.subsystem.filesystem.xfs import xfs_mount_flags, xfs_mount_uuid
 from crash.subsystem.filesystem.xfs import xfs_mount_version
 from crash.util import decode_flags
 from crash.util.symbols import Types
+
+import gdb
 
 types = Types(['struct xfs_buf *'])
 

@@ -3,10 +3,11 @@
 
 from typing import Iterator, Set
 
-import gdb
 from crash.util import container_of
 from crash.util.symbols import Types
 from crash.exceptions import ArgumentTypeError, UnexpectedGDBTypeError
+
+import gdb
 
 class ListError(Exception):
     pass

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
 import re
 import fnmatch
 import argparse
@@ -12,7 +11,6 @@ from crash.util import struct_has_member
 from crash.util.symbols import Types
 from crash.types.list import list_for_each_entry
 from crash.types.percpu import get_percpu_var
-import crash.types.percpu
 
 class _Parser(ArgumentParser):
     """

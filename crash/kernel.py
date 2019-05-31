@@ -1,23 +1,24 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
+from typing import Pattern, Union, List, Dict, Any
+
 import sys
 import re
 import fnmatch
 import os.path
+
+from elftools.elf.elffile import ELFFile
+
 import crash.arch
 import crash.arch.x86_64
 import crash.arch.ppc64
-from crash.types.list import list_for_each_entry
-from crash.types.list import list_for_each_entry
 from crash.types.module import for_each_module, for_each_module_section
-from elftools.elf.elffile import ELFFile
 from crash.util import get_symbol_value
 from crash.util.symbols import Types, Symvals, Symbols
 from crash.exceptions import MissingSymbolError, InvalidArgumentError
 
-from typing import Pattern, Union, List, Dict, Any
+import gdb
 
 class CrashKernelError(RuntimeError):
     pass

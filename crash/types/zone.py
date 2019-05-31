@@ -1,8 +1,7 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
-from crash.util import container_of, find_member_variant, array_for_each
+from crash.util import array_for_each
 from crash.util.symbols import Types
 from crash.types.percpu import get_percpu_var
 from crash.types.vmstat import VmStat

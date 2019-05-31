@@ -5,7 +5,6 @@ from typing import Dict
 
 from builtins import round
 
-import gdb
 import re
 import zlib
 from datetime import timedelta
@@ -16,6 +15,7 @@ from crash.util import array_size
 from crash.util.symbols import Types, Symvals, SymbolCallbacks, MinimalSymvals
 from crash.infra.lookup import DelayedValue
 
+import gdb
 
 ImageLocation = Dict[str, Dict[str, int]]
 

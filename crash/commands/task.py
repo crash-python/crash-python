@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
+import argparse
+
 from crash.commands import Command, ArgumentParser
 import crash.cache.tasks
-import argparse
+
+import gdb
 
 class _Parser(ArgumentParser):
     """

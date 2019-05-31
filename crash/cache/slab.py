@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
-from crash.types.list import list_for_each_entry
 from crash.cache import CrashCache
 
 class CrashCacheSlab(CrashCache):

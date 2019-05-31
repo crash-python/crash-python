@@ -4,11 +4,13 @@
 from typing import Dict
 
 from math import log, ceil
-import gdb
-from crash.util import container_of, find_member_variant
+
+from crash.util import find_member_variant
 from crash.util.symbols import Types, Symvals, TypeCallbacks
 from crash.util.symbols import SymbolCallbacks, MinimalSymbolCallbacks
 from crash.cache.syscache import config
+
+import gdb
 
 #TODO debuginfo won't tell us, depends on version?
 PAGE_MAPPING_ANON = 1

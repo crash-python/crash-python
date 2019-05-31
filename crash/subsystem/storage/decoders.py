@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
 from typing import Union, List, Dict, Iterable
 
 from crash.infra.lookup import SymbolCallback
 from crash.subsystem.storage import block_device_name
+
+import gdb
 
 EndIOSpecifier = Union[int, str, List[str], gdb.Value, gdb.Symbol, None]
 

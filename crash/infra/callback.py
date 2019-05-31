@@ -4,8 +4,6 @@
 from typing import Callable, Any, Union
 
 import gdb
-import traceback
-import sys
 
 Callback = Callable[[Any], Union[bool, None]]
 

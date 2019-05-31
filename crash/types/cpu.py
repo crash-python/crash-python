@@ -6,12 +6,11 @@ The crash.types.cpu module offers helpers to work with the state of CPUs.
 
 from typing import Iterable, List
 
-import gdb
 from crash.util.symbols import SymbolCallbacks
 from crash.types.bitmap import for_each_set_bit
 from crash.exceptions import DelayedAttributeError
 
-from typing import List, Iterable
+import gdb
 
 # this wraps no particular type, rather it's a placeholder for
 # functions to iterate over online cpu's etc.

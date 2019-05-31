@@ -6,13 +6,13 @@ The crash.types.node module offers helpers to work with NUMA nodes.
 
 from typing import Iterable, List, Type, TypeVar
 
-import gdb
 from crash.util.symbols import Symbols, Symvals, Types, SymbolCallbacks
-from crash.util import container_of, find_member_variant, get_symbol_value
 from crash.types.percpu import get_percpu_var
 from crash.types.bitmap import for_each_set_bit
-import crash.types.zone
 from crash.exceptions import DelayedAttributeError
+import crash.types.zone
+
+import gdb
 
 symbols = Symbols(['numa_node'])
 symvals = Symvals(['numa_cpu_lookup_table', 'node_data'])

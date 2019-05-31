@@ -3,12 +3,13 @@
 
 from typing import Iterable, Union
 
-import gdb
 from crash.util import container_of, get_typed_pointer, decode_flags
 from crash.util.symbols import Types, Symvals
 from crash.infra.lookup import DelayedSymval, DelayedType
 from crash.types.list import list_for_each_entry
 from crash.subsystem.storage import block_device_name
+
+import gdb
 
 types = Types('struct super_block')
 symvals = Symvals('super_blocks')

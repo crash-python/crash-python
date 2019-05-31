@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
-
 from crash.arch import CrashArchitecture, register, KernelFrameFilter
+
+import gdb
 
 class x86_64Architecture(CrashArchitecture):
     ident = "i386:x86-64"

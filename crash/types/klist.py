@@ -3,12 +3,12 @@
 
 from typing import Iterable
 
-import gdb
 from crash.util import container_of
 from crash.types.list import list_for_each_entry
 from crash.exceptions import CorruptedError, InvalidArgumentError
-
 from crash.util.symbols import Types
+
+import gdb
 
 types = Types(['struct klist_node', 'struct klist'])
 

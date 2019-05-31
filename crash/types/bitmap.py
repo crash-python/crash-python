@@ -13,11 +13,10 @@ requires that it be of either type.
 
 from typing import Iterable
 
-import gdb
-from math import log
-
 from crash.exceptions import InvalidArgumentError
 from crash.util.symbols import Types
+
+import gdb
 
 types = Types('unsigned long')
 

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
-import sys
-
 from crash.infra import autoload_submodules
 from crash.kernel import CrashKernel, CrashKernelError
+
+import gdb
 
 class Session(object):
     """

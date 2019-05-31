@@ -17,14 +17,14 @@ a form usable as an attribute name.  See :class:`.Types` for more information.
 
 from typing import Type, List, Tuple, Callable, Union, Dict, Any
 
-import gdb
-
 from crash.infra.lookup import DelayedType, DelayedSymbol, DelayedSymval
 from crash.infra.lookup import DelayedValue, DelayedMinimalSymbol
 from crash.infra.lookup import DelayedMinimalSymval
 from crash.infra.lookup import NamedCallback, TypeCallback
 from crash.infra.lookup import SymbolCallback, MinimalSymbolCallback
 from crash.exceptions import DelayedAttributeError
+
+import gdb
 
 CollectedValue = Union[gdb.Type, gdb.Value, gdb.Symbol, gdb.MinSymbol, Any]
 Names = Union[List[str], str]

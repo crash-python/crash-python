@@ -3,9 +3,10 @@
 
 from typing import Iterable, Tuple
 
-import gdb
 from crash.types.list import list_for_each_entry
 from crash.util.symbols import Symvals, Types
+
+import gdb
 
 symvals = Symvals(['modules'])
 types = Types(['struct module'])

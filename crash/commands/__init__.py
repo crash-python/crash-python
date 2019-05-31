@@ -3,14 +3,14 @@
 
 from typing import Dict
 
-import gdb
-
 import os
 import glob
 import importlib
 import argparse
 
 from crash.exceptions import DelayedAttributeError, ArgumentTypeError
+
+import gdb
 
 class CommandError(RuntimeError):
     pass

@@ -3,13 +3,13 @@
 
 from typing import Union, Tuple, List, Iterator, Dict
 
-import gdb
 import uuid
 
-from typing import Dict
 from crash.util.symbols import Types
 from crash.exceptions import MissingTypeError, MissingSymbolError
 from crash.exceptions import ArgumentTypeError, NotStructOrUnionError
+
+import gdb
 
 TypeSpecifier = Union[gdb.Type, gdb.Value, str, gdb.Symbol]
 AddressSpecifier = Union[gdb.Value, str, int]

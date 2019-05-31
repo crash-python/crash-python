@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
 from crash.util.symbols import Types
 from crash.subsystem.storage import block_device_name
 from crash.subsystem.storage.decoders import Decoder, decode_bh
 from crash.subsystem.filesystem import super_fstype
+
+import gdb
 
 class DIOBioDecoder(Decoder):
     """

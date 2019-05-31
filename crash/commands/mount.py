@@ -1,20 +1,16 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
-
 from argparse import Namespace
+
 from crash.commands import Command, ArgumentParser
 from crash.types.task import LinuxTask
-from crash.subsystem.filesystem.mount import MNT_NOSUID, MNT_NODEV, MNT_NOEXEC
-from crash.subsystem.filesystem.mount import MNT_NOATIME, MNT_NODIRATIME
-from crash.subsystem.filesystem.mount import MNT_RELATIME, MNT_READONLY
-from crash.subsystem.filesystem.mount import MNT_SHRINKABLE, MNT_WRITE_HOLD
-from crash.subsystem.filesystem.mount import MNT_SHARED, MNT_UNBINDABLE
 from crash.subsystem.filesystem.mount import d_path, for_each_mount
 from crash.subsystem.filesystem.mount import mount_device, mount_fstype
 from crash.subsystem.filesystem.mount import mount_super, mount_flags
 from crash.subsystem.filesystem.mount import mount_root
+
+import gdb
 
 class _Parser(ArgumentParser):
     """

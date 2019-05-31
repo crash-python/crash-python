@@ -12,14 +12,14 @@ kernels do not have ``struct mount``.  In functions documented as using a
 will be required and/or returned instead.
 """
 
-import gdb
-
 from typing import Iterator
 
 from crash.subsystem.filesystem import super_fstype
 from crash.types.list import list_for_each_entry
 from crash.util import container_of, decode_flags, struct_has_member
 from crash.util.symbols import Types, Symvals, TypeCallbacks, SymbolCallbacks
+
+import gdb
 
 MNT_NOSUID = 0x01
 MNT_NODEV = 0x02

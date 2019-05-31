@@ -4,7 +4,6 @@
 from argparse import Namespace
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandLineError
-from crash.exceptions import DelayedAttributeError
 from crash.subsystem.filesystem import for_each_super_block, super_fstype
 from crash.subsystem.filesystem.btrfs import btrfs_fsid, btrfs_metadata_uuid
 

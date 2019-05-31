@@ -65,7 +65,7 @@ disable=all
 # either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once). See also the "--disable" option for examples.
-enable=undefined-variable,undefined-all-variable,global-variable-undefined,undefined-loop-variable,not-callable,bad-whitespace,trailing-whitespace,bad-continuation,mixed-indentation,superfluous-parens
+enable=undefined-variable,undefined-all-variable,global-variable-undefined,undefined-loop-variable,not-callable,bad-whitespace,trailing-whitespace,bad-continuation,mixed-indentation,superfluous-parens,multiple-imports,wrong-import-order,ungrouped-imports,wrong-import-position,import-error,relative-beyond-top-level,cyclic-import,wildcard-import,deprecated-module,reimported,import-self,unused-import,unused-wildcard-import
 
 
 [REPORTS]

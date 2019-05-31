@@ -5,10 +5,9 @@ The crash.subsystem.filesystem.xfs module offers helpers to work with
 XFS file systems.
 """
 
-import gdb
-import uuid
+from typing import Iterable
 
-from typing import Union, Iterable
+import uuid
 
 from crash.exceptions import InvalidArgumentError
 from crash.types.list import list_for_each_entry
@@ -18,6 +17,8 @@ from crash.util.symbols import Types, TypeCallbacks
 from crash.subsystem.filesystem import is_fstype_super, is_fstype_inode
 from crash.subsystem.storage import block_device_name
 from crash.subsystem.storage.decoders import Decoder
+
+import gdb
 
 # XFS inode locks
 XFS_IOLOCK_EXCL = 0x01

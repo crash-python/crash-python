@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
-from crash.cache import CrashCache
-
 tasks = {}
 
 def cache_task(task):

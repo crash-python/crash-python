@@ -1,19 +1,19 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
-import crash
 import sys
 import traceback
-from crash.util import container_of, find_member_variant, get_symbol_value
-from crash.util import safe_get_symbol_value
+
+from crash.util import container_of, find_member_variant
 from crash.util.symbols import Types, TypeCallbacks, SymbolCallbacks
 from crash.types.percpu import get_percpu_var
 from crash.types.list import list_for_each, list_for_each_entry
-from crash.types.page import Page, page_from_gdb_obj, page_from_addr
+from crash.types.page import page_from_gdb_obj, page_from_addr
 from crash.types.node import for_each_nid
 from crash.types.cpu import for_each_online_cpu
 from crash.types.node import numa_node_id
+
+import gdb
 
 AC_PERCPU = "percpu"
 AC_SHARED = "shared"

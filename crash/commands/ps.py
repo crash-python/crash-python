@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
 import argparse
 import fnmatch
 import re
 
 from crash.commands import Command, ArgumentParser
-from crash.commands import CommandLineError, CommandError
+from crash.commands import CommandError
 from crash.types.task import LinuxTask, TaskStateFlags as TF
+
+import gdb
 
 class TaskFormat(object):
     """

@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
 import sys
+
 from kdumpfile import kdumpfile, KDUMP_KVADDR
-from kdumpfile.exceptions import *
+from kdumpfile.exceptions import AddressTranslationException, EOFException
 import addrxlat
+import addrxlat.exceptions
+
+import gdb
 
 class SymbolCallback(object):
     "addrxlat symbolic callback"
@@ -18,14 +21,14 @@ class SymbolCallback(object):
         if self.ctx is not None:
             try:
                 return self.ctx.next_cb_sym(symtype, *args)
-            except addrxlat.BaseException:
+            except addrxlat.exceptions.BaseException:
                 self.ctx.clear_err()
 
         if symtype == addrxlat.SYM_VALUE:
             ms = gdb.lookup_minimal_symbol(args[0])
             if ms is not None:
                 return int(ms.value().address)
-        raise addrxlat.NoDataError()
+        raise addrxlat.exceptions.NoDataError()
 
 class Target(gdb.Target):
     def __init__(self, debug=False):
@@ -97,8 +100,8 @@ class Target(gdb.Target):
             except EOFException as e:
                 if self.debug:
                     self.report_error(offset, ln, e)
-                raise gdb.TargetXferEof(str(e))
-            except NoDataException as e:
+                raise gdb.TargetXferEOF(str(e))
+            except addrxlat.exceptions.NoDataError as e:
                 if self.debug:
                     self.report_error(offset, ln, e)
                 raise gdb.TargetXferUnavailable(str(e))

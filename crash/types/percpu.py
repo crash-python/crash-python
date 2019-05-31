@@ -3,17 +3,16 @@
 
 from typing import Dict, Union, List, Tuple
 
-import gdb
 from crash.util import array_size, struct_has_member
-from crash.util.symbols import Types, Symvals, MinimalSymvals, MinimalSymbols
+from crash.util.symbols import Types, Symvals, MinimalSymvals
 from crash.util.symbols import MinimalSymbolCallbacks, SymbolCallbacks
 from crash.types.list import list_for_each_entry
 from crash.types.module import for_each_module
 from crash.exceptions import DelayedAttributeError, InvalidArgumentError
-from crash.types.bitmap import find_first_set_bit, find_last_set_bit
-from crash.types.bitmap import find_next_set_bit, find_next_zero_bit
 from crash.types.page import Page
 from crash.types.cpu import highest_possible_cpu_nr
+
+import gdb
 
 class PerCPUError(TypeError):
     """The passed object does not respond to a percpu pointer."""

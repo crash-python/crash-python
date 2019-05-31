@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
-import crash
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandError, CommandLineError
 from crash.types.slab import kmem_cache_get_all, kmem_cache_from_name

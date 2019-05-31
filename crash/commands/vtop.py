@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
 import argparse
+import addrxlat
+
 from crash.commands import Command, ArgumentParser
 from crash.addrxlat import CrashAddressTranslation
-import addrxlat
 
 class LinuxPGT(object):
     table_names = ('PTE', 'PMD', 'PUD', 'PGD')

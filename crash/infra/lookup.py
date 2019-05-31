@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
-
 from typing import Tuple, Any, Union
 
-import crash.infra
 from crash.infra.callback import ObjfileEventCallback
 from crash.infra.callback import Callback
 from crash.exceptions import DelayedAttributeError
+
+import gdb
 
 class NamedCallback(ObjfileEventCallback):
     """

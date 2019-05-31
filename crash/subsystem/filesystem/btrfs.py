@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
 import uuid
 
 from crash.exceptions import InvalidArgumentError
 from crash.util import decode_uuid, struct_has_member, container_of
 from crash.util.symbols import Types
 from crash.subsystem.filesystem import is_fstype_super
+
+import gdb
 
 types = Types(['struct btrfs_inode', 'struct btrfs_fs_info *',
                'struct btrfs_fs_info'])
