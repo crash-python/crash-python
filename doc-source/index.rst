@@ -28,6 +28,7 @@ Table of Contents
    :maxdepth: 2
 
    installation
+   testing
    user_guide
    kdump/modules
    crash/modules

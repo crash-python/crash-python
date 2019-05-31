@@ -39,4 +39,7 @@ kernel.load_modules()
 
 test_loader = unittest.TestLoader()
 test_suite = test_loader.discover('kernel-tests', pattern='test_*.py')
-unittest.TextTestRunner(verbosity=2).run(test_suite)
+ret = unittest.TextTestRunner(verbosity=2).run(test_suite)
+if not ret.wasSuccessful():
+    sys.exit(1)
+sys.exit(0)

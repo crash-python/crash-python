@@ -28,23 +28,54 @@ GZ_MAN1 = $(patsubst %.asciidoc,%.1.gz,$(MAN1_TXT))
 
 man: $(GZ_MAN1)
 
+PYLINT_ARGS ?= --rcfile tests/pylintrc-check -r n
+
+ifeq ($(E),1)
+PYLINT_ARGS +=  -E
+endif
+
 all: man
 
 man-install: man
 	$(INSTALL) -d -m 755 $(DESTDIR)$(man1dir)
 	$(INSTALL) -m 644 $(GZ_MAN1) $(DESTDIR)$(man1dir)
 
-build: crash tests kernel-tests
+doc-clean:
+	rm -rf docs
+	rm -f doc-source/crash/*.rst doc-source/kdump/*.rst
+
+clean: doc-clean
+	make -C tests clean
+	rm -rf build
+
+build: crash tests
 	python3 setup.py -q build
+
+clean-build: clean build
 
 install: man-install build
 	python3 setup.py install
 
-lint: lint3
-	pylint --rcfile tests/pylintrc -r n crash
+unit-tests: clean-build
+	make -C tests -s
+	sh tests/run-tests.sh
 
-lint3:
-	pylint --py3k -r n crash
+PYLINT_ENFORCE=""
+
+lint-enforce: clean-build
+	sh tests/run-pylint.sh -r n --rcfile tests/pylintrc-enforce crash kdump
+
+lint: clean-build
+	sh tests/run-pylint.sh $(PYLINT_ARGS) crash kdump
+
+static-check: clean-build
+	sh tests/run-static-checks.sh
+
+live-tests: clean-build
+	sh tests/run-kernel-tests.sh $(INI_FILES)
+
+test: unit-tests lint-enforce live-tests
+	@echo -n
 
 doc: build FORCE
 	rm -rf docs

@@ -1,0 +1,5 @@
+set build-id-verbose 0
+set python print-stack full
+set height 0
+set print pretty on
+python sys.path.insert(0, 'build/lib')

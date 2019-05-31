@@ -9,4 +9,8 @@ sys.path.insert(0, os.path.abspath("build/lib"))
 
 test_loader = unittest.TestLoader()
 test_suite = test_loader.discover('tests', pattern='test_*.py')
-unittest.TextTestRunner(verbosity=1).run(test_suite)
+ret = unittest.TextTestRunner(verbosity=1).run(test_suite)
+if not ret.wasSuccessful():
+    sys.exit(1)
+
+sys.exit(0)
