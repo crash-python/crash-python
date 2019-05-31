@@ -3,6 +3,7 @@
 
 import argparse
 import addrxlat
+import addrxlat.exceptions
 
 from crash.commands import Command, ArgumentParser
 from crash.addrxlat import CrashAddressTranslation
@@ -38,7 +39,7 @@ class LinuxPGT(object):
         self.note = ''
         try:
             self.step.step()
-        except addrxlat.NotPresentError:
+        except addrxlat.exceptions.NotPresentError:
             self.note = ' (NOT PRESENT)'
             self.step.remain = 0
         return True
@@ -56,7 +57,8 @@ class LinuxNonAutoPGT(LinuxPGT):
         try:
             tmp.conv(addrxlat.KPHYSADDR, self.context, self.system)
             return addr + '{:x} [phys]'.format(tmp.addr)
-        except (addrxlat.NotPresentError, addrxlat.NoDataError):
+        except (addrxlat.exceptions.NotPresentError,
+                addrxlat.exceptions.NoDataError):
             return addr + 'N/A'
 
 class _Parser(ArgumentParser):

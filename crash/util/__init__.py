@@ -191,7 +191,7 @@ def __offsetof(val, spec, error):
         found = False
         if gdbtype.code != gdb.TYPE_CODE_STRUCT and \
            gdbtype.code != gdb.TYPE_CODE_UNION:
-            raise _InvalidComponentTypeError(field.name, spec)
+            raise _InvalidComponentTypeError(member, spec)
         for field in gdbtype.fields():
             off = field.bitpos >> 3
             if field.name == member:
@@ -364,8 +364,7 @@ def get_typed_pointer(val: AddressSpecifier, gdbtype: gdb.Type) -> gdb.Type:
         try:
             val = int(val, 16)
         except TypeError as e:
-            print(e)
-            raise TypeError("string must describe hex address: ".format(e))
+            raise TypeError("string must describe hex address: {}".format(e))
     if isinstance(val, int):
         val = gdb.Value(val).cast(gdbtype)
     else:
