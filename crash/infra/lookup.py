@@ -248,12 +248,20 @@ class DelayedValue(object):
     A generic class for making class attributes available that describe
     to-be-loaded symbols, minimal symbols, and types.
     """
-    def __init__(self, name, attrname=None):
+    def __init__(self, name: str, attrname: str = None):
+        if name is None or not isinstance(name, str):
+            raise ValueError("Name must be a valid string")
+
         self.name = name
-        self.attrname = attrname
-        if self.attrname is None:
+
+        if attrname is None:
             self.attrname = name
-        self.value = None
+        else:
+            self.attrname = attrname
+
+        assert self.attrname is not None
+
+        self.value: Any = None
 
     def get(self):
         if self.value is None:
