@@ -19,7 +19,7 @@ def get_value(symname):
         return sym[0].value()
 
 types = Types(['struct task_struct', 'struct mm_struct', 'atomic_long_t'])
-symvals = Symvals(['task_state_array', 'init_task'])
+symvals = Symvals(['task_state_array', 'init_task', 'init_mm'])
 
 # This is pretty painful.  These are all #defines so none of them end
 # up with symbols in the kernel.  The best approximation we have is
@@ -253,7 +253,6 @@ class LinuxTask(object):
             cls._task_state_has_exit_state = 'exit_state' in fields
             cls._pick_get_rss()
             cls._pick_last_run()
-            cls.init_mm = get_value('init_mm')
             cls._valid = True
 
     def set_active(self, cpu: int, regs: Dict[str, int]) -> None:
@@ -471,7 +470,7 @@ class LinuxTask(object):
         mm = self.task_struct['mm']
         if mm == 0:
             return True
-        elif self.init_mm and mm == self.init_mm.address:
+        elif symvals.init_mm and mm == symvals.init_mm.address:
             return True
 
         return False
