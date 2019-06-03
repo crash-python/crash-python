@@ -144,11 +144,15 @@ class Page(object):
                 cls.PG_tail = 1 << cls.pageflags['PG_compound'] | 1 << cls.pageflags['PG_reclaim']
                 cls.is_tail = cls.__is_tail_flagcombo
 
-    @staticmethod
-    def from_page_addr(addr):
+    @classmethod
+    def from_obj(cls, page):
+        pfn = (int(page.address) - Page.vmemmap_base) / types.page_type.sizeof
+        return Page(page, pfn)
+
+    @classmethod
+    def from_page_addr(cls, addr):
         page_ptr = gdb.Value(addr).cast(types.page_type.pointer())
-        pfn = (addr - Page.vmemmap_base) / types.page_type.sizeof
-        return Page(page_ptr.dereference(), pfn)
+        return cls.from_obj(page_ptr.dereference())
 
     def __is_tail_flagcombo(self):
         return bool((self.flags & self.PG_tail) == self.PG_tail)
