@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from crash.arch import CrashArchitecture, register, KernelFrameFilter
+from crash.arch import CrashArchitecture, KernelFrameFilter, register_arch
 
 import gdb
 
@@ -120,4 +120,4 @@ class x86_64Architecture(CrashArchitecture):
     def get_stack_pointer(cls, thread_struct: gdb.Value) -> gdb.Value:
         return thread_struct['sp']
 
-register(x86_64Architecture)
+register_arch(x86_64Architecture)

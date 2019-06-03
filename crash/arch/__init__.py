@@ -55,7 +55,7 @@ class KernelAddressIterator(object):
         return frame
 
 architectures = {}
-def register(arch):
+def register_arch(arch):
     architectures[arch.ident] = arch
     for ident in arch.aliases:
         architectures[ident] = arch
