@@ -13,11 +13,6 @@ import gdb
 
 PF_EXITING = 0x4
 
-def get_value(symname):
-    sym = gdb.lookup_symbol(symname, block=None, domain=gdb.SYMBOL_VAR_DOMAIN)
-    if sym[0]:
-        return sym[0].value()
-
 types = Types(['struct task_struct', 'struct mm_struct', 'atomic_long_t'])
 symvals = Symvals(['task_state_array', 'init_task', 'init_mm'])
 
@@ -541,8 +536,6 @@ class LinuxTask(object):
         elif struct_has_member(types.mm_struct_type, '_rss'):
             cls._get_rss = cls._get__rss_field
         elif struct_has_member(types.mm_struct_type, 'rss_stat'):
-            cls.MM_FILEPAGES = get_value('MM_FILEPAGES')
-            cls.MM_ANONPAGES = get_value('MM_ANONPAGES')
             cls._get_rss = cls._get_rss_stat_field
         else:
             if struct_has_member(types.mm_struct_type, '_file_rss'):
