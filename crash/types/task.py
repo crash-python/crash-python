@@ -526,7 +526,7 @@ class LinuxTask(object):
         mm = self.task_struct['mm']
         rss = 0
         for name in self.anon_file_rss_fields:
-            if mm[name].type == self.atomic_long_type:
+            if mm[name].type == types.atomic_long_t_type:
                 rss += int(mm[name]['counter'])
             else:
                 rss += int(mm[name])
@@ -552,7 +552,6 @@ class LinuxTask(object):
             if struct_has_member(types.mm_struct_type, '_anon_rss'):
                 cls.anon_file_rss_fields.append('_anon_rss')
 
-            cls.atomic_long_type = gdb.lookup_type('atomic_long_t')
             cls._get_rss = cls._get_anon_file_rss_fields
 
             if not cls.anon_file_rss_fields:
