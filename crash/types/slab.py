@@ -308,11 +308,11 @@ class KmemCache(object):
 
     @classmethod
     def check_kmem_cache_type(cls, gdbtype):
-        cls.buffer_size_name = find_member_variant(gdbtype, ('buffer_size', 'size'))
-        cls.nodelists_name = find_member_variant(gdbtype, ('nodelists', 'node'))
-        cls.percpu_name = find_member_variant(gdbtype, ('cpu_cache', 'array'))
+        cls.buffer_size_name = find_member_variant(gdbtype, ['buffer_size', 'size'])
+        cls.nodelists_name = find_member_variant(gdbtype, ['nodelists', 'node'])
+        cls.percpu_name = find_member_variant(gdbtype, ['cpu_cache', 'array'])
         cls.percpu_cache = bool(cls.percpu_name == 'cpu_cache')
-        cls.head_name = find_member_variant(gdbtype, ('next', 'list'))
+        cls.head_name = find_member_variant(gdbtype, ['next', 'list'])
 
     @classmethod
     def setup_alien_cache_type(cls, gdbtype):

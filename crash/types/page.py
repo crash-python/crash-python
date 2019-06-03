@@ -62,9 +62,9 @@ class Page(object):
 
         cls.PAGE_SIZE = 1 << cls.PAGE_SHIFT
 
-        cls.slab_cache_name = find_member_variant(gdbtype, ('slab_cache', 'lru'))
-        cls.slab_page_name = find_member_variant(gdbtype, ('slab_page', 'lru'))
-        cls.compound_head_name = find_member_variant(gdbtype, ('compound_head', 'first_page'))
+        cls.slab_cache_name = find_member_variant(gdbtype, ['slab_cache', 'lru'])
+        cls.slab_page_name = find_member_variant(gdbtype, ['slab_page', 'lru'])
+        cls.compound_head_name = find_member_variant(gdbtype, ['compound_head', 'first_page'])
         cls.vmemmap = gdb.Value(cls.vmemmap_base).cast(gdbtype.pointer())
 
         cls.setup_page_type_done = True
