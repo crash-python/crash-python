@@ -9,6 +9,7 @@ import argparse
 from crash.commands import Command, ArgumentParser
 from crash.types.module import for_each_module
 from crash.util import struct_has_member
+from crash.util.symbols import Types
 from crash.types.list import list_for_each_entry
 from crash.types.percpu import get_percpu_var
 import crash.types.percpu
@@ -36,6 +37,8 @@ class _Parser(ArgumentParser):
     def format_usage(self) -> str:
         return "lsmod [-p] [regex] ...\n"
 
+types = Types(['struct module_use'])
+
 class ModuleCommand(Command):
     """display module information"""
 
@@ -46,8 +49,6 @@ class ModuleCommand(Command):
         parser.add_argument('args', nargs=argparse.REMAINDER)
 
         Command.__init__(self, "lsmod", parser)
-
-        self.module_use_type = gdb.lookup_type('struct module_use')
 
     def print_module_percpu(self, mod, cpu=-1):
         cpu = int(cpu)
@@ -113,7 +114,7 @@ class ModuleCommand(Command):
             module_use = ""
             count = 0
             for use in list_for_each_entry(mod['source_list'],
-                                           self.module_use_type,
+                                           types.module_use_type,
                                            'source_list'):
                 if module_use == "":
                     module_use += " "
