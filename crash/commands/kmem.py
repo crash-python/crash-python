@@ -4,7 +4,7 @@
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandError, CommandLineError
 from crash.types.slab import kmem_cache_get_all, kmem_cache_from_name
-from crash.types.slab import slab_from_obj_addr
+from crash.types.slab import slab_from_obj_addr, KmemCacheNotFound
 from crash.types.node import for_each_zone, for_each_populated_zone
 from crash.types.vmstat import VmStat
 from crash.util import get_symbol_value
@@ -56,8 +56,9 @@ class KmemCommand(Command):
             else:
                 cache_name = args.slabname
                 print(f"Checking kmem cache {cache_name}")
-                cache = kmem_cache_from_name(cache_name)
-                if cache is None:
+                try:
+                    cache = kmem_cache_from_name(cache_name)
+                except KmemCacheNotFound:
                     raise CommandError(f"Cache {cache_name} not found.")
                 cache.check_all()
 

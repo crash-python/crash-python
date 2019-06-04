@@ -612,6 +612,10 @@ class KmemCache(object):
                                 (nid, free_declared, free_counted)))
         self.check_array_caches()
 
+class KmemCacheNotFound(RuntimeError):
+    """The specified kmem_cache could not be found."""
+    pass
+
 kmem_caches = None
 kmem_caches_by_addr = None
 
@@ -637,13 +641,13 @@ def kmem_cache_from_addr(addr):
     try:
         return kmem_caches_by_addr[addr]
     except KeyError:
-        return None
+        raise KmemCacheNotFound(f"No kmem cache found for {addr}.")
 
 def kmem_cache_from_name(name):
     try:
         return kmem_caches[name]
     except KeyError:
-        return None
+        raise KmemCacheNotFound(f"No kmem cache found for {name}.")
 
 def kmem_cache_get_all():
     return kmem_caches.values()
