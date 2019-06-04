@@ -10,7 +10,7 @@ import glob
 import importlib
 import argparse
 
-from crash.exceptions import DelayedAttributeError
+from crash.exceptions import DelayedAttributeError, ArgumentTypeError
 
 class CommandError(RuntimeError):
     pass
