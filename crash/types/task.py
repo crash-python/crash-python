@@ -239,7 +239,7 @@ class LinuxTask(object):
         if not cls._valid:
             t = types.task_struct_type
             if task.type != t:
-                raise BadTaskError(task)
+                raise UnexpectedGDBTypeError('task', task, t)
 
             # Using a type within the same context makes things a *lot* faster
             # This works around a shortcoming in gdb.  A type lookup and
