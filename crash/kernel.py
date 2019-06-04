@@ -132,7 +132,7 @@ class CrashKernel(object):
 
         if roots is None:
             self.roots = ["/"]
-        elif (isinstance(roots, list) and len(roots) > 0 and
+        elif (isinstance(roots, list) and roots and
               isinstance(roots[0], str)):
             x = None
             for root in roots:
@@ -185,8 +185,7 @@ class CrashKernel(object):
             self.vmlinux_debuginfo = x
 
         elif (isinstance(vmlinux_debuginfo, list) and
-              len(vmlinux_debuginfo) > 0 and
-              isinstance(vmlinux_debuginfo[0], str)):
+              vmlinux_debuginfo and isinstance(vmlinux_debuginfo[0], str)):
             self.vmlinux_debuginfo = vmlinux_debuginfo
         elif isinstance(vmlinux_debuginfo, str):
             self.vmlinux_debuginfo = [vmlinux_debuginfo]

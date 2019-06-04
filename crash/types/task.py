@@ -159,7 +159,7 @@ class TaskStateFlags(object):
             if not cls.has_flag(bit):
                 missing.append(bit)
 
-        if len(missing):
+        if missing:
             raise RuntimeError("Missing required task states: {}"
                                .format(",".join(missing)))
 

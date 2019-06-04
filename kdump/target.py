@@ -42,7 +42,8 @@ class Target(gdb.Target):
 
     def open(self, filename, from_tty):
 
-        if len(gdb.objfiles()) == 0:
+        objfiles = gdb.objfiles()
+        if not objfiles:
             raise gdb.GdbError("kdumpfile target requires kernel to be already loaded for symbol resolution")
         try:
             self.kdump = kdumpfile(file=filename)

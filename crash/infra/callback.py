@@ -52,7 +52,8 @@ class ObjfileEventCallback(object):
         # We don't want to do lookups immediately if we don't have
         # an objfile.  It'll fail for any custom types but it can
         # also return builtin types that are eventually changed.
-        if len(gdb.objfiles()) > 0:
+        objfiles = gdb.objfiles()
+        if objfiles:
             result = self.check_ready()
             if not (result is None or result is False):
                 self.completed = self.callback(result)
