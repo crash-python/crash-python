@@ -463,7 +463,6 @@ class KmemCache(object):
                 print("failed to initialize slab object from list_head {:#x}: {}".format(
                             int(list_head), sys.exc_info()[0]))
                 continue
-                slab = Slab(gdb_slab, kmem_cache, error = True)
             yield slab
 
 
