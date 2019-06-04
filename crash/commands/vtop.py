@@ -4,7 +4,7 @@
 import gdb
 import argparse
 from crash.commands import Command, ArgumentParser
-from crash.addrxlat import addrxlat_context, addrxlat_system, addrxlat_is_non_auto
+from crash.addrxlat import CrashAddressTranslation
 import addrxlat
 
 class LinuxPGT(object):
@@ -190,19 +190,18 @@ class VTOPCommand(Command):
         super().__init__("vtop", parser)
 
     def execute(self, argv):
-        ctx = addrxlat_context()
-        sys = addrxlat_system()
-        if addrxlat_is_non_auto():
-            pgt = LinuxNonAutoPGT(ctx, sys)
+        trans = CrashAddressTranslation()
+        if trans.is_non_auto:
+            pgt = LinuxNonAutoPGT(trans.context, trans.system)
         else:
-            pgt = LinuxPGT(ctx, sys)
+            pgt = LinuxPGT(trans.context, trans.system)
 
         for addr in argv.args:
             addr = int(addr, 16)
             fulladdr = addrxlat.FullAddress(addrxlat.KVADDR, addr)
             print('{:16}  {:16}'.format('VIRTUAL', 'PHYSICAL'))
             try:
-                fulladdr.conv(addrxlat.KPHYSADDR, ctx, sys)
+                fulladdr.conv(addrxlat.KPHYSADDR, trans.context, trans.system)
                 phys = '{:x}'.format(fulladdr.addr)
             except addrxlat.BaseException:
                 phys = '---'
