@@ -26,7 +26,7 @@ class _Parser(ArgumentParser):
 class TaskCommand(Command):
     """select task by pid"""
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
 
         parser = ArgumentParser(prog=name)
 
@@ -34,7 +34,7 @@ class TaskCommand(Command):
 
         Command.__init__(self, name, parser)
 
-    def execute(self, args):
+    def execute(self, args: argparse.Namespace) -> None:
         try:
             if args.pid:
                 thread = crash.cache.tasks.get_task(args.pid[0]).thread

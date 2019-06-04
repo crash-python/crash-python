@@ -9,7 +9,7 @@ class Powerpc64Architecture(CrashArchitecture):
     ident = "powerpc:common64"
     aliases = ["ppc64", "elf64-powerpc"]
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(Powerpc64Architecture, self).__init__()
         self.ulong_type = gdb.lookup_type('unsigned long')
         thread_info_type = gdb.lookup_type('struct thread_info')

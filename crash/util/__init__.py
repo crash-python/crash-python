@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Union, Tuple, List, Iterator, Dict
+from typing import Union, Tuple, List, Iterator, Dict, Optional
 
 import uuid
 
@@ -17,7 +17,7 @@ AddressSpecifier = Union[gdb.Value, str, int]
 class InvalidComponentError(LookupError):
     """An error occured while resolving the member specification"""
     formatter = "cannot resolve '{}->{}' ({})"
-    def __init__(self, gdbtype, spec, message):
+    def __init__(self, gdbtype: gdb.Type, spec: str, message: str) -> None:
         msg = self.formatter.format(str(gdbtype), spec, message)
         super().__init__(msg)
         self.type = gdbtype
@@ -32,7 +32,7 @@ class _InvalidComponentBaseError(RuntimeError):
 class _InvalidComponentTypeError(_InvalidComponentBaseError):
     """The component expects the type to be a struct or union but it is not."""
     formatter = "component `{}' in `{}' is not a struct or union"
-    def __init__(self, name, spec):
+    def __init__(self, name: str, spec: str) -> None:
         msg = self.formatter.format(name, spec)
         super().__init__(msg)
         self.name = name
@@ -42,7 +42,7 @@ class _InvalidComponentNameError(_InvalidComponentBaseError):
     """The requested member component does not exist in the provided type."""
 
     formatter = "no such member `{}' in `{}'"
-    def __init__(self, member, gdbtype):
+    def __init__(self, member: str, gdbtype: gdb.Type) -> None:
         msg = self.formatter.format(member, str(gdbtype))
         super().__init__(msg)
         self.member = member
@@ -50,7 +50,7 @@ class _InvalidComponentNameError(_InvalidComponentBaseError):
 
 types = Types(['char *', 'uuid_t'])
 
-def container_of(val: gdb.Value, gdbtype: gdb.Type, member) -> gdb.Value:
+def container_of(val: gdb.Value, gdbtype: gdb.Type, member: str) -> gdb.Value:
     """
     Returns an object that contains the specified object at the given
     offset.
@@ -183,7 +183,8 @@ def resolve_type(val: TypeSpecifier) -> gdb.Type:
         raise TypeError("Invalid type {}".format(str(type(val))))
     return gdbtype
 
-def __offsetof(val, spec, error):
+def __offsetof(val: gdb.Type, spec: str,
+               error: bool) -> Optional[Tuple[int, gdb.Type]]:
     gdbtype = val
     offset = 0
 

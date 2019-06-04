@@ -1,6 +1,10 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import List
+
+import argparse
+
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandError, CommandLineError
 from crash.types.slab import kmem_cache_get_all, kmem_cache_from_name
@@ -28,7 +32,7 @@ class _Parser(ArgumentParser):
 class KmemCommand(Command):
     """ kernel memory inspection"""
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         parser = ArgumentParser(prog=name)
 
         group = parser.add_mutually_exclusive_group()
@@ -40,7 +44,7 @@ class KmemCommand(Command):
 
         super().__init__(name, parser)
 
-    def execute(self, args):
+    def execute(self, args: argparse.Namespace) -> None:
         if args.z:
             self.print_zones()
             return
@@ -88,7 +92,7 @@ class KmemCommand(Command):
                       % name)
             elif not obj[2]:
                 print("FREE object %x from slab %s" % (obj[1], name))
-            else:
+            elif obj[2] is not None:
                 ac = obj[2]
                 if ac["ac_type"] == "percpu":
                     ac_desc = "cpu %d cache" % ac["nid_tgt"]
@@ -101,8 +105,10 @@ class KmemCommand(Command):
 
                 print("FREE object %x from slab %s (in %s)" %
                       (obj[1], name, ac_desc))
+            else:
+                raise RuntimeError("odd return value from contains_obj")
 
-    def __print_vmstat(self, vmstat, diffs):
+    def __print_vmstat(self, vmstat: List[int], diffs: List[int]) -> None:
         vmstat_names = VmStat.get_stat_names();
         just = max(map(len, vmstat_names))
         nr_items = VmStat.nr_stat_items
@@ -113,7 +119,7 @@ class KmemCommand(Command):
             print("%s: %d (%d)" % (vmstat_names[i].rjust(just),
                                    vmstat[i], diffs[i]))
 
-    def print_vmstats(self):
+    def print_vmstats(self) -> None:
         try:
             vm_stat = get_symbol_value("vm_stat")
         except MissingSymbolError:
@@ -146,7 +152,7 @@ class KmemCommand(Command):
         for name, val in zip(names, vm_events):
             print("%s: %d" % (name.rjust(just), val))
 
-    def print_zones(self):
+    def print_zones(self) -> None:
         for zone in for_each_zone():
             zone_struct = zone.gdb_obj
 

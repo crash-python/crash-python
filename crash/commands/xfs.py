@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from argparse import Namespace
+import argparse
 
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandLineError, CommandError
@@ -45,7 +45,7 @@ class _Parser(ArgumentParser):
 class XFSCommand(Command):
     """display XFS internal data structures"""
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         parser = ArgumentParser(prog=name)
         subparsers = parser.add_subparsers(help="sub-command help")
         show_parser = subparsers.add_parser('show', help='show help')
@@ -62,7 +62,7 @@ class XFSCommand(Command):
 
         Command.__init__(self, name, parser)
 
-    def list_xfs(self, args: Namespace) -> None:
+    def list_xfs(self, args: argparse.Namespace) -> None:
         count = 0
         print_header = True
         for sb in for_each_super_block():
@@ -79,7 +79,7 @@ class XFSCommand(Command):
         if count == 0:
             print("No xfs file systems are mounted.")
 
-    def show_xfs(self, args: Namespace) -> None:
+    def show_xfs(self, args: argparse.Namespace) -> None:
         try:
             sb = get_super_block(args.addr)
         except gdb.NotAvailableError as e:
@@ -97,7 +97,7 @@ class XFSCommand(Command):
         else:
             print("AIL has items queued")
 
-    def dump_ail(self, args: Namespace) -> None:
+    def dump_ail(self, args: argparse.Namespace) -> None:
         try:
             sb = get_super_block(args.addr)
         except gdb.NotAvailableError as e:
@@ -165,7 +165,7 @@ class XFSCommand(Command):
             print("{:x} {}".format(int(buf.address), xfs_format_xfsbuf(buf)))
 
     @classmethod
-    def dump_buftargs(cls, args: Namespace):
+    def dump_buftargs(cls, args: argparse.Namespace) -> None:
         try:
             sb = get_super_block(args.addr)
         except gdb.NotAvailableError as e:
@@ -181,7 +181,7 @@ class XFSCommand(Command):
             print("Log device queue:")
             cls.dump_buftarg(ldev)
 
-    def execute(self, args):
+    def execute(self, args: argparse.Namespace) -> None:
         if hasattr(args, 'subcommand'):
             args.subcommand(args)
         else:

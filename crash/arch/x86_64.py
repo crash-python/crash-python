@@ -9,19 +9,19 @@ class x86_64Architecture(CrashArchitecture):
     ident = "i386:x86-64"
     aliases = ["x86_64"]
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(x86_64Architecture, self).__init__()
         # PC for blocked threads
         try:
             inactive = gdb.lookup_type('struct inactive_task_frame')
-            self.fetch_register_scheduled = \
+            self._fetch_register_scheduled = \
                 self.fetch_register_scheduled_inactive
             self.inactive_task_frame_type = inactive
         except gdb.error as e:
             try:
                 thread_return = gdb.lookup_minimal_symbol("thread_return")
                 self.thread_return = thread_return.value().address
-                self.fetch_register_scheduled = \
+                self._fetch_register_scheduled = \
                     self.fetch_register_scheduled_thread_return
             except Exception:
                 raise RuntimeError("{} requires symbol 'thread_return'"
@@ -48,6 +48,10 @@ class x86_64Architecture(CrashArchitecture):
                 thread.registers[reg].value = task.regs[reg]
             except KeyError as e:
                 pass
+
+    def fetch_register_scheduled(self, thread: gdb.InferiorThread,
+                                 register: gdb.Register) -> None:
+        return self._fetch_register_scheduled(thread, register)
 
     def fetch_register_scheduled_inactive(self, thread: gdb.InferiorThread,
                                           register: gdb.Register) -> None:
@@ -78,7 +82,7 @@ class x86_64Architecture(CrashArchitecture):
         thread.info.valid_stack = True
 
     def fetch_register_scheduled_thread_return(self, thread: gdb.InferiorThread,
-                                               register: gdb.Register):
+                                               register: gdb.Register) -> None:
         ulong_type = self.ulong_type
         task = thread.info.task_struct
 
@@ -86,7 +90,7 @@ class x86_64Architecture(CrashArchitecture):
         if register == 16 or register == -1:
             thread.registers['rip'].value = self.thread_return
             if register == 16:
-                return True
+                return
 
         rsp = task['thread']['sp'].cast(ulong_type.pointer())
         rbp = rsp.dereference().cast(ulong_type.pointer())

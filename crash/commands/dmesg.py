@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Dict, Iterable, Any
+
 import re
+import argparse
 
 from crash.commands import Command, ArgumentParser, CommandError
 from crash.exceptions import DelayedAttributeError
 from crash.util.symbols import Types, Symvals
+
+import gdb
 
 types = Types(['struct printk_log *', 'char *'])
 symvals = Symvals(['log_buf', 'log_buf_len', 'log_first_idx', 'log_next_idx',
@@ -145,7 +150,7 @@ class _Parser(ArgumentParser):
 class LogCommand(Command):
     """dump system message buffer"""
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         parser = _Parser(prog=name)
 
         parser.add_argument('-t', action='store_true', default=False)
@@ -155,7 +160,7 @@ class LogCommand(Command):
         Command.__init__(self, name, parser)
 
     @classmethod
-    def filter_unstructured_log(cls, log, args):
+    def filter_unstructured_log(cls, log: str, args: argparse.Namespace) -> str:
         lines = log.split('\n')
         if not args.m:
             newlog = []
@@ -169,7 +174,8 @@ class LogCommand(Command):
 
         return '\n'.join(lines)
 
-    def log_from_idx(self, logbuf, idx, dict_needed=False):
+    def log_from_idx(self, logbuf: gdb.Value, idx: int,
+                     dict_needed: bool = False) -> Dict:
         msg = (logbuf + idx).cast(types.printk_log_p_type)
 
         try:
@@ -206,15 +212,17 @@ class LogCommand(Command):
                 msgdict['dict'].append(s)
         return msgdict
 
-    def get_log_msgs(self, dict_needed=False):
+    def get_log_msgs(self,
+                     dict_needed: bool = False) -> Iterable[Dict[str, Any]]:
         try:
             idx = symvals.log_first_idx
         except DelayedAttributeError as e:
             raise LogTypeException('not structured log')
 
         if symvals.clear_seq < symvals.log_first_seq:
-            symvals.clear_seq = symvals.log_first_seq
-
+            # mypy seems to think the preceding clear_seq is fine but this
+            # one isn't.  Derp.
+            symvals.clear_seq = symvals.log_first_seq # type: ignore
 
         seq = symvals.clear_seq
         idx = symvals.log_first_idx
@@ -225,7 +233,7 @@ class LogCommand(Command):
             idx = msg['next']
             yield msg
 
-    def handle_structured_log(self, args):
+    def handle_structured_log(self, args: argparse.Namespace) -> None:
         for msg in self.get_log_msgs(args.d):
             timestamp = ''
             if not args.t:
@@ -243,14 +251,14 @@ class LogCommand(Command):
             for d in msg['dict']:
                 print(d)
 
-    def handle_logbuf(self, args):
+    def handle_logbuf(self, args: argparse.Namespace) -> None:
         if symvals.log_buf_len and symvals.log_buf:
             if args.d:
                 raise LogInvalidOption("Unstructured logs don't offer key/value pair support")
 
             print(self.filter_unstructured_log(symvals.log_buf.string('utf-8', 'replace'), args))
 
-    def execute(self, args):
+    def execute(self, args: argparse.Namespace) -> None:
         try:
             self.handle_structured_log(args)
             return

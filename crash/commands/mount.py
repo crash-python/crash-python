@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from argparse import Namespace
+from typing import Any
+
+import argparse
 
 from crash.commands import Command, ArgumentParser
 from crash.types.task import LinuxTask
@@ -25,7 +27,7 @@ class _Parser(ArgumentParser):
 class MountCommand(Command):
     """display mounted file systems"""
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         parser = _Parser(prog=name)
 
         parser.add_argument('-v', action='store_true', default=False)
@@ -34,7 +36,7 @@ class MountCommand(Command):
 
         super().__init__(name, parser)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if name == 'charp':
             self.charp = gdb.lookup_type('char').pointer()
         else:
@@ -42,14 +44,14 @@ class MountCommand(Command):
 
         return getattr(self, name)
 
-    def execute(self, args):
+    def execute(self, args: argparse.Namespace) -> None:
         if args.v:
             print("{:^16} {:^16} {:^10} {:^16} {}"
                   .format("MOUNT", "SUPERBLK", "TYPE", "DEVNAME", "PATH"))
         for mnt in for_each_mount():
             self.show_one_mount(mnt, args)
 
-    def show_one_mount(self, mnt: gdb.Value, args: Namespace,
+    def show_one_mount(self, mnt: gdb.Value, args: argparse.Namespace,
                        task: LinuxTask = None) -> None:
         if mnt.type.code == gdb.TYPE_CODE_PTR:
             mnt = mnt.dereference()

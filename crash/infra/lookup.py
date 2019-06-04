@@ -28,7 +28,8 @@ class NamedCallback(ObjfileEventCallback):
         attrname (:obj:`str`): The name of symbol or type being resolved
             translated for use as an attribute name.
     """
-    def __init__(self, name: str, callback: Callback, attrname: str = None):
+    def __init__(self, name: str, callback: Callback,
+                 attrname: str = None) -> None:
         super().__init__()
 
         self.name = name
@@ -68,7 +69,8 @@ class MinimalSymbolCallback(NamedCallback):
         callback: The callback to execute when the minimal symbol is discovered
         symbol_file (optional): Name of the symbol file to use
     """
-    def __init__(self, name: str, callback: Callback, symbol_file: str = None):
+    def __init__(self, name: str, callback: Callback,
+                 symbol_file: str = None) -> None:
         super().__init__(name, callback)
 
         self.symbol_file = symbol_file
@@ -85,7 +87,7 @@ class MinimalSymbolCallback(NamedCallback):
         """
         return gdb.lookup_minimal_symbol(self.name, self.symbol_file, None)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return ("<{}({}, {}, {})>"
                 .format(self.__class__.__name__, self.name,
                         self.symbol_file, self.callback))
@@ -106,7 +108,7 @@ class SymbolCallback(NamedCallback):
           constant, i.e. SYMBOL_*_DOMAIN.
     """
     def __init__(self, name: str, callback: Callback,
-                 domain: int = gdb.SYMBOL_VAR_DOMAIN):
+                 domain: int = gdb.SYMBOL_VAR_DOMAIN) -> None:
         super().__init__(name, callback)
 
         self.domain = domain
@@ -123,7 +125,7 @@ class SymbolCallback(NamedCallback):
         """
         return gdb.lookup_symbol(self.name, None, self.domain)[0]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return ("<{}({}, {})>"
                 .format(self.__class__.__name__, self.name, self.domain))
 
@@ -168,7 +170,8 @@ class TypeCallback(NamedCallback):
         block (optional): The :obj:`gdb.Block` to search for the symbol
 
     """
-    def __init__(self, name: str, callback: Callback, block: gdb.Block = None):
+    def __init__(self, name: str, callback: Callback,
+                 block: gdb.Block = None) -> None:
         (name, attrname, self.pointer) = self.resolve_type(name)
 
         super().__init__(name, callback, attrname)
@@ -233,13 +236,13 @@ class TypeCallback(NamedCallback):
 
         return (name, attrname, pointer)
 
-    def check_ready(self):
+    def check_ready(self) -> Union[None, gdb.Type]:
         try:
             return gdb.lookup_type(self.name, self.block)
         except gdb.error as e:
             return None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return ("<{}({}, {})>"
                 .format(self.__class__.__name__, self.name, self.block))
 
@@ -248,7 +251,7 @@ class DelayedValue(object):
     A generic class for making class attributes available that describe
     to-be-loaded symbols, minimal symbols, and types.
     """
-    def __init__(self, name: str, attrname: str = None):
+    def __init__(self, name: str, attrname: str = None) -> None:
         if name is None or not isinstance(name, str):
             raise ValueError("Name must be a valid string")
 
@@ -263,12 +266,12 @@ class DelayedValue(object):
 
         self.value: Any = None
 
-    def get(self):
+    def get(self) -> Any:
         if self.value is None:
             raise DelayedAttributeError(self.name)
         return self.value
 
-    def callback(self, value):
+    def callback(self, value: Any) -> None:
         if self.value is not None:
             return
         self.value = value
@@ -280,11 +283,11 @@ class DelayedMinimalSymbol(DelayedValue):
     Args:
         name: The name of the minimal symbol
     """
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__(name)
         self.cb = MinimalSymbolCallback(name, self.callback)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{} attached with {}".format(self.__class__, str(self.cb))
 
 class DelayedSymbol(DelayedValue):
@@ -294,11 +297,11 @@ class DelayedSymbol(DelayedValue):
     Args:
         name: The name of the symbol
     """
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         super().__init__(name)
         self.cb = SymbolCallback(name, self.callback)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{} attached with {}".format(self.__class__, str(self.cb))
 
 class DelayedType(DelayedValue):
@@ -308,15 +311,15 @@ class DelayedType(DelayedValue):
     Args:
         name: The name of the type.
     """
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         (name, attrname, self.pointer) = TypeCallback.resolve_type(name)
         super().__init__(name, attrname)
         self.cb = TypeCallback(name, self.callback)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{} attached with {}".format(self.__class__, str(self.callback))
 
-    def callback(self, value):
+    def callback(self, value: gdb.Type) -> None:
         if self.pointer:
             value = value.pointer()
         self.value = value
@@ -335,7 +338,7 @@ class DelayedSymval(DelayedSymbol):
             symval = symval.address
         self.value = symval
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{} attached with {}".format(self.__class__, str(self.cb))
 
 class DelayedMinimalSymval(DelayedMinimalSymbol):
@@ -349,5 +352,5 @@ class DelayedMinimalSymval(DelayedMinimalSymbol):
     def callback(self, value: gdb.MinSymbol) -> None:
         self.value = int(value.value().address)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{} attached with {}".format(self.__class__, str(self.cb))

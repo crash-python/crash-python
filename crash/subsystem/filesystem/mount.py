@@ -12,7 +12,7 @@ kernels do not have ``struct mount``.  In functions documented as using a
 will be required and/or returned instead.
 """
 
-from typing import Iterator
+from typing import Iterator, Callable, Any
 
 from crash.subsystem.filesystem import super_fstype
 from crash.types.list import list_for_each_entry
@@ -54,13 +54,10 @@ MNT_FLAGS_HIDDEN.update(MNT_FLAGS)
 types = Types(['struct mount', 'struct vfsmount'])
 symvals = Symvals(['init_task'])
 
-class _Mount(object):
-    @classmethod
-    def _for_each_mount_impl(cls, task):
-        raise NotImplementedError("_Mount.for_each_mount is unhandled on this kernel version.")
+class Mount(object):
+    _for_each_mount: Callable[[Any, gdb.Value], Iterator[gdb.Value]]
 
-    @classmethod
-    def for_each_mount_nsproxy(cls, task):
+    def _for_each_mount_nsproxy(self, task: gdb.Value) -> Iterator[gdb.Value]:
         """
         An implementation of for_each_mount that uses the task's
         nsproxy to locate the mount namespace.  See :ref:`for_each_mount`
@@ -70,20 +67,24 @@ class _Mount(object):
                                    types.mount_type, 'mnt_list')
 
     @classmethod
-    def _check_task_interface(cls, symval):
+    def _check_task_interface(cls, symval: gdb.Value) -> None:
         try:
             nsproxy = symvals.init_task['nsproxy']
-            cls._for_each_mount_impl = cls.for_each_mount_nsproxy
+            cls._for_each_mount = cls._for_each_mount_nsproxy
         except KeyError:
-            print("check_task_interface called but no init_task?")
-            pass
+            raise NotImplementedError("Mount.for_each_mount is unhandled on this kernel version")
 
-def _check_mount_type(gdbtype):
+    def for_each_mount(self, task: gdb.Value) -> Iterator[gdb.Value]:
+        return self._for_each_mount(task)
+
+_Mount = Mount()
+
+def _check_mount_type(gdbtype: gdb.Type) -> None:
     try:
-        types.mount_type = gdb.lookup_type('struct mount')
+        types.mount_type = gdb.lookup_type('struct mount') # type: ignore
     except gdb.error:
         # Older kernels didn't separate mount from vfsmount
-        types.mount_type = types.vfsmount_type
+        types.mount_type = types.vfsmount_type # type: ignore
 
 def for_each_mount(task: gdb.Value = None) -> Iterator[gdb.Value]:
     """
@@ -110,7 +111,7 @@ def for_each_mount(task: gdb.Value = None) -> Iterator[gdb.Value]:
     """
     if task is None:
         task = symvals.init_task
-    return _Mount._for_each_mount_impl(task)
+    return _Mount.for_each_mount(task)
 
 def mount_flags(mnt: gdb.Value, show_hidden: bool = False) -> str:
     """
@@ -201,18 +202,18 @@ def mount_device(mnt: gdb.Value) -> str:
         devname = "none"
     return devname
 
-def _real_mount(vfsmnt):
+def _real_mount(vfsmnt: gdb.Value) -> gdb.Value:
     if (vfsmnt.type == types.mount_type or
             vfsmnt.type == types.mount_type.pointer()):
         t = vfsmnt.type
         if t.code == gdb.TYPE_CODE_PTR:
             t = t.target()
         if t is not types.mount_type:
-            types.mount_type = t
+            types.mount_type = t # type: ignore
         return vfsmnt
     return container_of(vfsmnt, types.mount_type, 'mnt')
 
-def d_path(mnt: gdb.Value, dentry: gdb.Value, root: gdb.Value = None):
+def d_path(mnt: gdb.Value, dentry: gdb.Value, root: gdb.Value = None) -> str:
     """
     Returns a file system path described by a mount and dentry
 
@@ -273,4 +274,4 @@ def d_path(mnt: gdb.Value, dentry: gdb.Value, root: gdb.Value = None):
     return name
 
 type_cbs = TypeCallbacks([('struct vfsmount', _check_mount_type)])
-symbols_cbs = SymbolCallbacks([('init_task', _Mount._check_task_interface)])
+symbols_cbs = SymbolCallbacks([('init_task', Mount._check_task_interface)])

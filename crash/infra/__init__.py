@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Callable, Any, List
+
 import sys
 import glob
 import os.path
 import importlib
 
-def autoload_submodules(caller, callback=None):
+def autoload_submodules(caller: str,
+                        callback: Callable[[Any], None] = None) -> List[str]:
     mods = []
     try:
         mod = sys.modules[caller]
@@ -15,11 +18,11 @@ def autoload_submodules(caller, callback=None):
         mods.append(caller)
     path = os.path.dirname(mod.__file__)
     modules = glob.glob("{}/[A-Za-z0-9_]*.py".format(path))
-    for mod in modules:
-        mod = os.path.basename(mod)[:-3]
-        if mod == '__init__':
+    for modname in modules:
+        modname = os.path.basename(modname)[:-3]
+        if modname == '__init__':
             continue
-        modname = "{}.{}".format(caller, mod)
+        modname = "{}.{}".format(caller, modname)
         x = importlib.import_module(modname)
         if callback:
             callback(x)

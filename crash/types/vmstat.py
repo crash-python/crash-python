@@ -1,22 +1,26 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import List, Tuple
+
 from crash.util.symbols import Types, TypeCallbacks, Symbols
 from crash.types.percpu import get_percpu_var
 from crash.types.cpu import for_each_online_cpu
+
+import gdb
 
 class VmStat(object):
     types = Types(['enum zone_stat_item', 'enum vm_event_item'])
     symbols = Symbols(['vm_event_states'])
 
-    nr_stat_items = None
-    nr_event_items = None
+    nr_stat_items = -1
+    nr_event_items = -1
 
-    vm_stat_names = None
-    vm_event_names = None
+    vm_stat_names: List[str] = list()
+    vm_event_names: List[str] = list()
 
     @classmethod
-    def check_enum_type(cls, gdbtype):
+    def check_enum_type(cls, gdbtype: gdb.Type) -> None:
         if gdbtype == cls.types.enum_zone_stat_item_type:
             (items, names) = cls.__populate_names(gdbtype,
                                                   'NR_VM_ZONE_STAT_ITEMS')
@@ -31,7 +35,8 @@ class VmStat(object):
             raise TypeError("Unexpected type {}".format(gdbtype.name))
 
     @classmethod
-    def __populate_names(cls, enum_type, items_name):
+    def __populate_names(cls, enum_type: gdb.Type,
+                         items_name: str) -> Tuple[int, List[str]]:
         nr_items = enum_type[items_name].enumval
 
         names = ["__UNKNOWN__"] * nr_items
@@ -43,15 +48,15 @@ class VmStat(object):
         return (nr_items, names)
 
     @classmethod
-    def get_stat_names(cls):
+    def get_stat_names(cls) -> List[str]:
         return cls.vm_stat_names
 
     @classmethod
-    def get_event_names(cls):
+    def get_event_names(cls) -> List[str]:
         return cls.vm_event_names
 
     @classmethod
-    def get_events(cls):
+    def get_events(cls) -> List[int]:
         nr = cls.nr_event_items
         events = [0] * nr
 

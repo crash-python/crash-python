@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Tuple, Optional
+
 import sys
 
 from kdumpfile import kdumpfile, KDUMP_KVADDR
@@ -10,14 +12,16 @@ import addrxlat.exceptions
 
 import gdb
 
+PTID = Tuple[int, int, int]
+
 class SymbolCallback(object):
     "addrxlat symbolic callback"
 
-    def __init__(self, ctx=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, ctx: Optional[addrxlat.Context] = None,
+                 *args: int, **kwargs: int) -> None:
         self.ctx = ctx
 
-    def __call__(self, symtype, *args):
+    def __call__(self, symtype: int, *args: int) -> int:
         if self.ctx is not None:
             try:
                 return self.ctx.next_cb_sym(symtype, *args)
@@ -31,7 +35,7 @@ class SymbolCallback(object):
         raise addrxlat.exceptions.NoDataError()
 
 class Target(gdb.Target):
-    def __init__(self, debug=False):
+    def __init__(self, debug: bool = False) -> None:
         super().__init__()
         self.debug = debug
         self.shortname = "kdumpfile"
@@ -40,7 +44,7 @@ class Target(gdb.Target):
 
         self.register()
 
-    def open(self, filename, from_tty):
+    def open(self, filename: str, from_tty: bool) -> None:
 
         objfiles = gdb.objfiles()
         if not objfiles:
@@ -78,7 +82,7 @@ class Target(gdb.Target):
         # Clear out the old symbol cache
         gdb.execute("file {}".format(vmlinux))
 
-    def close(self):
+    def close(self) -> None:
         try:
             self.unregister()
         except:
@@ -86,12 +90,13 @@ class Target(gdb.Target):
         del self.kdump
 
     @classmethod
-    def report_error(cls, addr, length, error):
+    def report_error(cls, addr: int, length: int, error: Exception) -> None:
         print("Error while reading {:d} bytes from {:#x}: {}"
               .format(length, addr, str(error)),
               file=sys.stderr)
 
-    def xfer_partial(self, obj, annex, readbuf, writebuf, offset, ln):
+    def xfer_partial(self, obj: int, annex: str, readbuf: bytearray,
+                     writebuf: bytearray, offset: int, ln: int) -> int:
         ret = -1
         if obj == self.TARGET_OBJECT_MEMORY:
             try:
@@ -114,21 +119,21 @@ class Target(gdb.Target):
             raise IOError("Unknown obj type")
         return ret
 
-    def thread_alive(self, ptid):
+    def thread_alive(self, ptid: PTID) -> bool:
         return True
 
-    def pid_to_str(self, ptid):
+    def pid_to_str(self, ptid: PTID) -> str:
         return "pid {:d}".format(ptid[1])
 
-    def fetch_registers(self, register):
-        return False
+    def fetch_registers(self, register: gdb.Register) -> None:
+        pass
 
-    def prepare_to_store(self, thread):
+    def prepare_to_store(self, thread: gdb.InferiorThread) -> None:
         pass
 
     # We don't need to store anything; The regcache is already written.
-    def store_registers(self, thread):
+    def store_registers(self, register: gdb.Register) -> None:
         pass
 
-    def has_execution(self, ptid):
+    def has_execution(self, ptid: PTID) -> bool:
         return False

@@ -19,7 +19,7 @@ class ClassdevState(object):
 
     #v5.1-rc1 moved knode_class from struct device to struct device_private
     @classmethod
-    def _setup_iterator_type(cls, gdbtype):
+    def _setup_iterator_type(cls, gdbtype: gdb.Type) -> None:
         if struct_has_member(gdbtype, 'knode_class'):
             cls._class_is_private = False
 

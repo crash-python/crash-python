@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Pattern, Union, List, Dict, Any
+from typing import Pattern, Union, List, Dict, Any, Optional
 
 import sys
 import re
@@ -28,7 +28,8 @@ class NoMatchingFileError(FileNotFoundError):
 
 class ModinfoMismatchError(ValueError):
     _fmt = "module {} has mismatched {} (got `{}' expected `{}')"
-    def __init__(self, attribute, path, value, expected_value):
+    def __init__(self, attribute: str, path: str, value: Optional[str],
+                 expected_value: Optional[str]) -> None:
         msg = self._fmt.format(path, attribute, value, expected_value)
         super().__init__(msg)
         self.path = path
@@ -37,11 +38,13 @@ class ModinfoMismatchError(ValueError):
         self.attribute = attribute
 
 class ModVersionMismatchError(ModinfoMismatchError):
-    def __init__(self, path, module_value, expected_value):
+    def __init__(self, path: str, module_value: Optional[str],
+                 expected_value: Optional[str]) -> None:
         super().__init__('vermagic', path, module_value, expected_value)
 
 class ModSourceVersionMismatchError(ModinfoMismatchError):
-    def __init__(self, path, module_value, expected_value):
+    def __init__(self, path: str, module_value: Optional[str],
+                 expected_value: Optional[str]) -> None:
         super().__init__('srcversion', path, module_value, expected_value)
 
 LINUX_KERNEL_PID = 1
@@ -57,7 +60,7 @@ class CrashKernel(object):
                  vmlinux_debuginfo: PathSpecifier = None,
                  module_path: PathSpecifier = None,
                  module_debuginfo_path: PathSpecifier = None,
-                 verbose: bool = False, debug: bool = False):
+                 verbose: bool = False, debug: bool = False) -> None:
         """
         Initialize a basic kernel semantic debugging session.
 
@@ -288,7 +291,11 @@ class CrashKernel(object):
         self.vermagic = self.extract_vermagic()
 
         archname = obj.architecture.name()
-        archclass = crash.arch.get_architecture(archname)
+        try:
+            archclass = crash.arch.get_architecture(archname)
+        except RuntimeError as e:
+            raise CrashKernelError(str(e))
+
         self.arch = archclass()
 
         self.target = gdb.current_target()
@@ -496,7 +503,7 @@ class CrashKernel(object):
         except KeyError:
             raise NoMatchingFileError(name)
 
-    def cache_file_tree(self, path, regex: Pattern[str] = None) -> None:
+    def cache_file_tree(self, path: str, regex: Pattern[str] = None) -> None:
         if not path in self.findmap:
             self.findmap[path] = {
                 'filters' : [],

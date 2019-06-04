@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from argparse import Namespace
+import argparse
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandLineError
 from crash.subsystem.filesystem import for_each_super_block, super_fstype
@@ -24,7 +24,7 @@ class _Parser(ArgumentParser):
 class BtrfsCommand(Command):
     """display Btrfs internal data structures"""
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         parser = _Parser(prog=name)
         subparsers = parser.add_subparsers(help="sub-command help")
         list_parser = subparsers.add_parser('list', help='list help')
@@ -33,7 +33,7 @@ class BtrfsCommand(Command):
 
         Command.__init__(self, name, parser)
 
-    def list_btrfs(self, args: Namespace) -> None:
+    def list_btrfs(self, args: argparse.Namespace) -> None:
         print_header = True
         count = 0
         for sb in for_each_super_block():
@@ -52,7 +52,7 @@ class BtrfsCommand(Command):
         if count == 0:
             print("No btrfs file systems were mounted.")
 
-    def execute(self, args):
+    def execute(self, args: argparse.Namespace) -> None:
         if hasattr(args, 'subcommand'):
             args.subcommand(args)
         else:

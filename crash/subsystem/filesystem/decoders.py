@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Any
+
 from crash.util.symbols import Types
 from crash.subsystem.storage import block_device_name
 from crash.subsystem.storage.decoders import Decoder, decode_bh
@@ -34,23 +36,23 @@ class DIOBioDecoder(Decoder):
     __endio__ = ['dio_bio_end_io', 'dio_bio_end_io']
     _description = "{:x} bio: Direct I/O for {} inode {}, sector {} on {}"
 
-    def __init__(self, bio: gdb.Value):
+    def __init__(self, bio: gdb.Value) -> None:
         super().__init__()
         self.bio = bio
 
-    def interpret(self):
+    def interpret(self) -> None:
         """Interprets a direct i/o bio to populate its attributes"""
         self.dio = self.bio['bi_private'].cast(self._types.dio_p_type)
         self.fstype = super_fstype(self.dio['inode']['i_sb'])
         self.dev = block_device_name(self.dio['inode']['i_sb']['s_bdev'])
         self.offset = self.dio['block_in_file'] << self.dio['blkbits']
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._description.format(int(self.bio), self.fstype,
                                         self.dio['inode']['i_ino'],
                                         self.bio['bi_sector'], self.dev)
 
-    def __next__(self):
+    def __next__(self) -> Any:
         return None
 
 DIOBioDecoder.register()
@@ -78,17 +80,17 @@ class DecodeMPage(Decoder):
 
     description = "{:x} bio: Multipage I/O: inode {}, type {}, dev {}"
 
-    def __init__(self, bio: gdb.Value):
+    def __init__(self, bio: gdb.Value) -> None:
         super().__init__()
 
         self.bio = bio
 
-    def interpret(self):
+    def interpret(self) -> None:
         """Interpret the multipage bio to populate its attributes"""
         self.inode = self.bio['bi_io_vec'][0]['bv_page']['mapping']['host']
         self.fstype = super_fstype(self.inode['i_sb'])
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.description.format(int(self.bio), self.inode['i_ino'],
                                        self.fstype,
                                        block_device_name(self.bio['bi_bdev']))
@@ -116,18 +118,18 @@ class DecodeBioBH(Decoder):
     __endio__ = 'end_bio_bh_io_sync'
     _description = "{:x} bio: Bio representation of buffer head"
 
-    def __init__(self, bio: gdb.Value):
+    def __init__(self, bio: gdb.Value) -> None:
         super().__init__()
         self.bio = bio
 
-    def interpret(self):
+    def interpret(self) -> None:
         """Interpret the buffer_head bio to populate its attributes"""
         self.bh = self.bio['bi_private'].cast(self._types.buffer_head_p_type)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._description.format(int(self.bio))
 
-    def __next__(self):
+    def __next__(self) -> Any:
         return decode_bh(self.bh)
 
 DecodeBioBH.register()
@@ -148,12 +150,12 @@ class DecodeSyncWBBH(Decoder):
     __endio__ = 'end_buffer_write_sync'
     _description = "{:x} buffer_head: for dev {}, block {}, size {} (unassociated)"
 
-    def __init__(self, bh):
+    def __init__(self, bh: gdb.Value) -> None:
         super().__init__()
         self.bh = bh
 
-    def __str__(self):
-        self._description.format(block_device_name(self.bh['b_bdev']),
-                                 self.bh['b_blocknr'], self.bh['b_size'])
+    def __str__(self) -> str:
+        return self._description.format(block_device_name(self.bh['b_bdev']),
+                                        self.bh['b_blocknr'], self.bh['b_size'])
 
 DecodeSyncWBBH.register()

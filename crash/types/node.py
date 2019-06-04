@@ -39,7 +39,7 @@ class Node(object):
     A wrapper around the Linux kernel 'struct node' structure
     """
     @classmethod
-    def from_nid(cls: Type[NodeType], nid: int) -> NodeType:
+    def from_nid(cls: Type[NodeType], nid: int) -> 'Node':
         """
         Obtain a Node using the NUMA Node ID (nid)
 
@@ -72,7 +72,7 @@ class Node(object):
             yield crash.types.zone.Zone(zone, zid)
             ptr += types.zone_type.sizeof
 
-    def __init__(self, obj: gdb.Value):
+    def __init__(self, obj: gdb.Value) -> None:
         """
         Initialize a Node using the gdb.Value for the struct node
 
@@ -95,7 +95,7 @@ class NodeStates(object):
     nids_possible: List[int] = list()
 
     @classmethod
-    def _setup_node_states(cls, node_states_sym):
+    def _setup_node_states(cls, node_states_sym: gdb.Symbol) -> None:
 
         node_states = node_states_sym.value()
         enum_node_states = gdb.lookup_type("enum node_states")
@@ -139,7 +139,7 @@ symbol_cbs = SymbolCallbacks([('node_states', NodeStates._setup_node_states)])
 
 _state = NodeStates()
 
-def for_each_nid():
+def for_each_nid() -> Iterable[int]:
     """
     Iterate over each NUMA Node ID
 
@@ -149,7 +149,7 @@ def for_each_nid():
     for nid in _state.for_each_nid():
         yield nid
 
-def for_each_online_nid():
+def for_each_online_nid() -> Iterable[int]:
     """
     Iterate over each online NUMA Node ID
 
@@ -179,12 +179,12 @@ def for_each_online_node() -> Iterable[Node]:
     for nid in for_each_online_nid():
         yield Node.from_nid(nid)
 
-def for_each_zone():
+def for_each_zone() -> Iterable[crash.types.zone.Zone]:
     for node in for_each_node():
         for zone in node.for_each_zone():
             yield zone
 
-def for_each_populated_zone():
+def for_each_populated_zone() -> Iterable[crash.types.zone.Zone]:
     #TODO: some filter thing?
     for zone in for_each_zone():
         if zone.is_populated():

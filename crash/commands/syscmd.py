@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+import argparse
+
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandLineError
 from crash.cache.syscache import utsname, config, kernel
@@ -40,7 +42,7 @@ class _Parser(ArgumentParser):
 
 class SysCommand(Command):
     """system data"""
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
 
         parser = _Parser(prog=name)
 
@@ -49,7 +51,7 @@ class SysCommand(Command):
         Command.__init__(self, name, parser)
 
     @staticmethod
-    def show_default():
+    def show_default() -> None:
         print("      UPTIME: {}".format(kernel.uptime))
         print("LOAD AVERAGE: {}".format(kernel.loadavg))
         print("    NODENAME: {}".format(utsname.nodename))
@@ -57,7 +59,7 @@ class SysCommand(Command):
         print("     VERSION: {}".format(utsname.version))
         print("     MACHINE: {}".format(utsname.machine))
 
-    def execute(self, args):
+    def execute(self, args: argparse.Namespace) -> None:
         if args.config:
             if args.config == "config":
                 print(config)

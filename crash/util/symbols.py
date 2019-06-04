@@ -48,7 +48,7 @@ class DelayedCollection(object):
             the container object *or* the contained object if it has
             been overridden via :meth:`override`.
     """
-    def __init__(self, cls: Type[DelayedValue], names: Names):
+    def __init__(self, cls: Type[DelayedValue], names: Names) -> None:
         self.attrs: Dict[str, DelayedValue] = {}
 
         if isinstance(names, str):
@@ -95,13 +95,13 @@ class DelayedCollection(object):
 
         self.attrs[name].value = value
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> Any:
         try:
             return self.get(name)
         except NameError as e:
             raise KeyError(str(e))
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         try:
             return self.get(name)
         except NameError as e:
@@ -129,7 +129,7 @@ class Types(DelayedCollection):
         names: A :obj:`str` or :obj:`list` of :obj:`str` containing the names
             of the types to resolve.
     """
-    def __init__(self, names: Names):
+    def __init__(self, names: Names) -> None:
         super(Types, self).__init__(DelayedType, names)
 
     def override(self, name: str, value: gdb.Type) -> None:
@@ -170,7 +170,7 @@ class Symbols(DelayedCollection):
         names: A :obj:`str` or :obj:`list` of :obj:`str` containing the names
             of the symbols to resolve.
     """
-    def __init__(self, names):
+    def __init__(self, names: Names) -> None:
         super(Symbols, self).__init__(DelayedSymbol, names)
 
 class Symvals(DelayedCollection):
@@ -204,7 +204,7 @@ class Symvals(DelayedCollection):
         names: A :obj:`str` or :obj:`list` of :obj:`str` containing the names
             of the symbols to resolve.
     """
-    def __init__(self, names):
+    def __init__(self, names: Names) -> None:
         super(Symvals, self).__init__(DelayedSymval, names)
 
 class MinimalSymbols(DelayedCollection):
@@ -238,7 +238,7 @@ class MinimalSymbols(DelayedCollection):
         names: A :obj:`str` or :obj:`list` of :obj:`str` containing the names
             of the minimal symbols to resolve.
     """
-    def __init__(self, names):
+    def __init__(self, names: Names) -> None:
         super(MinimalSymbols, self).__init__(DelayedMinimalSymbol, names)
 
 class MinimalSymvals(DelayedCollection):
@@ -267,7 +267,7 @@ class MinimalSymvals(DelayedCollection):
         names: A :obj:`str` or :obj:`list` of :obj:`str` containing the names
             of the minimal symbols to resolve.
     """
-    def __init__(self, names):
+    def __init__(self, names: Names) -> None:
         super(MinimalSymvals, self).__init__(DelayedMinimalSymval, names)
 
 class DelayedValues(DelayedCollection):
@@ -302,14 +302,15 @@ class DelayedValues(DelayedCollection):
     Args:
         names: The names to use for the :obj:`.DelayedValue` objects.
     """
-    def __init__(self, names: Names):
+    def __init__(self, names: Names) -> None:
         super(DelayedValues, self).__init__(DelayedValue, names)
 
 CallbackSpecifier = Tuple[str, Callable]
 CallbackSpecifiers = Union[List[CallbackSpecifier], CallbackSpecifier]
 
 class CallbackCollection(object):
-    def __init__(self, cls: Type[NamedCallback], cbs: CallbackSpecifiers):
+    def __init__(self, cls: Type[NamedCallback],
+                 cbs: CallbackSpecifiers) -> None:
         if isinstance(cbs, tuple):
             cbs = [cbs]
 
@@ -318,13 +319,13 @@ class CallbackCollection(object):
             setattr(self, t.attrname, t)
 
 class TypeCallbacks(CallbackCollection):
-    def __init__(self, cbs):
+    def __init__(self, cbs: CallbackSpecifiers) -> None:
         super().__init__(TypeCallback, cbs)
 
 class SymbolCallbacks(CallbackCollection):
-    def __init__(self, cbs):
+    def __init__(self, cbs: CallbackSpecifiers) -> None:
         super().__init__(SymbolCallback, cbs)
 
 class MinimalSymbolCallbacks(CallbackCollection):
-    def __init__(self, cbs):
+    def __init__(self, cbs: CallbackSpecifiers) -> None:
         super().__init__(MinimalSymbolCallback, cbs)

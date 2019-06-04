@@ -10,11 +10,11 @@ from crash.infra import autoload_submodules
 import gdb
 
 class CrashCache(object):
-    def refresh(self):
+    def refresh(self) -> None:
         pass
 
-    def needs_updating(self):
+    def needs_updating(self) -> bool:
         return False
 
-def discover():
+def discover() -> None:
     autoload_submodules('crash.cache')

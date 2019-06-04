@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import List
+
 from crash.util import array_for_each
 from crash.util.symbols import Types
 from crash.types.percpu import get_percpu_var
@@ -9,22 +11,24 @@ from crash.types.cpu import for_each_online_cpu
 from crash.types.list import list_for_each_entry
 import crash.types.page
 
+import gdb
+
 class Zone(object):
 
     types = Types(['struct page'])
 
-    def __init__(self, obj, zid):
+    def __init__(self, obj: gdb.Value, zid: int) -> None:
         self.gdb_obj = obj
         self.zid = zid
         self.nid = int(obj["node"])
 
-    def is_populated(self):
+    def is_populated(self) -> bool:
         if self.gdb_obj["present_pages"] != 0:
             return True
         else:
             return False
 
-    def get_vmstat(self):
+    def get_vmstat(self) -> List[int]:
         stats = [0] * VmStat.nr_stat_items
         vm_stat = self.gdb_obj["vm_stat"]
 
@@ -33,19 +37,19 @@ class Zone(object):
             stats[item] = int(vm_stat[item]["counter"])
         return stats
 
-    def add_vmstat_diffs(self, diffs):
+    def add_vmstat_diffs(self, diffs: List[int]) -> None:
         for cpu in for_each_online_cpu():
             pageset = get_percpu_var(self.gdb_obj["pageset"], cpu)
             vmdiff = pageset["vm_stat_diff"]
             for item in range(0, VmStat.nr_stat_items):
                 diffs[item] += int(vmdiff[item])
 
-    def get_vmstat_diffs(self):
+    def get_vmstat_diffs(self) -> List[int]:
         diffs = [0] * VmStat.nr_stat_items
         self.add_vmstat_diffs(diffs)
         return diffs
 
-    def _check_free_area(self, area, is_pcp):
+    def _check_free_area(self, area: gdb.Value, is_pcp: bool) -> None:
         nr_free = 0
         list_array_name = "lists" if is_pcp else "free_list"
         for free_list in array_for_each(area[list_array_name]):
@@ -64,7 +68,7 @@ class Zone(object):
                   format("pcplist" if is_pcp else "area", area.address,
                          nr_expected, nr_free))
 
-    def check_free_pages(self):
+    def check_free_pages(self) -> None:
         for area in array_for_each(self.gdb_obj["free_area"]):
             self._check_free_area(area, False)
         for cpu in for_each_online_cpu():

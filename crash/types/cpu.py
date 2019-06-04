@@ -28,7 +28,7 @@ class TypesCPUClass(object):
     _cpu_online_mask: gdb.Value = None
     _cpu_possible_mask: gdb.Value = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         raise NotImplementedError("This class is not meant to be instantiated")
 
     @classmethod

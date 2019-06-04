@@ -27,18 +27,18 @@ class Ext3Decoder(Decoder):
     __endio__ = 'journal_end_buffer_io_sync'
     _description = "{:x} buffer_head: {} journal block (jbd) on {}"
 
-    def __init__(self, bh: gdb.Value):
+    def __init__(self, bh: gdb.Value) -> None:
         super().__init__()
         self.bh = bh
 
-    def interpret(self):
+    def interpret(self) -> None:
         """Interprets the ext3 buffer_head to populate its attributes"""
         self.fstype = "journal on ext3"
         self.devname = block_device_name(self.bh['b_bdev'])
         self.offset = int(self.bh['b_blocknr']) * int(self.bh['b_size'])
         self.length = int(self.bh['b_size'])
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._description.format(int(self.bh), self.fstype, self.devname)
 
 Ext3Decoder.register()

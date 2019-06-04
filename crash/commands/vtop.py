@@ -11,11 +11,11 @@ from crash.addrxlat import CrashAddressTranslation
 class LinuxPGT(object):
     table_names = ('PTE', 'PMD', 'PUD', 'PGD')
 
-    def __init__(self, ctx, sys):
+    def __init__(self, ctx: addrxlat.Context, sys: addrxlat.System) -> None:
         self.context = ctx
         self.system = sys
 
-    def begin(self, addr):
+    def begin(self, addr: int) -> bool:
         meth = self.system.get_map(addrxlat.SYS_MAP_HW).search(addr)
         if meth == addrxlat.SYS_METH_NONE:
             meth = self.system.get_map(addrxlat.SYS_MAP_KV_PHYS).search(addr)
@@ -27,7 +27,7 @@ class LinuxPGT(object):
         self.step.launch(addr)
         return True
 
-    def next(self):
+    def next(self) -> bool:
         if self.step.remain <= 1:
             return False
 
@@ -44,14 +44,14 @@ class LinuxPGT(object):
             self.step.remain = 0
         return True
 
-    def address(self):
+    def address(self) -> str:
         return '{:16x}'.format(self.ptr.addr)
 
-    def value(self):
+    def value(self) -> str:
         return '{:x}{}'.format(self.step.raw, self.note)
 
 class LinuxNonAutoPGT(LinuxPGT):
-    def address(self):
+    def address(self) -> str:
         addr = super().address() + ' [machine], '
         tmp = self.ptr.copy()
         try:
@@ -178,7 +178,7 @@ class _Parser(ArgumentParser):
 class VTOPCommand(Command):
     """convert virtual address to physical"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         parser = ArgumentParser(prog="vtop")
 
         group = parser.add_mutually_exclusive_group()
@@ -191,12 +191,13 @@ class VTOPCommand(Command):
 
         super().__init__("vtop", parser)
 
-    def execute(self, argv):
+    def execute(self, argv: argparse.Namespace) -> None:
         trans = CrashAddressTranslation()
-        if trans.is_non_auto:
-            pgt = LinuxNonAutoPGT(trans.context, trans.system)
-        else:
+        # Silly mypy bug means the base class needs come first
+        if not trans.is_non_auto:
             pgt = LinuxPGT(trans.context, trans.system)
+        else:
+            pgt = LinuxNonAutoPGT(trans.context, trans.system)
 
         for addr in argv.args:
             addr = int(addr, 16)

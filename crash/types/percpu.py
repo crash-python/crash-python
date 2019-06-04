@@ -14,10 +14,12 @@ from crash.types.cpu import highest_possible_cpu_nr
 
 import gdb
 
+SymbolOrValue = Union[gdb.Value, gdb.Symbol]
+
 class PerCPUError(TypeError):
     """The passed object does not respond to a percpu pointer."""
     _fmt = "{} does not correspond to a percpu pointer."
-    def __init__(self, var):
+    def __init__(self, var: SymbolOrValue) -> None:
         super().__init__(self._fmt.format(var))
 
 types = Types(['void *', 'char *', 'struct pcpu_chunk',
@@ -25,8 +27,6 @@ types = Types(['void *', 'char *', 'struct pcpu_chunk',
 symvals = Symvals(['__per_cpu_offset', 'pcpu_base_addr', 'pcpu_slot',
                    'pcpu_nr_slots', 'pcpu_group_offsets'])
 msymvals = MinimalSymvals(['__per_cpu_start', '__per_cpu_end'])
-
-SymbolOrValue = Union[gdb.Value, gdb.Symbol]
 
 class PerCPUState(object):
     """
@@ -223,7 +223,7 @@ class PerCPUState(object):
     # treats 0 as a special value indicating it should just be after
     # the previous section.  It's possible to override this while
     # loading debuginfo but not when debuginfo is embedded.
-    def _relocated_offset(self, var):
+    def _relocated_offset(self, var: gdb.Value) -> int:
         addr = int(var)
         start = msymvals['__per_cpu_start']
         size = self._static_ranges[start]
@@ -271,7 +271,7 @@ class PerCPUState(object):
             return True
         return False
 
-    def _resolve_percpu_var(self, var):
+    def _resolve_percpu_var(self, var: SymbolOrValue) -> gdb.Value:
         orig_var = var
         if isinstance(var, gdb.Symbol) or isinstance(var, gdb.MinSymbol):
             var = var.value()

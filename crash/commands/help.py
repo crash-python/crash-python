@@ -22,12 +22,12 @@ class _Parser(ArgumentParser):
 class HelpCommand(Command):
     """ this command"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         parser = _Parser(prog="help")
         parser.add_argument('args', nargs=argparse.REMAINDER)
         super().__init__('help', parser)
 
-    def execute(self, argv):
+    def execute(self, argv: argparse.Namespace) -> None:
         if not argv.args:
             print("Available commands:")
             for cmd in sorted(self.commands):

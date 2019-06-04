@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Callable, Any, Union
+from typing import Callable, Any, Union, TypeVar, Optional
 
 import gdb
 
 Callback = Callable[[Any], Union[bool, None]]
 
+OECType = TypeVar('OECType', bound='ObjfileEventCallback')
+
 class CallbackCompleted(RuntimeError):
     """The callback has already been completed and is no longer valid"""
-    def __init__(self, callback_obj):
-        msg = "{} has already completed.".format(callback_obj.name)
+    def __init__(self, callback_obj: 'ObjfileEventCallback') -> None:
+        msg = "Callback has already completed."
         super().__init__(msg)
         self.callback_obj = callback_obj
 
@@ -28,13 +30,13 @@ class ObjfileEventCallback(object):
     Consumers of this interface must also call :meth:`connect_callback` to
     connect the object to the callback infrastructure.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self.completed = False
         self.connected = False
 
         self._setup_symbol_cache_flush_callback()
 
-    def connect_callback(self):
+    def connect_callback(self) -> bool:
         """
         Connect this callback to the event system.
 
@@ -45,7 +47,7 @@ class ObjfileEventCallback(object):
             raise CallbackCompleted(self)
 
         if self.connected:
-            return
+            return False
 
         self.connected = True
 
@@ -56,14 +58,17 @@ class ObjfileEventCallback(object):
         if objfiles:
             result = self.check_ready()
             if not (result is None or result is False):
-                self.completed = self.callback(result)
+                completed = self.callback(result)
+                if completed is None:
+                    completed = True
+                self.completed = completed
 
         if self.completed is False:
             gdb.events.new_objfile.connect(self._new_objfile_callback)
 
         return self.completed
 
-    def complete(self):
+    def complete(self) -> None:
         """
         Complete and disconnect this callback from the event system.
 
@@ -79,7 +84,7 @@ class ObjfileEventCallback(object):
 
     _symbol_cache_flush_setup = False
     @classmethod
-    def _setup_symbol_cache_flush_callback(cls):
+    def _setup_symbol_cache_flush_callback(cls) -> None:
         if not cls._symbol_cache_flush_setup:
             gdb.events.new_objfile.connect(cls._flush_symbol_cache_callback)
             cls._symbol_cache_flush_setup = True
@@ -89,10 +94,10 @@ class ObjfileEventCallback(object):
     # symtab code.  The symtab observer is behind the python observers
     # in the execution queue so the cache flush executes /after/ us.
     @classmethod
-    def _flush_symbol_cache_callback(cls, event):
+    def _flush_symbol_cache_callback(cls, event: gdb.NewObjFileEvent) -> None:
         gdb.execute("maint flush-symbol-cache")
 
-    def _new_objfile_callback(self, event):
+    def _new_objfile_callback(self, event: gdb.NewObjFileEvent) -> None:
         # GDB purposely copies the event list prior to calling the callbacks
         # If we remove an event from another handler, it will still be sent
         if self.completed:
@@ -116,7 +121,7 @@ class ObjfileEventCallback(object):
         """
         raise NotImplementedError("check_ready must be implemented by derived class.")
 
-    def callback(self, result: Any) -> Union[None, bool]:
+    def callback(self, result: Any) -> Optional[bool]:
         """
         The callback that derived classes implement for handling the
         sucessful result of :meth:`check_ready`.

@@ -11,11 +11,11 @@ import gdb
 types = Types(['uint32_t *', 'uint64_t *'])
 
 class TranslationContext(addrxlat.Context):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: int, **kwargs: int) -> None:
         super().__init__(*args, **kwargs)
         self.read_caps = addrxlat.CAPS(addrxlat.KVADDR)
 
-    def cb_sym(self, symtype, *args):
+    def cb_sym(self, symtype: int, *args: str) -> int:
         if symtype == addrxlat.SYM_VALUE:
             ms = gdb.lookup_minimal_symbol(args[0])
             if ms is not None:
@@ -30,20 +30,22 @@ class TranslationContext(addrxlat.Context):
                 # this works for typedefs:
                 sym = gdb.lookup_symbol(args[0], None)[0]
             if sym is not None:
-                return offsetof(sym.type, args[1])
+                ret = offsetof(sym.type, args[1], True)
+                if ret is None:
+                    raise RuntimeError("offsetof can't return None with errors=True")
 
         return super().cb_sym(symtype, *args)
 
-    def cb_read32(self, faddr):
+    def cb_read32(self, faddr: addrxlat.FullAddress) -> gdb.Value:
         v = gdb.Value(faddr.addr).cast(types.uint32_t_p_type)
         return int(v.dereference())
 
-    def cb_read64(self, faddr):
+    def cb_read64(self, faddr: addrxlat.FullAddress) -> gdb.Value:
         v = gdb.Value(faddr.addr).cast(types.uint64_t_p_type)
         return int(v.dereference())
 
 class CrashAddressTranslation(object):
-    def __init__(self):
+    def __init__(self) -> None:
         try:
             target = gdb.current_target()
             self.context = target.kdump.get_addrxlat_ctx()

@@ -12,6 +12,8 @@ from crash.util.symbols import Types
 from crash.types.list import list_for_each_entry
 from crash.types.percpu import get_percpu_var
 
+import gdb
+
 class _Parser(ArgumentParser):
     """
     NAME
@@ -40,7 +42,7 @@ types = Types(['struct module_use'])
 class ModuleCommand(Command):
     """display module information"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         parser = _Parser(prog="lsmod")
 
         parser.add_argument('-p', nargs='?', const=-1, default=None, type=int)
@@ -48,7 +50,7 @@ class ModuleCommand(Command):
 
         Command.__init__(self, "lsmod", parser)
 
-    def print_module_percpu(self, mod, cpu=-1):
+    def print_module_percpu(self, mod: gdb.Value, cpu: int = -1) -> None:
         cpu = int(cpu)
         addr = int(mod['percpu'])
         if addr == 0:
@@ -65,7 +67,7 @@ class ModuleCommand(Command):
                                            tabs, size))
 
 
-    def execute(self, argv):
+    def execute(self, argv: argparse.Namespace) -> None:
         regex = None
         show_deps = True
         print_header = True

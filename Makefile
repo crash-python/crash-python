@@ -74,7 +74,7 @@ static-check: clean-build
 live-tests: clean-build
 	sh tests/run-kernel-tests.sh $(INI_FILES)
 
-test: unit-tests lint-enforce live-tests
+test: unit-tests static-check lint-enforce live-tests
 	@echo -n
 
 doc: build FORCE

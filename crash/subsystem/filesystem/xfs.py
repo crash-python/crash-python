@@ -5,7 +5,7 @@ The crash.subsystem.filesystem.xfs module offers helpers to work with
 XFS file systems.
 """
 
-from typing import Iterable
+from typing import Iterable, Any
 
 import uuid
 
@@ -214,11 +214,11 @@ class XFSBufDecoder(Decoder):
     Decodes a struct xfs_buf into human-readable form
     """
 
-    def __init__(self, xfsbuf):
+    def __init__(self, xfsbuf: gdb.Value) -> None:
         super(XFSBufDecoder, self).__init__()
         self.xfsbuf = xfsbuf
 
-    def __str__(self):
+    def __str__(self) -> str:
         return xfs_format_xfsbuf(self.xfsbuf)
 
 class XFSBufBioDecoder(Decoder):
@@ -238,19 +238,19 @@ class XFSBufBioDecoder(Decoder):
     __endio__ = 'xfs_buf_bio_end_io'
     _types = Types(['struct xfs_buf *'])
 
-    def __init__(self, bio: gdb.Value):
+    def __init__(self, bio: gdb.Value) -> None:
         super(XFSBufBioDecoder, self).__init__()
         self.bio = bio
 
-    def interpret(self):
+    def interpret(self) -> None:
         """Interpret the xfsbuf bio to populate its attributes"""
         self.xfsbuf = self.bio['bi_private'].cast(self._types.xfs_buf_p_type)
         self.devname = block_device_name(self.bio['bi_bdev'])
 
-    def __next__(self):
+    def __next__(self) -> Any:
         return XFSBufDecoder(self.xfsbuf)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._description.format(self.bio, self.devname)
 
 XFSBufBioDecoder.register()
@@ -268,7 +268,7 @@ class _XFS(object):
     _ail_head_name = None
 
     @classmethod
-    def _detect_ail_version(cls, gdbtype):
+    def _detect_ail_version(cls, gdbtype: gdb.Type) -> None:
         if struct_has_member(gdbtype, 'ail_head'):
             cls._ail_head_name = 'ail_head'
         else:

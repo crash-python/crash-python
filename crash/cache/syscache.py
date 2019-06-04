@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Dict
+from typing import Dict, List, Any
 
 from builtins import round
 
@@ -22,11 +22,11 @@ ImageLocation = Dict[str, Dict[str, int]]
 class CrashUtsnameCache(CrashCache):
     symvals = Symvals(['init_uts_ns'])
 
-    def load_utsname(self):
+    def load_utsname(self) -> gdb.Value:
         self.utsname = self.symvals.init_uts_ns['name']
         return self.utsname
 
-    def init_utsname_cache(self):
+    def init_utsname_cache(self) -> Dict[str, str]:
         d = {}
 
         for field in self.utsname.type.fields():
@@ -38,7 +38,7 @@ class CrashUtsnameCache(CrashCache):
 
     utsname_fields = ['sysname', 'nodename', 'release',
                       'version', 'machine', 'domainname']
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if name == 'utsname_cache':
             return self.init_utsname_cache()
         elif name == 'utsname':
@@ -53,7 +53,7 @@ class CrashConfigCache(CrashCache):
     msymvals = MinimalSymvals(['kernel_config_data',
                                'kernel_config_data_end'])
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if name == 'config_buffer':
             return self.decompress_config_buffer()
         elif name == 'ikconfig_cache':
@@ -126,7 +126,7 @@ class CrashConfigCache(CrashCache):
         self.config_buffer = str(decompressed.decode('utf-8'))
         return self.config_buffer
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.config_buffer
 
     def _parse_config(self) -> Dict[str, str]:
@@ -145,7 +145,7 @@ class CrashConfigCache(CrashCache):
 
         return self.ikconfig_cache
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> Any:
         try:
             return self.ikconfig_cache[name]
         except KeyError:
@@ -160,15 +160,15 @@ class CrashKernelCache(CrashCache):
     jiffies_dv = DelayedValue('jiffies')
 
     @property
-    def jiffies(self):
+    def jiffies(self) -> gdb.Value:
         v = self.jiffies_dv.get()
         return v
 
-    def __init__(self, config):
+    def __init__(self, config: CrashConfigCache) -> None:
         CrashCache.__init__(self)
         self.config = config
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         if name == 'hz':
             self.hz = int(self.config['HZ'])
             return self.hz
@@ -178,28 +178,26 @@ class CrashKernelCache(CrashCache):
             return self.get_loadavg()
         return getattr(self.__class__, name)
 
-    @staticmethod
-    def calculate_loadavg(metric):
+    def calculate_loadavg(self, metric: int) -> float:
         # The kernel needs to do fixed point trickery to calculate
         # a floating point average.  We can just return a float.
         return round(int(metric) / (1 << 11), 2)
 
-    @staticmethod
-    def format_loadavg(metrics):
+    def format_loadavg(self, metrics: List[float]) -> str:
         out = []
         for metric in metrics:
             out.append(str(metric))
 
         return " ".join(out)
 
-    def get_loadavg_values(self):
+    def get_loadavg_values(self) -> List[float]:
         metrics = []
         for index in range(0, array_size(self.symvals.avenrun)):
             metrics.append(self.calculate_loadavg(self.symvals.avenrun[index]))
 
         return metrics
 
-    def get_loadavg(self):
+    def get_loadavg(self) -> str:
         try:
             metrics = self.get_loadavg_values()
             self.loadavg = self.format_loadavg(metrics)
@@ -208,14 +206,14 @@ class CrashKernelCache(CrashCache):
             return "Unknown"
 
     @classmethod
-    def set_jiffies(cls, value):
+    def set_jiffies(cls, value: gdb.Value) -> None:
         cls.jiffies_dv.value = None
         cls.jiffies_dv.callback(value)
 
     @classmethod
-    def setup_jiffies(cls, symbol):
+    def setup_jiffies(cls, symbol: gdb.Symbol) -> bool:
         if cls.jiffies_ready:
-            return
+            return True
 
         jiffies_sym = gdb.lookup_global_symbol('jiffies_64')
 
@@ -231,13 +229,15 @@ class CrashKernelCache(CrashCache):
 
         cls.set_jiffies(jiffies)
 
-    def adjusted_jiffies(self):
+        return True
+
+    def adjusted_jiffies(self) -> gdb.Value:
         if self.adjust_jiffies:
             return self.jiffies -(int(0x100000000) - 300 * self.hz)
         else:
             return self.jiffies
 
-    def get_uptime(self):
+    def get_uptime(self) -> timedelta:
         self.uptime = timedelta(seconds=self.adjusted_jiffies() // self.hz)
         return self.uptime
 
@@ -248,5 +248,5 @@ utsname = CrashUtsnameCache()
 config = CrashConfigCache()
 kernel = CrashKernelCache(config)
 
-def jiffies_to_msec(jiffies):
+def jiffies_to_msec(jiffies: int) -> int:
     return 1000 // kernel.hz * jiffies

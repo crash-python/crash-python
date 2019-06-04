@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Iterator, Callable, Dict
+from typing import Iterator, Callable, Dict, List
 
 from crash.exceptions import InvalidArgumentError, ArgumentTypeError
 from crash.exceptions import UnexpectedGDBTypeError
@@ -46,21 +46,22 @@ class TaskStateFlags(object):
     TASK_WAKING: int = TASK_FLAG_UNINITIALIZED
     TASK_PARKED: int = TASK_FLAG_UNINITIALIZED
     __TASK_IDLE: int = TASK_FLAG_UNINITIALIZED
+    TASK_EXCLUSIVE: int = TASK_FLAG_UNINITIALIZED
 
     TASK_NOLOAD: int = TASK_FLAG_UNINITIALIZED
     TASK_NEW: int = TASK_FLAG_UNINITIALIZED
     TASK_IDLE: int = TASK_FLAG_UNINITIALIZED
 
-    def __init__(self):
+    def __init__(self) -> None:
         raise NotImplementedError("This class is not meant to be instantiated")
 
     @classmethod
-    def has_flag(cls, flagname):
+    def has_flag(cls, flagname: str) -> bool:
         v = getattr(cls, flagname)
         return v != cls.TASK_FLAG_UNINITIALIZED
 
     @classmethod
-    def _task_state_flags_callback(cls, symbol):
+    def _task_state_flags_callback(cls, symbol: gdb.Symbol) -> None:
         count = array_size(symvals.task_state_array)
 
         bit = 0
@@ -144,7 +145,7 @@ class TaskStateFlags(object):
         cls._check_state_bits()
 
     @classmethod
-    def _check_state_bits(cls):
+    def _check_state_bits(cls) -> None:
         required = [
             'TASK_RUNNING',
             'TASK_INTERRUPTIBLE',
@@ -204,9 +205,14 @@ class LinuxTask(object):
     """
     _valid = False
     _task_state_has_exit_state = None
-    anon_file_rss_fields = list()
+    _anon_file_rss_fields: List[str] = list()
 
-    def __init__(self, task_struct: gdb.Value):
+    # Version-specific hooks -- these will be None here but we'll raise a
+    # NotImplementedError if any of them aren't found.
+    _get_rss: Callable[['LinuxTask'], int]
+    _get_last_run: Callable[['LinuxTask'], int]
+
+    def __init__(self, task_struct: gdb.Value) -> None:
         self._init_task_types(task_struct)
 
         if not isinstance(task_struct, gdb.Value):
@@ -232,7 +238,7 @@ class LinuxTask(object):
         self.pgd_addr = 0
 
     @classmethod
-    def _init_task_types(cls, task):
+    def _init_task_types(cls, task: gdb.Value) -> None:
         if not cls._valid:
             t = types.task_struct_type
             if task.type != t:
@@ -455,7 +461,7 @@ class LinuxTask(object):
         """
         return int(self.task_struct.address)
 
-    def is_kernel_task(self):
+    def is_kernel_task(self) -> bool:
         if self.task_struct['pid'] == 0:
             return True
 
@@ -471,7 +477,7 @@ class LinuxTask(object):
         return False
 
     @classmethod
-    def set_get_stack_pointer(cls, fn: Callable[[gdb.Value], int]):
+    def set_get_stack_pointer(cls, fn: Callable[[gdb.Value], int]) -> None:
         """
         Set the stack pointer callback for this architecture
 
@@ -502,13 +508,13 @@ class LinuxTask(object):
 
         return int(fn(self.task_struct['thread']))
 
-    def _get_rss_field(self):
+    def _get_rss_field(self) -> int:
         return int(self.task_struct['mm']['rss'].value())
 
-    def _get__rss_field(self):
+    def _get__rss_field(self) -> int:
         return int(self.task_struct['mm']['_rss'].value())
 
-    def _get_rss_stat_field(self):
+    def _get_rss_stat_field(self) -> int:
         stat = self.task_struct['mm']['rss_stat']['count']
         stat0 = self.task_struct['mm']['rss_stat']['count'][0]
         rss = 0
@@ -516,10 +522,10 @@ class LinuxTask(object):
             rss += int(stat[i]['counter'])
         return rss
 
-    def _get_anon_file_rss_fields(self):
+    def _get_anon_file_rss_fields(self) -> int:
         mm = self.task_struct['mm']
         rss = 0
-        for name in self.anon_file_rss_fields:
+        for name in self._anon_file_rss_fields:
             if mm[name].type == types.atomic_long_t_type:
                 rss += int(mm[name]['counter'])
             else:
@@ -530,7 +536,7 @@ class LinuxTask(object):
     # dynamically.  We may do that eventually, but for now we can just
     # select the proper function and assign it to the class.
     @classmethod
-    def _pick_get_rss(cls):
+    def _pick_get_rss(cls) -> None:
         if struct_has_member(types.mm_struct_type, 'rss'):
             cls._get_rss = cls._get_rss_field
         elif struct_has_member(types.mm_struct_type, '_rss'):
@@ -539,20 +545,20 @@ class LinuxTask(object):
             cls._get_rss = cls._get_rss_stat_field
         else:
             if struct_has_member(types.mm_struct_type, '_file_rss'):
-                cls.anon_file_rss_fields.append('_file_rss')
+                cls._anon_file_rss_fields.append('_file_rss')
 
             if struct_has_member(types.mm_struct_type, '_anon_rss'):
-                cls.anon_file_rss_fields.append('_anon_rss')
+                cls._anon_file_rss_fields.append('_anon_rss')
 
             cls._get_rss = cls._get_anon_file_rss_fields
 
-            if not cls.anon_file_rss_fields:
+            if not cls._anon_file_rss_fields:
                 raise RuntimeError("No method to retrieve RSS from task found.")
 
-    def _get_rss(self) -> int:
+    def __get_rss(self) -> int:
         raise NotImplementedError("_get_rss not implemented")
 
-    def get_rss(self):
+    def get_rss(self) -> int:
         """
         Return the resident set for this task
 
@@ -561,20 +567,17 @@ class LinuxTask(object):
         """
         return self._get_rss()
 
-    def _last_run__last_run(self):
+    def _last_run__last_run(self) -> int:
         return int(self.task_struct['last_run'])
 
-    def _last_run__timestamp(self):
+    def _last_run__timestamp(self) -> int:
         return int(self.task_struct['timestamp'])
 
-    def _last_run__last_arrival(self):
+    def _last_run__last_arrival(self) -> int:
         return int(self.task_struct['sched_info']['last_arrival'])
 
-    def _get_last_run(self) -> int:
-        raise NotImplementedError("_get_last_run not implemented")
-
     @classmethod
-    def _pick_last_run(cls):
+    def _pick_last_run(cls) -> None:
         fields = types.task_struct_type.keys()
         if ('sched_info' in fields and
                 'last_arrival' in types.task_struct_type['sched_info'].type.keys()):

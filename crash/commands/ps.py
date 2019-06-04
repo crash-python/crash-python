@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Pattern, Optional, Callable
+
 import argparse
 import fnmatch
 import re
@@ -16,9 +18,10 @@ class TaskFormat(object):
     This class is responsible for converting the arguments into formatting
     rules.
     """
-    def __init__(self, argv, regex):
+    def __init__(self, argv: argparse.Namespace,
+                 regex: Optional[Pattern[str]]) -> None:
         self.sort = lambda x: x.info.task_pid()
-        self._filter = lambda x: True
+        self._filter: Callable[[LinuxTask], bool] = lambda x: True
         self._format_one_task = self._format_common_line
         self._regex = regex
 
@@ -531,7 +534,7 @@ class _Parser(ArgumentParser):
 
 class PSCommand(Command):
     """display process status information"""
-    def __init__(self):
+    def __init__(self) -> None:
         parser = _Parser(prog="ps")
 
         group = parser.add_mutually_exclusive_group()
@@ -556,9 +559,9 @@ class PSCommand(Command):
 
         Command.__init__(self, "ps", parser)
 
-    def task_state_string(self, task):
+    def task_state_string(self, task: LinuxTask) -> str:
         state = task.task_state()
-        buf = None
+        buf = ""
         exclusive = False
 
         try:
@@ -566,8 +569,6 @@ class PSCommand(Command):
             state &= ~TF.TASK_EXCLUSIVE
         except AttributeError:
             pass
-
-        buf = None
 
         for bits in sorted(self.task_states.keys(), reverse=True):
             if (state & bits) == bits:
@@ -584,7 +585,7 @@ class PSCommand(Command):
 
         return buf
 
-    def setup_task_states(self):
+    def setup_task_states(self) -> None:
         self.task_states = {
             TF.TASK_RUNNING         : "RU",
             TF.TASK_INTERRUPTIBLE   : "IN",
@@ -602,7 +603,7 @@ class PSCommand(Command):
         if TF.has_flag('TASK_IDLE'):
             self.task_states[TF.TASK_IDLE] = "ID"
 
-    def execute(self, argv):
+    def execute(self, argv: argparse.Namespace) -> None:
         # Unimplemented
         if argv.p or argv.c or argv.t or argv.a or argv.g or argv.r:
             raise CommandError("Support for the -p, -c, -t, -a, -g, and -r options is unimplemented.")
@@ -627,7 +628,7 @@ class PSCommand(Command):
 
                 if header:
                     print(header)
-                    header = None
+                    header = ""
 
                 task.update_mem_usage()
                 state = self.task_state_string(task)
