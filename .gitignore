@@ -3,3 +3,4 @@
 doc-source/crash*.rst
 doc-source/modules.rst
 docs
+tests/test_imports.py
