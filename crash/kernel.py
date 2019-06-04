@@ -354,9 +354,13 @@ class CrashKernel(object):
         f.close()
         return d
 
-    def fetch_registers(self, register: gdb.Register) -> None:
-        thread = gdb.selected_thread()
-        self.arch.fetch_register(thread, register.regnum)
+    def fetch_registers(self, thread: gdb.InferiorThread,
+                        register: gdb.Register) -> None:
+        if register is None:
+            regnum = -1
+        else:
+            regnum = register.regnum
+        self.arch.fetch_register(thread, regnum)
 
     def get_module_sections(self, module: gdb.Value) -> str:
         out = []

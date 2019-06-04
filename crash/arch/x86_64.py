@@ -39,7 +39,7 @@ class x86_64Architecture(CrashArchitecture):
         thread.info.set_thread_info(thread_info)
 
     def fetch_register_active(self, thread: gdb.InferiorThread,
-                              register: gdb.Register) -> None:
+                              register: int) -> None:
         task = thread.info
         for reg in task.regs:
             if reg == "rip" and (register != 16 and register != -1):
@@ -54,7 +54,7 @@ class x86_64Architecture(CrashArchitecture):
         return self._fetch_register_scheduled(thread, register)
 
     def fetch_register_scheduled_inactive(self, thread: gdb.InferiorThread,
-                                          register: gdb.Register) -> None:
+                                          register: int) -> None:
         ulong_type = self.ulong_type
         task = thread.info.task_struct
 
@@ -82,7 +82,7 @@ class x86_64Architecture(CrashArchitecture):
         thread.info.valid_stack = True
 
     def fetch_register_scheduled_thread_return(self, thread: gdb.InferiorThread,
-                                               register: gdb.Register) -> None:
+                                               register: int) -> None:
         ulong_type = self.ulong_type
         task = thread.info.task_struct
 

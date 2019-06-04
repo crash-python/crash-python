@@ -125,14 +125,16 @@ class Target(gdb.Target):
     def pid_to_str(self, ptid: PTID) -> str:
         return "pid {:d}".format(ptid[1])
 
-    def fetch_registers(self, register: gdb.Register) -> None:
+    def fetch_registers(self, thread: gdb.InferiorThread,
+                        register: gdb.Register) -> None:
         pass
 
     def prepare_to_store(self, thread: gdb.InferiorThread) -> None:
         pass
 
     # We don't need to store anything; The regcache is already written.
-    def store_registers(self, register: gdb.Register) -> None:
+    def store_registers(self, thread: gdb.InferiorThread,
+                        register: gdb.Register) -> None:
         pass
 
     def has_execution(self, ptid: PTID) -> bool:
