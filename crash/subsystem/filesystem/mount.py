@@ -256,8 +256,6 @@ def d_path(mnt: gdb.Value, dentry: gdb.Value, root: gdb.Value = None):
     # dentry == dentry->d_parent
     while dentry != root['dentry'] or mnt != root['mnt']:
         if dentry == mnt['mnt_root'] or dentry == dentry['d_parent']:
-            if dentry != mnt['mnt_root']:
-                return None
             if mount != mount['mnt_parent']:
                 dentry = mount['mnt_mountpoint']
                 mount = mount['mnt_parent']
