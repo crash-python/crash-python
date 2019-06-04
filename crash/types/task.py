@@ -209,6 +209,7 @@ class LinuxTask(object):
     """
     _valid = False
     _task_state_has_exit_state = None
+    anon_file_rss_fields = list()
 
     def __init__(self, task_struct: gdb.Value):
         self._init_task_types(task_struct)
@@ -545,8 +546,6 @@ class LinuxTask(object):
             cls.MM_ANONPAGES = get_value('MM_ANONPAGES')
             cls._get_rss = cls._get_rss_stat_field
         else:
-            cls.anon_file_rss_fields = []
-
             if struct_has_member(types.mm_struct_type, '_file_rss'):
                 cls.anon_file_rss_fields.append('_file_rss')
 
@@ -556,7 +555,7 @@ class LinuxTask(object):
             cls.atomic_long_type = gdb.lookup_type('atomic_long_t')
             cls._get_rss = cls._get_anon_file_rss_fields
 
-            if len(cls.anon_file_rss_fields):
+            if not cls.anon_file_rss_fields:
                 raise RuntimeError("No method to retrieve RSS from task found.")
 
     def _get_rss(self) -> int:
