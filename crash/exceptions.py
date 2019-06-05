@@ -44,8 +44,7 @@ class ArgumentTypeError(InvalidArgumentError):
         module = cls.__module__
         if module is None or module == str.__class__.__module__:
             return cls.__name__  # Avoid reporting __builtin__
-        else:
-            return module + '.' + cls.__name__
+        return module + '.' + cls.__name__
 
 class UnexpectedGDBTypeBaseError(InvalidArgumentError):
     """Base class for unexpected gdb type exceptions"""

@@ -29,8 +29,7 @@ def numa_node_id(cpu: int) -> int:
     """
     if gdb.current_target().arch.name() == "powerpc:common64":
         return int(symvals.numa_cpu_lookup_table[cpu])
-    else:
-        return int(get_percpu_var(symbols.numa_node, cpu))
+    return int(get_percpu_var(symbols.numa_node, cpu))
 
 NodeType = TypeVar('NodeType', bound='Node')
 

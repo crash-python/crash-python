@@ -445,8 +445,7 @@ class LinuxTask(object):
         name = self.task_struct['comm'].string()
         if brackets and self.is_kernel_task():
             return f"[{name}]"
-        else:
-            return name
+        return name
 
     def task_pid(self) -> int:
         """

@@ -241,8 +241,7 @@ def inode_on_bdev(inode: gdb.Value) -> gdb.Value:
     """
     if is_bdev_inode(inode):
         return inode_to_block_device(inode)
-    else:
-        return inode['i_sb']['s_bdev'].dereference()
+    return inode['i_sb']['s_bdev'].dereference()
 
 # pylint: disable=unused-argument
 def _check_types(result: gdb.Symbol) -> None:

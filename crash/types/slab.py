@@ -82,9 +82,8 @@ class Slab(object):
             raise RuntimeError("No kmem cache found for page")
         if cls.page_slab:
             return cls(page.gdb_obj, kmem_cache)
-        else:
-            slab_addr = int(page.get_slab_page())
-            return cls.from_addr(slab_addr, kmem_cache)
+        slab_addr = int(page.get_slab_page())
+        return cls.from_addr(slab_addr, kmem_cache)
 
     @classmethod
     def from_list_head(cls, list_head: gdb.Value,

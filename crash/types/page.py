@@ -91,8 +91,8 @@ class Page(object):
 
             pagemap = section["section_mem_map"] & ~3
             return (pagemap.cast(types.page_type.pointer()) + pfn).dereference()
-        else:
-            return cls.vmemmap[pfn]
+
+        return cls.vmemmap[pfn]
 
     @classmethod
     def setup_pageflags(cls, gdbtype: gdb.Type) -> None:

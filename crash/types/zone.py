@@ -23,10 +23,7 @@ class Zone(object):
         self.nid = int(obj["node"])
 
     def is_populated(self) -> bool:
-        if self.gdb_obj["present_pages"] != 0:
-            return True
-        else:
-            return False
+        return self.gdb_obj["present_pages"] != 0
 
     def get_vmstat(self) -> List[int]:
         stats = [0] * VmStat.nr_stat_items

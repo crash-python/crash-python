@@ -142,5 +142,4 @@ def btrfs_metadata_uuid(sb: gdb.Value, force: bool = False) -> uuid.UUID:
         return decode_uuid(fs_info['metadata_uuid'])
     elif struct_has_member(fs_info['fs_devices'].type, 'metadata_uuid'):
         return decode_uuid(fs_info['fs_devices']['metadata_uuid'])
-    else:
-        return btrfs_fsid(sb, force)
+    return btrfs_fsid(sb, force)
