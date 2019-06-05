@@ -138,6 +138,7 @@ class GenericBHDecoder(Decoder):
         self.bh = bh
 
     def interpret(self) -> None:
+        # pylint: disable=attribute-defined-outside-init
         self.block_device = block_device_name(self.bh['b_bdev'])
 
     def __str__(self) -> str:

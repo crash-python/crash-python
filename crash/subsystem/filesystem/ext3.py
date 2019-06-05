@@ -33,6 +33,7 @@ class Ext3Decoder(Decoder):
 
     def interpret(self) -> None:
         """Interprets the ext3 buffer_head to populate its attributes"""
+        # pylint: disable=attribute-defined-outside-init
         self.fstype = "journal on ext3"
         self.devname = block_device_name(self.bh['b_bdev'])
         self.offset = int(self.bh['b_blocknr']) * int(self.bh['b_size'])

@@ -14,6 +14,10 @@ class LinuxPGT(object):
     def __init__(self, ctx: addrxlat.Context, sys: addrxlat.System) -> None:
         self.context = ctx
         self.system = sys
+        self.step: addrxlat.Step = None
+        self.table = self.table_names[0]
+        self.ptr: addrxlat.FullAddress = None
+        self.note = ''
 
     def begin(self, addr: int) -> bool:
         meth = self.system.get_map(addrxlat.SYS_MAP_HW).search(addr)

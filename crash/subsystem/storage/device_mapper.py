@@ -40,6 +40,7 @@ class ClonedBioReqDecoder(Decoder):
     def interpret(self) -> None:
         """Interprets the request-based device mapper bio to populate its
         attributes"""
+        # pylint: disable=attribute-defined-outside-init
         self.info = self._get_clone_bio_rq_info(self.bio)
         self.tio = self.info['tio']
 
@@ -98,6 +99,7 @@ class ClonedBioDecoder(Decoder):
     def interpret(self) -> None:
         """Interprets the cloned device mapper bio to populate its
         attributes"""
+        # pylint: disable=attribute-defined-outside-init
         self.tio = self._get_clone_bio_tio(self.bio)
         self.next_bio = self.tio['io']['bio']
 

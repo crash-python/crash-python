@@ -22,30 +22,56 @@ ImageLocation = Dict[str, Dict[str, int]]
 class CrashUtsnameCache(CrashCache):
     symvals = Symvals(['init_uts_ns'])
 
-    def load_utsname(self) -> gdb.Value:
-        self.utsname = self.symvals.init_uts_ns['name']
-        return self.utsname
+    def __init__(self) -> None:
+        self._utsname_cache_dict: Dict[str, str] = dict()
 
-    def init_utsname_cache(self) -> Dict[str, str]:
-        d = {}
+    @property
+    def utsname(self) -> gdb.Value:
+        return self.symvals.init_uts_ns['name']
+
+    def _init_utsname_cache(self) -> None:
+        d = self._utsname_cache_dict
 
         for field in self.utsname.type.fields():
             val = self.utsname[field.name].string()
             d[field.name] = val
 
-        self.utsname_cache = d
-        return self.utsname_cache
+    @property
+    def _utsname_cache(self) -> Dict[str, str]:
+        if not self._utsname_cache_dict:
+            self._init_utsname_cache()
 
-    utsname_fields = ['sysname', 'nodename', 'release',
-                      'version', 'machine', 'domainname']
-    def __getattr__(self, name: str) -> Any:
-        if name == 'utsname_cache':
-            return self.init_utsname_cache()
-        elif name == 'utsname':
-            return self.load_utsname()
-        if name in self.utsname_fields:
-            return self.utsname_cache[name]
-        return getattr(self.__class__, name)
+        return self._utsname_cache_dict
+
+    def _utsname_field(self, name: str) -> str:
+        try:
+            return self._utsname_cache[name]
+        except KeyError:
+            raise DelayedAttributeError(name)
+
+    @property
+    def sysname(self) -> str:
+        return self._utsname_field('sysname')
+
+    @property
+    def nodename(self) -> str:
+        return self._utsname_field('nodename')
+
+    @property
+    def release(self) -> str:
+        return self._utsname_field('release')
+
+    @property
+    def version(self) -> str:
+        return self._utsname_field('version')
+
+    @property
+    def machine(self) -> str:
+        return self._utsname_field('machine')
+
+    @property
+    def domainname(self) -> str:
+        return self._utsname_field('domainname')
 
 class CrashConfigCache(CrashCache):
     types = Types(['char *'])
@@ -53,20 +79,33 @@ class CrashConfigCache(CrashCache):
     msymvals = MinimalSymvals(['kernel_config_data',
                                'kernel_config_data_end'])
 
-    def __getattr__(self, name: str) -> Any:
-        if name == 'config_buffer':
-            return self.decompress_config_buffer()
-        elif name == 'ikconfig_cache':
-            return self._parse_config()
-        return getattr(self.__class__, name)
+    def __init__(self) -> None:
+        self._config_buffer = ""
+        self._ikconfig_cache: Dict[str, str] = dict()
 
-    def read_buf(self, address: int, size: int) -> memoryview:
-        return gdb.selected_inferior().read_memory(address, size)
+    @property
+    def config_buffer(self) -> str:
+        if not self._config_buffer:
+            self._config_buffer = self._decompress_config_buffer()
+        return self._config_buffer
 
-    def read_buf_bytes(self, address: int, size: int) -> bytes:
-        return self.read_buf(address, size).tobytes()
+    @property
+    def ikconfig_cache(self) -> Dict[str, str]:
+        if not self._ikconfig_cache:
+            self._parse_config()
+        return self._ikconfig_cache
 
-    def locate_config_buffer_section(self) -> ImageLocation:
+    def __getitem__(self, name: str) -> Any:
+        try:
+            return self.ikconfig_cache[name]
+        except KeyError:
+            return None
+
+    @staticmethod
+    def _read_buf_bytes(address: int, size: int) -> bytes:
+        return gdb.selected_inferior().read_memory(address, size).tobytes()
+
+    def _locate_config_buffer_section(self) -> ImageLocation:
         data_start = int(self.msymvals.kernel_config_data)
         data_end = int(self.msymvals.kernel_config_data_end)
 
@@ -81,7 +120,7 @@ class CrashConfigCache(CrashCache):
             },
         }
 
-    def locate_config_buffer_typed(self) -> ImageLocation:
+    def _locate_config_buffer_typed(self) -> ImageLocation:
         start = int(self.symvals.kernel_config_data.address)
         end = start + self.symvals.kernel_config_data.type.sizeof
 
@@ -96,42 +135,38 @@ class CrashConfigCache(CrashCache):
             },
         }
 
-    def verify_image(self, location: ImageLocation) -> None:
-        MAGIC_START = b'IKCFG_ST'
-        MAGIC_END = b'IKCFG_ED'
+    def _verify_image(self, location: ImageLocation) -> None:
+        magic_start = b'IKCFG_ST'
+        magic_end = b'IKCFG_ED'
 
-        buf_len = len(MAGIC_START)
-        buf = self.read_buf_bytes(location['magic']['start'], buf_len)
-        if buf != MAGIC_START:
-            raise IOError(f"Missing MAGIC_START in kernel_config_data. Got `{buf}'")
+        buf_len = len(magic_start)
+        buf = self._read_buf_bytes(location['magic']['start'], buf_len)
+        if buf != magic_start:
+            raise IOError(f"Missing magic_start in kernel_config_data. Got `{buf}'")
 
-        buf_len = len(MAGIC_END)
-        buf = self.read_buf_bytes(location['magic']['end'], buf_len)
-        if buf != MAGIC_END:
-            raise IOError("Missing MAGIC_END in kernel_config_data. Got `{buf}'")
+        buf_len = len(magic_end)
+        buf = self._read_buf_bytes(location['magic']['end'], buf_len)
+        if buf != magic_end:
+            raise IOError("Missing magic_end in kernel_config_data. Got `{buf}'")
 
-    def decompress_config_buffer(self) -> str:
+    def _decompress_config_buffer(self) -> str:
         try:
-            location = self.locate_config_buffer_section()
+            location = self._locate_config_buffer_section()
         except DelayedAttributeError:
-            location = self.locate_config_buffer_typed()
+            location = self._locate_config_buffer_typed()
 
-        self.verify_image(location)
+        self._verify_image(location)
 
         # Read the compressed data
-        buf = self.read_buf_bytes(location['data']['start'],
-                                  location['data']['size'])
+        buf = self._read_buf_bytes(location['data']['start'],
+                                   location['data']['size'])
 
-        decompressed = zlib.decompress(buf, 16 + zlib.MAX_WBITS)
-        self.config_buffer = str(decompressed.decode('utf-8'))
-        return self.config_buffer
+        return zlib.decompress(buf, 16 + zlib.MAX_WBITS).decode('utf-8')
 
     def __str__(self) -> str:
         return self.config_buffer
 
-    def _parse_config(self) -> Dict[str, str]:
-        self.ikconfig_cache: Dict[str, str] = dict()
-
+    def _parse_config(self) -> None:
         for line in self.config_buffer.splitlines():
             # bin comments
             line = re.sub("#.*$", "", line).strip()
@@ -141,81 +176,84 @@ class CrashConfigCache(CrashCache):
 
             m = re.match("CONFIG_([^=]*)=(.*)", line)
             if m:
-                self.ikconfig_cache[m.group(1)] = m.group(2)
-
-        return self.ikconfig_cache
-
-    def __getitem__(self, name: str) -> Any:
-        try:
-            return self.ikconfig_cache[name]
-        except KeyError:
-            return None
+                self._ikconfig_cache[m.group(1)] = m.group(2)
 
 class CrashKernelCache(CrashCache):
     symvals = Symvals(['avenrun'])
 
-    jiffies_ready = False
-    adjust_jiffies = False
+    _adjust_jiffies = False
+    _reset_uptime = True
 
-    jiffies_dv = DelayedValue('jiffies')
-
-    @property
-    def jiffies(self) -> gdb.Value:
-        v = self.jiffies_dv.get()
-        return v
+    _jiffies_dv = DelayedValue('jiffies')
 
     def __init__(self, config: CrashConfigCache) -> None:
         CrashCache.__init__(self)
         self.config = config
+        self._hz = -1
+        self._uptime = timedelta(seconds=0)
+        self._loadavg = ""
 
-    def __getattr__(self, name: str) -> Any:
-        if name == 'hz':
-            self.hz = int(self.config['HZ'])
-            return self.hz
-        elif name == 'uptime':
-            return self.get_uptime()
-        elif name == 'loadavg':
-            return self.get_loadavg()
-        return getattr(self.__class__, name)
+    @property
+    def jiffies(self) -> gdb.Value:
+        v = self._jiffies_dv.get()
+        return v
 
-    def calculate_loadavg(self, metric: int) -> float:
+    @property
+    def hz(self) -> int:
+        if self._hz == -1:
+            self._hz = int(self.config['HZ'])
+
+        return self._hz
+
+    def get_uptime(self) -> timedelta:
+        return self.uptime
+
+    @property
+    def uptime(self) -> timedelta:
+        if self._uptime == 0 or self._reset_uptime:
+            uptime = self._adjusted_jiffies() // self.hz
+            self._uptime = timedelta(seconds=uptime)
+            self._reset_uptime = False
+        return self._uptime
+
+    @property
+    def loadavg(self) -> str:
+        if not self._loadavg:
+            try:
+                metrics = self._get_loadavg_values()
+                self._loadavg = self._format_loadavg(metrics)
+            except DelayedAttributeError:
+                return "Unknown"
+        return self._loadavg
+
+    def _calculate_loadavg(self, metric: int) -> float:
         # The kernel needs to do fixed point trickery to calculate
         # a floating point average.  We can just return a float.
         return round(int(metric) / (1 << 11), 2)
 
-    def format_loadavg(self, metrics: List[float]) -> str:
+    def _format_loadavg(self, metrics: List[float]) -> str:
         out = []
         for metric in metrics:
             out.append(str(metric))
 
         return " ".join(out)
 
-    def get_loadavg_values(self) -> List[float]:
+    def _get_loadavg_values(self) -> List[float]:
         metrics = []
         for index in range(0, array_size(self.symvals.avenrun)):
-            metrics.append(self.calculate_loadavg(self.symvals.avenrun[index]))
+            metrics.append(self._calculate_loadavg(self.symvals.avenrun[index]))
 
         return metrics
 
-    def get_loadavg(self) -> str:
-        try:
-            metrics = self.get_loadavg_values()
-            self.loadavg = self.format_loadavg(metrics)
-            return self.loadavg
-        except DelayedAttributeError:
-            return "Unknown"
-
     @classmethod
     def set_jiffies(cls, value: gdb.Value) -> None:
-        cls.jiffies_dv.value = None
-        cls.jiffies_dv.callback(value)
+        cls._jiffies_dv.value = None
+        cls._jiffies_dv.callback(value)
+        cls._reset_uptime = True
 
     @classmethod
     # pylint: disable=unused-argument
     def setup_jiffies(cls, symbol: gdb.Symbol) -> bool:
-        if cls.jiffies_ready:
-            return True
-
         jiffies_sym = gdb.lookup_global_symbol('jiffies_64')
 
         if jiffies_sym:
@@ -223,24 +261,20 @@ class CrashKernelCache(CrashCache):
                 jiffies = int(jiffies_sym.value())
             except gdb.MemoryError:
                 return False
-            cls.adjust_jiffies = True
+            cls._adjust_jiffies = True
         else:
             jiffies = int(gdb.lookup_global_symbol('jiffies').value())
-            cls.adjust_jiffies = False
+            cls._adjust_jiffies = False
 
         cls.set_jiffies(jiffies)
 
         return True
 
-    def adjusted_jiffies(self) -> gdb.Value:
-        if self.adjust_jiffies:
-            return self.jiffies -(int(0x100000000) - 300 * self.hz)
-        else:
-            return self.jiffies
 
-    def get_uptime(self) -> timedelta:
-        self.uptime = timedelta(seconds=self.adjusted_jiffies() // self.hz)
-        return self.uptime
+    def _adjusted_jiffies(self) -> gdb.Value:
+        if self._adjust_jiffies:
+            return self.jiffies -(int(0x100000000) - 300 * self.hz)
+        return self.jiffies
 
 symbol_cbs = SymbolCallbacks([('jiffies', CrashKernelCache.setup_jiffies),
                               ('jiffies_64', CrashKernelCache.setup_jiffies)])

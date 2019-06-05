@@ -43,9 +43,8 @@ class TestSysCache(unittest.TestCase):
     def get_fake_config(self):
         from crash.cache.syscache import CrashConfigCache
         class FakeConfigCache(CrashConfigCache):
-            def decompress_config_buffer(self):
-                self.config_buffer = fake_config
-                return self.config_buffer
+            def _decompress_config_buffer(self):
+                return fake_config
 
         return FakeConfigCache()
 
@@ -112,7 +111,7 @@ class TestSysCache(unittest.TestCase):
         config = CrashConfigCache()
         kernel = CrashKernelCache(config)
         kernel.set_jiffies(27028508)
-        kernel.adjust_jiffies = False
+        kernel._adjust_jiffies = False
         x = kernel.uptime
         uptime = str(x)
         self.assertTrue(uptime == '1 day, 6:01:54')
@@ -138,18 +137,18 @@ class TestSysCache(unittest.TestCase):
     def test_calculate_loadavg(self):
         config = self.CrashConfigCache()
         kernel = self.CrashKernelCache(config)
-        self.assertTrue(kernel.calculate_loadavg(344) == 0.17)
-        self.assertTrue(kernel.calculate_loadavg(105) == 0.05)
-        self.assertTrue(kernel.calculate_loadavg(28) == 0.01)
+        self.assertTrue(kernel._calculate_loadavg(344) == 0.17)
+        self.assertTrue(kernel._calculate_loadavg(105) == 0.05)
+        self.assertTrue(kernel._calculate_loadavg(28) == 0.01)
 
-        self.assertTrue(kernel.calculate_loadavg(458524) == 223.89)
-        self.assertTrue(kernel.calculate_loadavg(455057) == 222.20)
-        self.assertTrue(kernel.calculate_loadavg(446962) == 218.24)
+        self.assertTrue(kernel._calculate_loadavg(458524) == 223.89)
+        self.assertTrue(kernel._calculate_loadavg(455057) == 222.20)
+        self.assertTrue(kernel._calculate_loadavg(446962) == 218.24)
 
     def test_loadavg_values(self):
         config = self.CrashConfigCache()
         kernel = self.CrashKernelCache(config)
-        metrics = kernel.get_loadavg_values()
+        metrics = kernel._get_loadavg_values()
         self.assertTrue(metrics[0] == 0.17)
         self.assertTrue(metrics[1] == 0.05)
         self.assertTrue(metrics[2] == 0.01)
@@ -165,7 +164,7 @@ class TestSysCache(unittest.TestCase):
         config = self.CrashConfigCache()
         kernel = self.CrashKernelCache(config)
         with self.assertRaises(DelayedAttributeError):
-           metrics = kernel.get_loadavg_values()
+           metrics = kernel._get_loadavg_values()
 
     def test_loadavg_missing_symbol(self):
         self.clear_namespace()

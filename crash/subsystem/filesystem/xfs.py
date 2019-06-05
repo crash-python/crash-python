@@ -244,6 +244,7 @@ class XFSBufBioDecoder(Decoder):
 
     def interpret(self) -> None:
         """Interpret the xfsbuf bio to populate its attributes"""
+        # pylint: disable=attribute-defined-outside-init
         self.xfsbuf = self.bio['bi_private'].cast(self._types.xfs_buf_p_type)
         self.devname = block_device_name(self.bio['bi_bdev'])
 

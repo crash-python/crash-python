@@ -42,6 +42,7 @@ class DIOBioDecoder(Decoder):
 
     def interpret(self) -> None:
         """Interprets a direct i/o bio to populate its attributes"""
+        # pylint: disable=attribute-defined-outside-init
         self.dio = self.bio['bi_private'].cast(self._types.dio_p_type)
         self.fstype = super_fstype(self.dio['inode']['i_sb'])
         self.dev = block_device_name(self.dio['inode']['i_sb']['s_bdev'])
@@ -87,6 +88,7 @@ class DecodeMPage(Decoder):
 
     def interpret(self) -> None:
         """Interpret the multipage bio to populate its attributes"""
+        # pylint: disable=attribute-defined-outside-init
         self.inode = self.bio['bi_io_vec'][0]['bv_page']['mapping']['host']
         self.fstype = super_fstype(self.inode['i_sb'])
 
@@ -124,6 +126,7 @@ class DecodeBioBH(Decoder):
 
     def interpret(self) -> None:
         """Interpret the buffer_head bio to populate its attributes"""
+        # pylint: disable=attribute-defined-outside-init
         self.bh = self.bio['bi_private'].cast(self._types.buffer_head_p_type)
 
     def __str__(self) -> str:

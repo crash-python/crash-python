@@ -40,6 +40,7 @@ class Target(gdb.Target):
         self.shortname = "kdumpfile"
         self.longname = "Use a Linux kernel kdump file as a target"
         self.kdump: kdumpfile = None
+        self.base_offset = 0
 
         self.register()
 
@@ -63,8 +64,8 @@ class Target(gdb.Target):
         try:
             attr = self.kdump.attr.get(KERNELOFFSET, "0")
             self.base_offset = int(attr, base=16)
-        except Exception as e:
-            self.base_offset = 0
+        except (TypeError, ValueError):
+            pass
 
         vmlinux = gdb.objfiles()[0].filename
 

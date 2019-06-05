@@ -14,7 +14,7 @@ import gdb
 PF_EXITING = 0x4
 
 types = Types(['struct task_struct', 'struct mm_struct', 'atomic_long_t'])
-symvals = Symvals(['task_state_array', 'init_task', 'init_mm'])
+symvals = Symvals(['init_task', 'init_mm'])
 
 # This is pretty painful.  These are all #defines so none of them end
 # up with symbols in the kernel.  The best approximation we have is
@@ -61,12 +61,13 @@ class TaskStateFlags(object):
         return v != cls.TASK_FLAG_UNINITIALIZED
 
     @classmethod
-    def _task_state_flags_callback(cls, task_state_array: gdb.Symbol) -> None:
+    def _task_state_flags_callback(cls, symbol: gdb.Symbol) -> None:
+        task_state_array = symbol.value()
         count = array_size(task_state_array)
 
         bit = 0
         for i in range(count):
-            state = symvals.task_state_array[i].string()
+            state = task_state_array[i].string()
             state_strings = {
                 '(running)'      : 'TASK_RUNNING',
                 '(sleeping)'     : 'TASK_INTERRUPTIBLE',

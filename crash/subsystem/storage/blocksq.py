@@ -5,7 +5,7 @@ from typing import Iterable, Tuple
 
 from crash.util.symbols import Types
 from crash.types.list import list_for_each_entry
-from crash.cache.syscache import kernel
+from crash.cache.syscache import kernel, jiffies_to_msec
 
 import gdb
 
@@ -49,7 +49,7 @@ def request_age_ms(request: gdb.Value) -> int:
         :obj:`int`: Difference between the request's ``start_time`` and
             current ``jiffies`` in milliseconds.
     """
-    return kernel.jiffies_to_msec(kernel.jiffies - request['start_time'])
+    return jiffies_to_msec(kernel.jiffies - request['start_time'])
 
 def requests_in_flight(queue: gdb.Value) -> Tuple[int, int]:
     """
