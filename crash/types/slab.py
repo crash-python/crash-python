@@ -329,6 +329,7 @@ class KmemCache(object):
         cls.head_name = find_member_variant(gdbtype, ['next', 'list'])
 
     @classmethod
+    # pylint: disable=unused-argument
     def setup_alien_cache_type(cls, gdbtype: gdb.Type) -> None:
         cls.alien_cache_type_exists = True
 

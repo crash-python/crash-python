@@ -43,6 +43,7 @@ class Command(gdb.Command):
     def format_help(self) -> str:
         return self.parser.format_help()
 
+    # pylint: disable=unused-argument
     def invoke_uncaught(self, argstr: str, from_tty: bool = False) -> None:
         argv = gdb.string_to_argv(argstr)
         args = self.parser.parse_args(argv)

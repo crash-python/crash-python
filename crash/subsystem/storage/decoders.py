@@ -24,6 +24,7 @@ class Decoder(object):
     """
     __endio__: EndIOSpecifier = None
 
+    # pylint: disable=unused-argument
     def __init__(self, value: gdb.Value = None) -> None:
         self.interpreted = False
 

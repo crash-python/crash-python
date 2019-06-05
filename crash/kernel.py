@@ -56,6 +56,7 @@ class CrashKernel(object):
     symvals = Symvals(['init_task'])
     symbols = Symbols(['runqueues'])
 
+    # pylint: disable=unused-argument
     def __init__(self, roots: PathSpecifier = None,
                  vmlinux_debuginfo: PathSpecifier = None,
                  module_path: PathSpecifier = None,

@@ -94,9 +94,11 @@ class ObjfileEventCallback(object):
     # symtab code.  The symtab observer is behind the python observers
     # in the execution queue so the cache flush executes /after/ us.
     @classmethod
+    # pylint: disable=unused-argument
     def _flush_symbol_cache_callback(cls, event: gdb.NewObjFileEvent) -> None:
         gdb.execute("maint flush-symbol-cache")
 
+    # pylint: disable=unused-argument
     def _new_objfile_callback(self, event: gdb.NewObjFileEvent) -> None:
         # GDB purposely copies the event list prior to calling the callbacks
         # If we remove an event from another handler, it will still be sent

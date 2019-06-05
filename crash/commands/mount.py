@@ -6,7 +6,6 @@ from typing import Any
 import argparse
 
 from crash.commands import Command, ArgumentParser
-from crash.types.task import LinuxTask
 from crash.subsystem.filesystem.mount import d_path, for_each_mount
 from crash.subsystem.filesystem.mount import mount_device, mount_fstype
 from crash.subsystem.filesystem.mount import mount_super, mount_flags
@@ -51,8 +50,7 @@ class MountCommand(Command):
         for mnt in for_each_mount():
             self.show_one_mount(mnt, args)
 
-    def show_one_mount(self, mnt: gdb.Value, args: argparse.Namespace,
-                       task: LinuxTask = None) -> None:
+    def show_one_mount(self, mnt: gdb.Value, args: argparse.Namespace) -> None:
         if mnt.type.code == gdb.TYPE_CODE_PTR:
             mnt = mnt.dereference()
 

@@ -78,6 +78,7 @@ class Mount(object):
 
 _Mount = Mount()
 
+# pylint: disable=unused-argument
 def _check_mount_type(gdbtype: gdb.Type) -> None:
     try:
         types.mount_type = gdb.lookup_type('struct mount') # type: ignore

@@ -211,6 +211,7 @@ class CrashKernelCache(CrashCache):
         cls.jiffies_dv.callback(value)
 
     @classmethod
+    # pylint: disable=unused-argument
     def setup_jiffies(cls, symbol: gdb.Symbol) -> bool:
         if cls.jiffies_ready:
             return True

@@ -62,6 +62,7 @@ class XFSCommand(Command):
 
         Command.__init__(self, name, parser)
 
+    # pylint: disable=unused-argument
     def list_xfs(self, args: argparse.Namespace) -> None:
         count = 0
         print_header = True

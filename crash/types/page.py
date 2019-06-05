@@ -124,6 +124,7 @@ class Page(object):
         cls.ZONES_WIDTH = int(ceil(log(max_nr_zones)))
 
     @classmethod
+    # pylint: disable=unused-argument
     def setup_nodes_width(cls, symbol: Union[gdb.Symbol, gdb.MinSymbol]) -> None:
         # TODO: handle kernels with no space for nodes in page flags
         try:

@@ -61,8 +61,8 @@ class TaskStateFlags(object):
         return v != cls.TASK_FLAG_UNINITIALIZED
 
     @classmethod
-    def _task_state_flags_callback(cls, symbol: gdb.Symbol) -> None:
-        count = array_size(symvals.task_state_array)
+    def _task_state_flags_callback(cls, task_state_array: gdb.Symbol) -> None:
+        count = array_size(task_state_array)
 
         bit = 0
         for i in range(count):

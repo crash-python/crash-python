@@ -17,8 +17,7 @@ PTID = Tuple[int, int, int]
 class SymbolCallback(object):
     "addrxlat symbolic callback"
 
-    def __init__(self, ctx: Optional[addrxlat.Context] = None,
-                 *args: int, **kwargs: int) -> None:
+    def __init__(self, ctx: Optional[addrxlat.Context] = None) -> None:
         self.ctx = ctx
 
     def __call__(self, symtype: int, *args: int) -> int:
@@ -44,6 +43,7 @@ class Target(gdb.Target):
 
         self.register()
 
+    # pylint: disable=unused-argument
     def open(self, filename: str, from_tty: bool) -> None:
 
         objfiles = gdb.objfiles()
@@ -95,6 +95,7 @@ class Target(gdb.Target):
               .format(length, addr, str(error)),
               file=sys.stderr)
 
+    # pylint: disable=unused-argument
     def xfer_partial(self, obj: int, annex: str, readbuf: bytearray,
                      writebuf: bytearray, offset: int, ln: int) -> int:
         ret = -1
@@ -133,9 +134,11 @@ class Target(gdb.Target):
         pass
 
     # We don't need to store anything; The regcache is already written.
+    # pylint: disable=unused-argument
     def store_registers(self, thread: gdb.InferiorThread,
                         register: gdb.Register) -> None:
         pass
 
+    # pylint: disable=unused-argument
     def has_execution(self, ptid: PTID) -> bool:
         return False
