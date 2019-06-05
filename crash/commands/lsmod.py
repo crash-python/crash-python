@@ -13,49 +13,41 @@ from crash.types.list import list_for_each_entry
 from crash.types.percpu import get_percpu_var
 import crash.types.percpu
 
-lsmod_help_text = """
-NAME
-  lsmod - display module information
+class _Parser(ArgumentParser):
+    """
+    NAME
+      lsmod - display module information
 
-SYNOPSIS
-  lsmod [-p [n]] [name-wildcard]
+    SYNOPSIS
+      lsmod [-p [n]] [name-wildcard]
 
-DESCRIPTION
-  This command displays information about loaded modules.
+    DESCRIPTION
+      This command displays information about loaded modules.
 
-  The default output will show all loaded modules, the core address,
-  its size, and any users of the module.  By specifying [name-wildcard],
-  the results can be filtered to modules matching the wildcard.
+      The default output will show all loaded modules, the core address,
+      its size, and any users of the module.  By specifying [name-wildcard],
+      the results can be filtered to modules matching the wildcard.
 
-  The following options are available:
-  -p       display the percpu base for the module and the size of its region
-  -p CPU#  display the percpu base for the module and the size of its region
-           for the specified CPU number
-"""
+      The following options are available:
+      -p       display the percpu base for the module and the size of its region
+      -p CPU#  display the percpu base for the module and the size of its region
+               for the specified CPU number
+    """
+    def format_usage(self) -> str:
+        return "lsmod [-p] [regex] ...\n"
 
 class ModuleCommand(Command):
     """display module information"""
 
     def __init__(self):
-        parser = ArgumentParser(prog="lsmod")
+        parser = _Parser(prog="lsmod")
 
         parser.add_argument('-p', nargs='?', const=-1, default=None, type=int)
         parser.add_argument('args', nargs=argparse.REMAINDER)
 
-        parser.format_usage = lambda: "lsmod [-p] [regex] ...\n"
-
         Command.__init__(self, "lsmod", parser)
 
         self.module_use_type = gdb.lookup_type('struct module_use')
-
-    def format_help(self) -> str:
-        """
-        Returns the help text for the lsmod command
-
-        Returns:
-            :obj:`str`: The help text for the lsmod command.
-        """
-        return lsmod_help_text
 
     def print_module_percpu(self, mod, cpu=-1):
         cpu = int(cpu)

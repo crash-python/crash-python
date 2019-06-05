@@ -6,57 +6,48 @@ from crash.commands import Command, ArgumentParser
 from crash.commands import CommandLineError
 from crash.cache.syscache import utsname, config, kernel
 
-sys_help_text = """
-NAME
-  sys - system data
+class _Parser(ArgumentParser):
+    """
+    NAME
+      sys - system data
 
-SYNOPSIS
-  sys [config]
+    SYNOPSIS
+      sys [config]
 
-DESCRIPTION
-  This command displays system-specific data. If no arguments are entered,
-  the same system data shown during crash invocation is shown.
+    DESCRIPTION
+      This command displays system-specific data. If no arguments are entered,
+      the same system data shown during crash invocation is shown.
 
-    config            If the kernel was configured with CONFIG_IKCONFIG, then
-                      dump the in-kernel configuration data.
+        config            If the kernel was configured with CONFIG_IKCONFIG, then
+                          dump the in-kernel configuration data.
 
-EXAMPLES
-  Display essential system information:
+    EXAMPLES
+      Display essential system information:
 
-    crash> sys config
-          KERNEL: vmlinux.4
-        DUMPFILE: lcore.cr.4
-            CPUS: 4
-            DATE: Mon Oct 11 18:48:55 1999
-          UPTIME: 10 days, 14:14:39
-    LOAD AVERAGE: 0.74, 0.23, 0.08
-           TASKS: 77
-        NODENAME: test.mclinux.com
-         RELEASE: 2.2.5-15smp
-         VERSION: #24 SMP Mon Oct 11 17:41:40 CDT 1999
-         MACHINE: i686  (500 MHz)
-          MEMORY: 1 GB
-"""
+        crash> sys config
+              KERNEL: vmlinux.4
+            DUMPFILE: lcore.cr.4
+                CPUS: 4
+                DATE: Mon Oct 11 18:48:55 1999
+              UPTIME: 10 days, 14:14:39
+        LOAD AVERAGE: 0.74, 0.23, 0.08
+               TASKS: 77
+            NODENAME: test.mclinux.com
+             RELEASE: 2.2.5-15smp
+             VERSION: #24 SMP Mon Oct 11 17:41:40 CDT 1999
+             MACHINE: i686  (500 MHz)
+              MEMORY: 1 GB
+    """
 
 class SysCommand(Command):
     """system data"""
     def __init__(self, name):
 
-        parser = ArgumentParser(prog=name)
+        parser = _Parser(prog=name)
 
         parser.add_argument('config', nargs='?')
 
-        parser.format_usage = lambda: "sys [config]\n"
         Command.__init__(self, name, parser)
-
-    def format_help(self) -> str:
-        """
-        Returns the help text for the sys command
-
-        Returns:
-            :obj:`str`: The help text for the sys command.
-        """
-        return sys_help_text
 
     @staticmethod
     def show_default():

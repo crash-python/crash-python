@@ -19,8 +19,13 @@ class CommandLineError(RuntimeError):
     pass
 
 class ArgumentParser(argparse.ArgumentParser):
-    def error(self, message):
+    def error(self, message: str):
         raise CommandLineError(message)
+
+    def format_help(self) -> str:
+        if self.__doc__ is None:
+            raise NotImplementedError("This command does not have help text")
+        return self.__doc__.strip() + "\n"
 
 class Command(gdb.Command):
     commands: Dict[str, gdb.Command] = dict()
@@ -32,15 +37,11 @@ class Command(gdb.Command):
             raise ArgumentTypeError('parser', parser, ArgumentParser)
 
         self.parser = parser
-        parser.format_help = self._format_help
         self.commands[self.name] = self
         gdb.Command.__init__(self, self.name, gdb.COMMAND_USER)
 
-    def _format_help(self) -> str:
-        try:
-            return self.format_help().strip() + "\n"
-        except AttributeError:
-            return "<no help text>\n"
+    def format_help(self) -> str:
+        return self.parser.format_help()
 
     def invoke_uncaught(self, argstr, from_tty=False):
         argv = gdb.string_to_argv(argstr)

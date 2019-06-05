@@ -28,19 +28,21 @@ from crash.subsystem.filesystem.xfs import xfs_mount_version
 from crash.util.symbols import Types
 
 types = Types(['struct xfs_buf *'])
-xfs_help_text = """
-NAME
-  xfs - display XFS internal data structures
 
-SYNOPSIS
-  xfs <command> [arguments ...]
+class _Parser(ArgumentParser):
+    """
+    NAME
+      xfs - display XFS internal data structures
 
-COMMANDS
-  xfs list
-  xfs show <superblock>
-  xfs dump-ail <superblock>
-  xfs dump-buft <buftarg>
-"""
+    SYNOPSIS
+      xfs <command> [arguments ...]
+
+    COMMANDS
+      xfs list
+      xfs show <superblock>
+      xfs dump-ail <superblock>
+      xfs dump-buft <buftarg>
+    """
 
 class XFSCommand(Command):
     """display XFS internal data structures"""
@@ -61,15 +63,6 @@ class XFSCommand(Command):
         buft_parser.add_argument('addr')
 
         Command.__init__(self, name, parser)
-
-    def format_help(self) -> str:
-        """
-        Returns the help text for the xfs command
-
-        Returns:
-            :obj:`str`: The help text for the xfs command.
-        """
-        return xfs_help_text
 
     def list_xfs(self, args: Namespace) -> None:
         count = 0

@@ -12,19 +12,20 @@ from crash.types.vmstat import VmStat
 from crash.util import get_symbol_value
 from crash.exceptions import MissingSymbolError
 
-kmem_help_text = """
-NAME
-  kmem - kernel memory inspection
+class _Parser(ArgumentParser):
+    """
+    NAME
+      kmem - kernel memory inspection
 
-SYNOPSIS
-  kmem addr             - try to find addr within kmem caches
-  kmem -s [slabname]    - check consistency of single or all kmem cache
-  kmem -z               - report zones
-  kmem -V               - report vmstats
+    SYNOPSIS
+      kmem addr             - try to find addr within kmem caches
+      kmem -s [slabname]    - check consistency of single or all kmem cache
+      kmem -z               - report zones
+      kmem -V               - report vmstats
 
-DESCRIPTION
-  This command currently offers very basic kmem cache query and checking.
-"""
+    DESCRIPTION
+      This command currently offers very basic kmem cache query and checking.
+    """
 
 class KmemCommand(Command):
     """ kernel memory inspection"""
@@ -40,15 +41,6 @@ class KmemCommand(Command):
         group.add_argument('address', nargs='?')
 
         super().__init__(name, parser)
-
-    def format_help(self) -> str:
-        """
-        Returns the help text for the kmem command
-
-        Returns:
-            :obj:`str`: The help text for the kmem command.
-        """
-        return kmem_help_text
 
     def execute(self, args):
         if args.z:

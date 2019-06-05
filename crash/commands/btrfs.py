@@ -8,38 +8,31 @@ from crash.exceptions import DelayedAttributeError
 from crash.subsystem.filesystem import for_each_super_block, super_fstype
 from crash.subsystem.filesystem.btrfs import btrfs_fsid, btrfs_metadata_uuid
 
-btrfs_help_text = """
-NAME
-  btrfs - display Btrfs internal data structures
+class _Parser(ArgumentParser):
+    """
+    NAME
+      btrfs - display Btrfs internal data structures
 
-SYNOPSIS
-  btrfs <command> <superblock>
+    SYNOPSIS
+      btrfs <command> <superblock>
 
-COMMANDS
-  btrfs list [-m] - list all btrfs file systems (-m to show metadata uuid)
-"""
+    COMMANDS
+      btrfs list [-m] - list all btrfs file systems (-m to show metadata uuid)
+    """
+    def format_usage(self) -> str:
+        return "btrfs <subcommand> [args...]\n"
 
 class BtrfsCommand(Command):
     """display Btrfs internal data structures"""
 
     def __init__(self, name):
-        parser = ArgumentParser(prog=name)
+        parser = _Parser(prog=name)
         subparsers = parser.add_subparsers(help="sub-command help")
         list_parser = subparsers.add_parser('list', help='list help')
         list_parser.set_defaults(subcommand=self.list_btrfs)
         list_parser.add_argument('-m', action='store_true', default=False)
 
-        parser.format_usage = lambda: 'btrfs <subcommand> [args...]\n'
         Command.__init__(self, name, parser)
-
-    def format_help(self) -> str:
-        """
-        Returns the help text for the btrfs command
-
-        Returns:
-            :obj:`str`: The help text for the btrfs command.
-        """
-        return btrfs_help_text
 
     def list_btrfs(self, args: Namespace) -> None:
         print_header = True

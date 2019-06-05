@@ -6,19 +6,20 @@ from crash.commands import Command, ArgumentParser
 import crash.cache.tasks
 import argparse
 
-task_help_text = """
-NAME
-  task - select task by pid
+class _Parser(ArgumentParser):
+    """
+    NAME
+      task - select task by pid
 
-SYNOPSIS
-  task <pid>
+    SYNOPSIS
+      task <pid>
 
-DESCRIPTION
-  This command selects the appropriate gdb thread using its Linux pid.
+    DESCRIPTION
+      This command selects the appropriate gdb thread using its Linux pid.
 
-EXAMPLES
-    task 1402
-"""
+    EXAMPLES
+        task 1402
+    """
 
 class TaskCommand(Command):
     """select task by pid"""
@@ -29,17 +30,7 @@ class TaskCommand(Command):
 
         parser.add_argument('pid', type=int, nargs=argparse.REMAINDER)
 
-        parser.format_usage = lambda: "thread <pid>\n"
         Command.__init__(self, name, parser)
-
-    def format_help(self) -> str:
-        """
-        Returns the help text for the task command
-
-        Returns:
-            :obj:`str`: The help text for the task command.
-        """
-        return task_help_text
 
     def execute(self, args):
         try:
