@@ -67,11 +67,10 @@ class Mount(object):
                                    types.mount_type, 'mnt_list')
 
     @classmethod
-    def _check_task_interface(cls, symval: gdb.Value) -> None:
-        try:
-            nsproxy = symvals.init_task['nsproxy']
+    def _check_task_interface(cls, init_task: gdb.Value) -> None:
+        if struct_has_member(init_task, 'nsproxy'):
             cls._for_each_mount = cls._for_each_mount_nsproxy
-        except KeyError:
+        else:
             raise NotImplementedError("Mount.for_each_mount is unhandled on this kernel version")
 
     def for_each_mount(self, task: gdb.Value) -> Iterator[gdb.Value]:
