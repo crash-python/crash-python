@@ -69,9 +69,9 @@ def container_of(val: gdb.Value, gdbtype: gdb.Type, member: str) -> gdb.Value:
         TypeError: val is not a gdb.Value
     """
     if not isinstance(val, gdb.Value):
-        raise ArgumentTypeError('val', type(val), gdb.Value)
+        raise ArgumentTypeError('val', val, gdb.Value)
     if not isinstance(gdbtype, gdb.Type):
-        raise ArgumentTypeError('gdbtype', type(gdbtype), gdb.Type)
+        raise ArgumentTypeError('gdbtype', gdbtype, gdb.Type)
     charp = types.char_p_type
     if val.type.code != gdb.TYPE_CODE_PTR:
         val = val.address
