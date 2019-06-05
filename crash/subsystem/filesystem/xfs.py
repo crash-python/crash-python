@@ -146,6 +146,20 @@ XFS_ILI_FLAGS = {
     XFS_ILOG_TIMESTAMP : "TIMESTAMP",
 }
 
+XFS_DQ_USER = 0x0001   # a user quota
+XFS_DQ_PROJ = 0x0002   # project quota
+XFS_DQ_GROUP = 0x0004  # a group quota
+XFS_DQ_DIRTY = 0x0008  # dquot is dirty
+XFS_DQ_FREEING = 0x0010 # dquot is being torn down
+
+XFS_DQ_FLAGS = {
+    XFS_DQ_USER    : "USER",
+    XFS_DQ_PROJ    : "PROJ",
+    XFS_DQ_GROUP   : "GROUP",
+    XFS_DQ_DIRTY   : "DIRTY",
+    XFS_DQ_FREEING : "FREEING",
+}
+
 XFS_MOUNT_WSYNC         = (1 << 0)
 XFS_MOUNT_UNMOUNTING    = (1 << 1)
 XFS_MOUNT_DMAPI         = (1 << 2)

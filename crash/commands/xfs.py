@@ -22,9 +22,10 @@ from crash.subsystem.filesystem.xfs import XFS_LI_EFI, XFS_LI_EFD
 from crash.subsystem.filesystem.xfs import XFS_LI_IUNLINK, XFS_LI_INODE
 from crash.subsystem.filesystem.xfs import XFS_LI_BUF, XFS_LI_DQUOT
 from crash.subsystem.filesystem.xfs import XFS_LI_QUOTAOFF, XFS_BLI_FLAGS
+from crash.subsystem.filesystem.xfs import XFS_DQ_FLAGS
 from crash.subsystem.filesystem.xfs import xfs_mount_flags, xfs_mount_uuid
 from crash.subsystem.filesystem.xfs import xfs_mount_version
-
+from crash.util import decode_flags
 from crash.util.symbols import Types
 
 types = Types(['struct xfs_buf *'])
@@ -126,20 +127,12 @@ class XFSCommand(Command):
                           XFS_LI_TYPES[li_type][7:]), end='')
             if li_type == XFS_LI_BUF:
                 buf = item['bli_buf']
-                flags = []
-                bli_flags = int(item['bli_flags'])
-
-                for flag in XFS_BLI_FLAGS.keys():
-                    if flag & bli_flags:
-                        flags.append(XFS_BLI_FLAGS[flag])
-
-                print(" buf@{:x} bli_flags={}"
-                      .format(int(buf), "|".join(flags)))
+                flags = decode_flags(item['bli_flags'], XFS_BLI_FLAGS)
+                print(" buf@{:x} bli_flags={}" .format(int(buf), flags))
 
                 print("     {}".format(xfs_format_xfsbuf(buf)))
             elif li_type == XFS_LI_INODE:
                 ili_flags = int(item['ili_lock_flags'])
-                flags = []
                 xfs_inode = item['ili_inode']
                 print("inode@{:x} i_ino={} ili_lock_flags={:x} "
                       .format(int(xfs_inode['i_vnode'].address),
@@ -156,7 +149,8 @@ class XFSCommand(Command):
                               int(efd['efd_nextents']), int(efd['efd_id'])))
             elif li_type == XFS_LI_DQUOT:
                 dquot = item['qli_dquot']
-                print("dquot@{:x}".format(int(dquot), int(dquot['dq_flags'])))
+                flags = decode_flags(dquot['dq_flags'], XFS_DQ_FLAGS)
+                print("dquot@{:x} flags={}".format(int(dquot), flags))
             elif li_type == XFS_LI_QUOTAOFF:
                 qoff = item['qql_format']
                 print("qoff@{:x} type={} size={} flags={}"
