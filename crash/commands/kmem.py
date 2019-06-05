@@ -94,12 +94,16 @@ class KmemCommand(Command):
                 print("FREE object %x from slab %s" % (obj[1], name))
             elif obj[2] is not None:
                 ac = obj[2]
-                if ac["ac_type"] == "percpu":
-                    ac_desc = "cpu %d cache" % ac["nid_tgt"]
-                elif ac["ac_type"] == "shared":
-                    ac_desc = "shared cache on node %d" % ac["nid_tgt"]
-                elif ac["ac_type"] == "alien":
-                    ac_desc = "alien cache of node %d for node %d" % (ac["nid_src"], ac["nid_tgt"])
+                ac_type = ac['ac_type'] # pylint: disable=unsubscriptable-object
+                nid_tgt = ac['nid_tgt'] # pylint: disable=unsubscriptable-object
+                if ac_type == "percpu":
+                    ac_desc = "cpu %d cache" % nid_tgt
+                elif ac_type == "shared":
+                    ac_desc = "shared cache on node %d" % nid_tgt
+                elif ac_type == "alien":
+                    nid_src = ac['nid_src'] # pylint: disable=unsubscriptable-object
+                    ac_desc = "alien cache of node %d for node %d" % \
+                        (nid_src, nid_tgt)
                 else:
                     raise CommandError(f"unexpected array cache type {str(ac)}")
 

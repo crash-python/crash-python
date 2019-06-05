@@ -38,6 +38,8 @@ class LinuxPGT(object):
         level = self.step.remain - 1
         self.table = self.table_names[level - 1]
         self.ptr = self.step.base.copy()
+        # self.step.idx is a 9-tuple
+        # pylint: disable=unsubscriptable-object
         self.ptr.addr += self.step.idx[level] * self.step.elemsz
 
         self.note = ''
