@@ -143,6 +143,7 @@ class Types(DelayedCollection):
         >>> t = gdb.lookup_type('struct foo')
         >>> types.override('struct foo', t)
         """
+        # pylint: disable=unused-variable
         (name, attrname, pointer) = TypeCallback.resolve_type(name)
 
         super().override(name, value)

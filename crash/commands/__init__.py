@@ -70,4 +70,5 @@ def discover() -> None:
 
     mods = __all__
     for mod in mods:
+        # pylint: disable=unused-variable
         x = importlib.import_module("crash.commands.{}".format(mod))

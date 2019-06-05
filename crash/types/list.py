@@ -115,7 +115,7 @@ def list_for_each(list_head: gdb.Value, include_head: bool = False,
                 # are we detecting cycles? advance fast 2 times and compare
                 # each with our current node (Floyd's Tortoise and Hare
                 # algorithm)
-                for i in range(2):
+                for i in range(2): # pylint: disable=unused-variable
                     fast = fast[next_].dereference()
                     if node.address == fast.address:
                         raise ListCycleError("Cycle in list detected.")

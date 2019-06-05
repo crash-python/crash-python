@@ -136,7 +136,6 @@ class Slab(object):
         if self.free:
             return
 
-        bufsize = self.kmem_cache.buffer_size
         objs_per_slab = self.kmem_cache.objs_per_slab
 
         if self.page_slab:
@@ -214,6 +213,7 @@ class Slab(object):
     def get_objects(self) -> Iterable[int]:
         bufsize = self.kmem_cache.buffer_size
         obj = self.s_mem
+        # pylint: disable=unused-variable
         for i in range(self.kmem_cache.objs_per_slab):
             yield obj
             obj += bufsize
@@ -369,7 +369,6 @@ class KmemCache(object):
     def __fill_array_cache(self, acache: gdb.Value, ac_type: str,
                            nid_src: int, nid_tgt: int) -> None:
         avail = int(acache["avail"])
-        limit = int(acache["limit"])
 
         # TODO check avail > limit
         if avail == 0:
@@ -459,6 +458,7 @@ class KmemCache(object):
                 yield obj
 
     def get_allocated_objects(self) -> Iterable[int]:
+        # pylint: disable=unused-variable
         for (nid, node) in self.__get_nodelists():
             for obj in self.__get_allocated_objects(node, slab_partial):
                 yield obj
@@ -577,13 +577,6 @@ class KmemCache(object):
 
         print("checking {} slab list {:#x}".format(slab_list_name[slabtype],
                                                    int(slab_list.address)))
-
-        errors = {'first_ok': None,
-                  'last_ok': None,
-                  'num_ok': 0,
-                  'first_misplaced': None,
-                  'last_misplaced': None,
-                  'num_misplaced': 0}
 
         (check_ok, slabs, free) = self.___check_slabs(node, slabtype, nid)
 

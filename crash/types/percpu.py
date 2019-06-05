@@ -155,11 +155,7 @@ class PerCPUState(object):
 
 
     def _setup_dynamic_offset_cache_bitmap(self, chunk: gdb.Value) -> None:
-        group_offset = int(symvals.pcpu_group_offsets[0])
         size_in_bytes = int(chunk['nr_pages']) * Page.PAGE_SIZE
-        size_in_bits = size_in_bytes << 3
-        start = -1
-        end = 0
 
         chunk_base = int(chunk["base_addr"]) - int(symvals.pcpu_base_addr)
         self._add_to_offset_cache(chunk_base, 0, size_in_bytes)

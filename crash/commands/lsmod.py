@@ -69,13 +69,9 @@ class ModuleCommand(Command):
 
     def execute(self, argv: argparse.Namespace) -> None:
         regex = None
-        show_deps = True
         print_header = True
         if argv.args:
             regex = re.compile(fnmatch.translate(argv.args[0]))
-
-        if argv.p is not None:
-            show_deps = False
 
         core_layout = None
 

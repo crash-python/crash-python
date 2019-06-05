@@ -17,7 +17,7 @@ class x86_64Architecture(CrashArchitecture):
             self._fetch_register_scheduled = \
                 self.fetch_register_scheduled_inactive
             self.inactive_task_frame_type = inactive
-        except gdb.error as e:
+        except gdb.error:
             try:
                 thread_return = gdb.lookup_minimal_symbol("thread_return")
                 self.thread_return = thread_return.value().address
@@ -46,7 +46,7 @@ class x86_64Architecture(CrashArchitecture):
                 continue
             try:
                 thread.registers[reg].value = task.regs[reg]
-            except KeyError as e:
+            except KeyError:
                 pass
 
     def fetch_register_scheduled(self, thread: gdb.InferiorThread,

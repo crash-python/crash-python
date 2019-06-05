@@ -216,7 +216,7 @@ class LogCommand(Command):
                      dict_needed: bool = False) -> Iterable[Dict[str, Any]]:
         try:
             idx = symvals.log_first_idx
-        except DelayedAttributeError as e:
+        except DelayedAttributeError:
             raise LogTypeException('not structured log')
 
         if symvals.clear_seq < symvals.log_first_seq:
@@ -262,13 +262,13 @@ class LogCommand(Command):
         try:
             self.handle_structured_log(args)
             return
-        except LogTypeException as lte:
+        except LogTypeException:
             pass
 
         try:
             self.handle_logbuf(args)
             return
-        except LogTypeException as lte:
+        except LogTypeException:
             pass
         except LogInvalidOption as lio:
             raise CommandError(str(lio))

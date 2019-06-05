@@ -103,7 +103,7 @@ def struct_has_member(gdbtype: TypeSpecifier, name: str) -> bool:
     """
     gdbtype = resolve_type(gdbtype)
     try:
-        x = offsetof(gdbtype, name)
+        x = offsetof(gdbtype, name) # pylint: disable=unused-variable
         return True
     except InvalidComponentError:
         return False
@@ -383,7 +383,6 @@ def array_for_each(value: gdb.Value) -> Iterator[gdb.Value]:
     Yields:
         gdb.Value: One element in the array at a time
     """
-    size = array_size(value)
     for i in range(array_size(value)):
         yield value[i]
 

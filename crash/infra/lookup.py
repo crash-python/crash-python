@@ -239,7 +239,7 @@ class TypeCallback(NamedCallback):
     def check_ready(self) -> Union[None, gdb.Type]:
         try:
             return gdb.lookup_type(self.name, self.block)
-        except gdb.error as e:
+        except gdb.error:
             return None
 
     def __str__(self) -> str:

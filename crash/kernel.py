@@ -281,7 +281,7 @@ class CrashKernel(object):
                     obj.add_separate_debug_file(path)
                     if obj.has_symbols():
                         break
-                except gdb.error as e:
+                except gdb.error:
                     pass
 
         if not obj.has_symbols():
@@ -527,6 +527,7 @@ class CrashKernel(object):
                 return
             self.findmap[path]['filters'].append(pattern)
 
+        # pylint: disable=unused-variable
         for root, dirs, files in os.walk(path):
             for filename in files:
                 modname = self.normalize_modname(filename)
@@ -611,8 +612,6 @@ class CrashKernel(object):
         import crash.cache.tasks
         gdb.execute('set print thread-events 0')
 
-        task_list = self.symvals.init_task['tasks']
-
         rqs = get_percpu_vars(self.symbols.runqueues)
         rqscurrs = {int(x["curr"]) : k for (k, x) in rqs.items()}
 
@@ -622,7 +621,7 @@ class CrashKernel(object):
         task_count = 0
         try:
             crashing_cpu = int(get_symbol_value('crashing_cpu'))
-        except Exception as e:
+        except Exception:
             crashing_cpu = -1
 
         for task in for_each_all_tasks():
@@ -639,7 +638,7 @@ class CrashKernel(object):
 
             try:
                 thread = gdb.selected_inferior().new_thread(ptid, ltask)
-            except gdb.error as e:
+            except gdb.error:
                 print("Failed to setup task @{:#x}".format(int(task.address)))
                 continue
             thread.name = task['comm'].string()

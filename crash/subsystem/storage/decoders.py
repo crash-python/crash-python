@@ -183,13 +183,13 @@ def register_decoder(endio: EndIOSpecifier, decoder: Type[Decoder]) -> None:
     if isinstance(endio, str):
         if debug:
             print(f"Registering {endio} as callback")
-        x = SymbolCallback(endio, lambda a: register_decoder(a, decoder))
+        SymbolCallback(endio, lambda a: register_decoder(a, decoder))
         return
     elif isinstance(endio, list) and isinstance(endio[0], str):
         for sym in endio:
             if debug:
                 print(f"Registering {sym} as callback")
-            x = SymbolCallback(sym, lambda a: register_decoder(a, decoder))
+            SymbolCallback(sym, lambda a: register_decoder(a, decoder))
         return
 
     if isinstance(endio, gdb.Symbol):

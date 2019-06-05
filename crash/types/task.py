@@ -503,7 +503,7 @@ class LinuxTask(object):
         """
         try:
             fn = getattr(self, '_get_stack_pointer_fn')
-        except AttributeError as e:
+        except AttributeError:
             raise NotImplementedError("Architecture hasn't provided stack pointer callback")
 
         return int(fn(self.task_struct['thread']))
@@ -516,9 +516,8 @@ class LinuxTask(object):
 
     def _get_rss_stat_field(self) -> int:
         stat = self.task_struct['mm']['rss_stat']['count']
-        stat0 = self.task_struct['mm']['rss_stat']['count'][0]
         rss = 0
-        for i in range(stat.type.sizeof // stat[0].type.sizeof):
+        for i in range(array_size(stat)):
             rss += int(stat[i]['counter'])
         return rss
 

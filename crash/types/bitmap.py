@@ -61,6 +61,7 @@ def for_each_set_bit(bitmap: gdb.Value,
         ulong = bitmap[idx]
 
         if ulong != 0:
+            # pylint: disable=unused-variable
             for off in range(min(size, bits_per_ulong)):
                 if ulong & 1 != 0:
                     yield bit
