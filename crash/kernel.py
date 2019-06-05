@@ -344,21 +344,15 @@ class CrashKernel(object):
     def extract_modinfo_from_module(self, modpath: str) -> Dict[str, str]:
         f = open(modpath, 'rb')
 
-        d = None
-        try:
-            elf = ELFFile(f)
-            modinfo = elf.get_section_by_name('.modinfo')
+        elf = ELFFile(f)
+        modinfo = elf.get_section_by_name('.modinfo')
 
-            d = {}
-            for line in modinfo.data().split(b'\x00'):
-                val = line.decode('utf-8')
-                if val:
-                    eq = val.index('=')
-                    d[val[0:eq]] = val[eq + 1:]
-        except Exception as e:
-            print(e)
-            del d
-            d = dict()
+        d = {}
+        for line in modinfo.data().split(b'\x00'):
+            val = line.decode('utf-8')
+            if val:
+                eq = val.index('=')
+                d[val[0:eq]] = val[eq + 1:]
 
         del elf
         f.close()
@@ -631,7 +625,7 @@ class CrashKernel(object):
         task_count = 0
         try:
             crashing_cpu = int(get_symbol_value('crashing_cpu'))
-        except Exception:
+        except MissingSymbolError:
             crashing_cpu = -1
 
         for task in for_each_all_tasks():

@@ -9,6 +9,7 @@ from crash.util import find_member_variant
 from crash.util.symbols import Types, Symvals, TypeCallbacks
 from crash.util.symbols import SymbolCallbacks, MinimalSymbolCallbacks
 from crash.cache.syscache import config
+from crash.exceptions import DelayedAttributeError
 
 import gdb
 
@@ -137,7 +138,7 @@ class Page(object):
         # TODO: handle kernels with no space for nodes in page flags
         try:
             cls.NODES_WIDTH = int(config['NODES_SHIFT'])
-        except:
+        except (KeyError, DelayedAttributeError):
             # XXX
             print("Unable to determine NODES_SHIFT from config, trying 8")
             cls.NODES_WIDTH = 8

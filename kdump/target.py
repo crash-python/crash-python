@@ -88,7 +88,7 @@ class Target(gdb.Target):
     def close(self) -> None:
         try:
             self.unregister()
-        except:
+        except RuntimeError:
             pass
         del self.kdump
 

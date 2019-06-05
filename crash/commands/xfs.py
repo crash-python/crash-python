@@ -20,7 +20,7 @@ from crash.subsystem.filesystem.xfs import XFS_LI_QUOTAOFF, XFS_BLI_FLAGS
 from crash.subsystem.filesystem.xfs import XFS_DQ_FLAGS
 from crash.subsystem.filesystem.xfs import xfs_mount_flags, xfs_mount_uuid
 from crash.subsystem.filesystem.xfs import xfs_mount_version
-from crash.util import decode_flags
+from crash.util import decode_flags, struct_has_member
 from crash.util.symbols import Types
 
 import gdb
@@ -111,9 +111,11 @@ class XFSCommand(Command):
         print("target={} last_pushed_lsn={} log_flush="
               .format(int(ail['xa_target']), int(ail['xa_last_pushed_lsn'])),
               end='')
-        try:
+
+        # This was added in Linux v3.2 (670ce93fef93b)
+        if struct_has_member(ail, 'xa_log_flush'):
             print("{}".format(int(ail['xa_log_flush'])))
-        except:
+        else:
             print("[N/A]")
 
         for bitem in xfs_for_each_ail_log_item(mp):

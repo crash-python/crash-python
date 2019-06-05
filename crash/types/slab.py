@@ -10,7 +10,7 @@ import traceback
 from crash.util import container_of, find_member_variant
 from crash.util.symbols import Types, TypeCallbacks, SymbolCallbacks
 from crash.types.percpu import get_percpu_var
-from crash.types.list import list_for_each, list_for_each_entry
+from crash.types.list import list_for_each, list_for_each_entry, ListError
 from crash.types.page import page_from_gdb_obj, page_from_addr, Page
 from crash.types.node import for_each_nid
 from crash.types.cpu import for_each_online_cpu
@@ -282,7 +282,7 @@ class Slab(object):
                 print(ac[obj])
             try:
                 page = page_from_addr(obj).compound_head()
-            except:
+            except gdb.NotAvailableError:
                 self.__error(": failed to get page for object %x" % obj)
                 continue
 
@@ -484,7 +484,7 @@ class KmemCache(object):
                     continue
 
                 slab = Slab.from_list_head(list_head, self)
-            except:
+            except gdb.NotAvailableError:
                 traceback.print_exc()
                 print("failed to initialize slab object from list_head {:#x}: {}"
                       .format(int(list_head), sys.exc_info()[0]))
@@ -547,13 +547,13 @@ class KmemCache(object):
                                                exact_cycles=True):
                 try:
                     free += self.__check_slab(slab, slabtype, nid, errors)
-                except Exception as e:
+                except gdb.NotAvailableError as e:
                     print(col_error("Exception when checking slab {:#x}:{}"
                                     .format(int(slab.gdb_obj.address), e)))
                     traceback.print_exc()
                 slabs += 1
 
-        except Exception as e:
+        except (gdb.NotAvailableError, ListError) as e:
             print(col_error("Unrecoverable error when traversing {} slab list: {}"
                             .format(slab_list_name[slabtype], e)))
             check_ok = False
