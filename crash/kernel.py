@@ -26,27 +26,22 @@ class NoMatchingFileError(FileNotFoundError):
     pass
 
 class ModinfoMismatchError(ValueError):
+    _fmt = "module {} has mismatched {} (got `{}' expected `{}')"
     def __init__(self, attribute, path, value, expected_value):
+        msg = self._fmt.format(path, attribute, value, expected_value)
+        super().__init__(msg)
         self.path = path
         self.value = value
         self.expected_value = expected_value
         self.attribute = attribute
 
-    def __str__(self):
-        return "module {} has mismatched {} (got `{}' expected `{}')".format(
-                    self.path, self.attribute, self.value, self.expected_value)
-
 class ModVersionMismatchError(ModinfoMismatchError):
     def __init__(self, path, module_value, expected_value):
-        super(ModVersionMismatchError, self).__init__('vermagic',
-                                                   path, module_value,
-                                                   expected_value)
+        super().__init__('vermagic', path, module_value, expected_value)
 
 class ModSourceVersionMismatchError(ModinfoMismatchError):
     def __init__(self, path, module_value, expected_value):
-        super(ModSourceVersionMismatchError, self).__init__('srcversion',
-                                                   path, module_value,
-                                                   expected_value)
+        super().__init__('srcversion', path, module_value, expected_value)
 
 LINUX_KERNEL_PID = 1
 
