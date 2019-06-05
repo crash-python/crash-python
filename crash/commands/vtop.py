@@ -37,6 +37,9 @@ class LinuxPGT(object):
 
         level = self.step.remain - 1
         self.table = self.table_names[level - 1]
+        # pylint is picking up base as _addrxlat.FullAddress instead of
+        # addrxlat.FullAddress
+        # pylint: disable=no-member
         self.ptr = self.step.base.copy()
         # self.step.idx is a 9-tuple
         # pylint: disable=unsubscriptable-object
@@ -45,7 +48,7 @@ class LinuxPGT(object):
         self.note = ''
         try:
             self.step.step()
-        except addrxlat.exceptions.NotPresentError:
+        except addrxlat.exceptions.NotPresentError: # pylint: disable=no-member
             self.note = ' (NOT PRESENT)'
             self.step.remain = 0
         return True
@@ -63,8 +66,8 @@ class LinuxNonAutoPGT(LinuxPGT):
         try:
             tmp.conv(addrxlat.KPHYSADDR, self.context, self.system)
             return addr + '{:x} [phys]'.format(tmp.addr)
-        except (addrxlat.exceptions.NotPresentError,
-                addrxlat.exceptions.NoDataError):
+        except (addrxlat.exceptions.NotPresentError, # pylint: disable=no-member
+                addrxlat.exceptions.NoDataError):    # pylint: disable=no-member
             return addr + 'N/A'
 
 class _Parser(ArgumentParser):

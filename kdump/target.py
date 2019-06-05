@@ -31,6 +31,8 @@ class SymbolCallback(object):
             ms = gdb.lookup_minimal_symbol(args[0])
             if ms is not None:
                 return int(ms.value().address)
+
+        # pylint: disable=no-member
         raise addrxlat.exceptions.NoDataError()
 
 class Target(gdb.Target):
@@ -62,7 +64,7 @@ class Target(gdb.Target):
 
         KERNELOFFSET = "linux.vmcoreinfo.lines.KERNELOFFSET"
         try:
-            attr = self.kdump.attr.get(KERNELOFFSET, "0")
+            attr = self.kdump.attr.get(KERNELOFFSET, "0") # pylint: disable=no-member
             self.base_offset = int(attr, base=16)
         except (TypeError, ValueError):
             pass
@@ -109,7 +111,7 @@ class Target(gdb.Target):
                 if self.debug:
                     self.report_error(offset, ln, e)
                 raise gdb.TargetXferEOF(str(e))
-            except addrxlat.exceptions.NoDataError as e:
+            except addrxlat.exceptions.NoDataError as e: # pylint: disable=no-member
                 if self.debug:
                     self.report_error(offset, ln, e)
                 raise gdb.TargetXferUnavailable(str(e))
@@ -121,6 +123,7 @@ class Target(gdb.Target):
             raise IOError("Unknown obj type")
         return ret
 
+    # pylint: disable=unused-argument
     def thread_alive(self, ptid: PTID) -> bool:
         return True
 

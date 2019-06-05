@@ -64,6 +64,7 @@ class ObjfileEventCallback(object):
                 self.completed = completed
 
         if self.completed is False:
+            # pylint: disable=no-member
             gdb.events.new_objfile.connect(self._new_objfile_callback)
 
         return self.completed
@@ -76,6 +77,7 @@ class ObjfileEventCallback(object):
             :obj:`CallbackCompleted`: This callback has already been completed.
         """
         if not self.completed:
+            # pylint: disable=no-member
             gdb.events.new_objfile.disconnect(self._new_objfile_callback)
             self.completed = True
             self.connected = False
@@ -86,6 +88,7 @@ class ObjfileEventCallback(object):
     @classmethod
     def _setup_symbol_cache_flush_callback(cls) -> None:
         if not cls._symbol_cache_flush_setup:
+            # pylint: disable=no-member
             gdb.events.new_objfile.connect(cls._flush_symbol_cache_callback)
             cls._symbol_cache_flush_setup = True
 
