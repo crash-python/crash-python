@@ -262,18 +262,34 @@ types = Types(['struct xfs_log_item', 'struct xfs_buf_log_item',
                'struct xfs_qoff_logitem', 'struct xfs_inode',
                'struct xfs_mount *', 'struct xfs_buf *'])
 
-class _XFS(object):
+class XFS(object):
     """
     XFS File system state class.  Not meant to be instantiated directly.
     """
     _ail_head_name = None
 
     @classmethod
-    def _detect_ail_version(cls, gdbtype: gdb.Type) -> None:
+    def detect_ail_version(cls, gdbtype: gdb.Type) -> None:
+        """
+        Detect what version of the ail structure is in use
+
+        Linux v4.17 renamed the xfs_ail members to use
+        ail_* instead of xa_* except for xa_ail which
+        was renamed to ail_head.
+
+        Meant to be used as a TypeCallback.
+
+        Args:
+            gdbtype: The ``struct xfs_ail` type.
+        """
         if struct_has_member(gdbtype, 'ail_head'):
             cls._ail_head_name = 'ail_head'
         else:
             cls._ail_head_name = 'xa_ail'
+
+    @classmethod
+    def get_ail_head(cls, ail: gdb.Value) -> gdb.Value:
+        return ail[cls._ail_head_name]
 
 def is_xfs_super(super_block: gdb.Value) -> bool:
     """
@@ -407,7 +423,7 @@ def xfs_for_each_ail_entry(ail: gdb.Value) -> Iterable[gdb.Value]:
     Raises:
         :obj:`gdb.NotAvailableError`: The target value was not available.
     """
-    head = ail[_XFS._ail_head_name]
+    head = XFS.get_ail_head(ail)
     for item in list_for_each_entry(head, types.xfs_log_item_type, 'li_ail'):
         yield item
 
@@ -646,4 +662,4 @@ def xfs_for_each_ail_log_item_typed(mp: gdb.Value) -> gdb.Value:
     for item in types.xfs_for_each_ail_log_item(mp):
         yield types.xfs_log_item_typed(item)
 
-type_cbs = TypeCallbacks([('struct xfs_ail', _XFS._detect_ail_version)])
+type_cbs = TypeCallbacks([('struct xfs_ail', XFS.detect_ail_version)])

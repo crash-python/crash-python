@@ -61,7 +61,20 @@ class TaskStateFlags(object):
         return v != cls.TASK_FLAG_UNINITIALIZED
 
     @classmethod
-    def _task_state_flags_callback(cls, symbol: gdb.Symbol) -> None:
+    def task_state_flags_callback(cls, symbol: gdb.Symbol) -> None:
+        # pylint: disable=unused-argument
+        """
+        Detect which task flags this kernel uses.
+
+        Meant to be used as a SymbolCallback.
+
+        Different kernels use different task flags or even different values
+        for the same flags.  This method tries to determine the flags for
+            the kernel.
+
+        Args:
+            symbol: The ``task_state_array`` symbol.
+        """
         task_state_array = symbol.value()
         count = array_size(task_state_array)
 
@@ -166,7 +179,7 @@ class TaskStateFlags(object):
                                .format(",".join(missing)))
 
 symbol_cbs = SymbolCallbacks([('task_state_array',
-                               TaskStateFlags._task_state_flags_callback)])
+                               TaskStateFlags.task_state_flags_callback)])
 
 TF = TaskStateFlags
 

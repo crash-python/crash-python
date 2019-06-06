@@ -95,7 +95,16 @@ class NodeStates(object):
     nids_possible: List[int] = list()
 
     @classmethod
-    def _setup_node_states(cls, node_states_sym: gdb.Symbol) -> None:
+    def setup_node_states(cls, node_states_sym: gdb.Symbol) -> None:
+        """
+        Detect names of node states and which nodes are possible
+        and online.
+
+        Meant to be used as a SymbolCallback.
+
+        Args:
+            node_states_sym: The ``node_states`` symbol.
+        """
 
         node_states = node_states_sym.value()
         enum_node_states = gdb.lookup_type("enum node_states")
@@ -135,7 +144,7 @@ class NodeStates(object):
         for nid in self.nids_online:
             yield nid
 
-symbol_cbs = SymbolCallbacks([('node_states', NodeStates._setup_node_states)])
+symbol_cbs = SymbolCallbacks([('node_states', NodeStates.setup_node_states)])
 
 _state = NodeStates()
 

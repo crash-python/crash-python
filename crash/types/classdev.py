@@ -17,15 +17,36 @@ types = Types(['struct device', 'struct device_private'])
 class ClassdevState(object):
     _class_is_private = True
 
-    #v5.1-rc1 moved knode_class from struct device to struct device_private
     @classmethod
-    def _setup_iterator_type(cls, gdbtype: gdb.Type) -> None:
+    def setup_iterator_type(cls, gdbtype: gdb.Type) -> None:
+        """
+        Detect whether to iterate the class list using ``struct device``
+        or ``struct device_private``.
+
+        Linux v5.1-rc1 moved ``knode_class`` from ``struct device`` to
+        ``struct device_private``.  We need to detect it here to ensure
+        list iteration works properly.
+
+        Meant to be used as a TypeCallback.
+
+        Args:
+            gdbtype: The ``struct device`` type.
+        """
         if struct_has_member(gdbtype, 'knode_class'):
             cls._class_is_private = False
 
+    @classmethod
+    def class_is_private(cls) -> bool:
+        """
+        Returns whether the class device uses ``struct device_private``
+
+        Meant to be used only be crash.types.classdev.
+        """
+        return cls._class_is_private
+
 
 type_cbs = TypeCallbacks([('struct device',
-                           ClassdevState._setup_iterator_type)])
+                           ClassdevState.setup_iterator_type)])
 
 def for_each_class_device(class_struct: gdb.Value,
                           subtype: gdb.Value = None) -> Iterable[gdb.Value]:
@@ -46,12 +67,12 @@ def for_each_class_device(class_struct: gdb.Value,
     klist = class_struct['p']['klist_devices']
 
     container_type = types.device_type
-    if ClassdevState._class_is_private:
+    if ClassdevState.class_is_private():
         container_type = types.device_private_type
 
     for knode in klist_for_each(klist):
         dev = container_of(knode, container_type, 'knode_class')
-        if ClassdevState._class_is_private:
+        if ClassdevState.class_is_private():
             dev = dev['device'].dereference()
 
         if subtype is None or int(subtype) == int(dev['type']):

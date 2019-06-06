@@ -130,149 +130,14 @@ class CrashKernel(object):
         self.modules_order: Dict[str, Dict[str, str]] = dict()
         obj = gdb.objfiles()[0]
         kernel = os.path.basename(obj.filename)
-        debugroot = "/usr/lib/debug"
 
-        version = self.extract_version()
+        self.kernel = kernel
+        self.version = self.extract_version()
 
-        if roots is None:
-            self.roots = ["/"]
-        elif (isinstance(roots, list) and roots and
-              isinstance(roots[0], str)):
-            x = None
-            for root in roots:
-                if os.path.exists(root):
-                    if x is None:
-                        x = [root]
-                    else:
-                        x.append(root)
-                else:
-                    print("root {} does not exist".format(root))
-
-            if x is None:
-                x = ["/"]
-            self.roots = x
-        elif isinstance(roots, str):
-            x = None
-            if os.path.exists(roots):
-                if x is None:
-                    x = [roots]
-                else:
-                    x.append(roots)
-            if x is None:
-                x = ["/"]
-            self.roots = x
-        else:
-            raise InvalidArgumentError("roots must be None, str, or list of str")
-
-        if verbose:
-            print("roots={}".format(self.roots))
-
-        if vmlinux_debuginfo is None:
-            x = []
-            defaults = [
-                "{}.debug".format(kernel),
-                "vmlinux-{}.debug".format(version),
-                "{}/{}.debug".format(debugroot, kernel),
-                "{}/boot/{}.debug".format(debugroot,
-                                          os.path.basename(kernel)),
-                "{}/boot/vmlinux-{}.debug".format(debugroot, version),
-            ]
-            for root in self.roots:
-                for mpath in defaults:
-                    path = "{}/{}".format(root, mpath)
-                    if os.path.exists(path):
-                        if x is None:
-                            x = [path]
-                        else:
-                            x.append(path)
-
-            self.vmlinux_debuginfo = x
-
-        elif (isinstance(vmlinux_debuginfo, list) and
-              vmlinux_debuginfo and isinstance(vmlinux_debuginfo[0], str)):
-            self.vmlinux_debuginfo = vmlinux_debuginfo
-        elif isinstance(vmlinux_debuginfo, str):
-            self.vmlinux_debuginfo = [vmlinux_debuginfo]
-        else:
-            raise InvalidArgumentError("vmlinux_debuginfo must be None, str, or list of str")
-
-        if verbose:
-            print("vmlinux_debuginfo={}".format(self.vmlinux_debuginfo))
-
-        if module_path is None:
-            x = []
-
-            path = "modules"
-            if os.path.exists(path):
-                x.append(path)
-
-            for root in self.roots:
-                path = "{}/lib/modules/{}".format(root, version)
-                if os.path.exists(path):
-                    x.append(path)
-
-            self.module_path = x
-        elif (isinstance(module_path, list) and
-              isinstance(module_path[0], str)):
-            x = []
-
-            for root in self.roots:
-                for mpath in module_path:
-                    path = "{}/{}".format(root, mpath)
-                    if os.path.exists(path):
-                        x.append(path)
-
-            self.module_path = x
-        elif isinstance(module_path, str):
-            x = []
-
-            if os.path.exists(module_path):
-                x.append(module_path)
-
-            self.module_path = x
-        else:
-            raise InvalidArgumentError("module_path must be None, str, or list of str")
-
-        if verbose:
-            print("module_path={}".format(self.module_path))
-
-        if module_debuginfo_path is None:
-            x = []
-
-            path = "modules.debug"
-            if os.path.exists(path):
-                x.append(path)
-
-            for root in self.roots:
-                path = "{}/{}/lib/modules/{}".format(root, debugroot, version)
-                if os.path.exists(path):
-                    x.append(path)
-            self.module_debuginfo_path = x
-        elif (isinstance(module_debuginfo_path, list) and
-              isinstance(module_debuginfo_path[0], str)):
-            x = []
-
-            for root in self.roots:
-                for mpath in module_debuginfo_path:
-                    path = "{}/{}".format(root, mpath)
-                    if os.path.exists(path):
-                        x.append(path)
-
-            self.module_debuginfo_path = x
-        elif isinstance(module_debuginfo_path, str):
-            x = []
-
-            for root in self.roots:
-                path = "{}/{}".format(root, module_debuginfo_path)
-                if os.path.exists(path):
-                    x.append(path)
-
-            self.module_debuginfo_path = x
-        else:
-            raise InvalidArgumentError("module_debuginfo_path must be None, str, or list of str")
-
-        if verbose:
-            print("module_debuginfo_path={}".format(self.module_debuginfo_path))
+        self._setup_roots(roots, verbose)
+        self._setup_vmlinux_debuginfo(vmlinux_debuginfo)
+        self._setup_module_path(module_path, verbose)
+        self._setup_module_debuginfo_path(module_debuginfo_path, verbose)
 
         # We need separate debuginfo.  Let's go find it.
         if not obj.has_symbols():
@@ -305,9 +170,153 @@ class CrashKernel(object):
         self.target.fetch_registers = self.fetch_registers
         self.crashing_thread = None
 
+    def _setup_roots(self, roots: PathSpecifier = None,
+                     verbose: bool = False) -> None:
+        if roots is None:
+            self.roots = ["/"]
+        elif isinstance(roots, list) and roots and isinstance(roots[0], str):
+            x = None
+            for root in roots:
+                if os.path.exists(root):
+                    if x is None:
+                        x = [root]
+                    else:
+                        x.append(root)
+                else:
+                    print("root {} does not exist".format(root))
+
+            if x is None:
+                x = ["/"]
+            self.roots = x
+        elif isinstance(roots, str):
+            x = None
+            if os.path.exists(roots):
+                if x is None:
+                    x = [roots]
+                else:
+                    x.append(roots)
+            if x is None:
+                x = ["/"]
+            self.roots = x
+        else:
+            raise InvalidArgumentError("roots must be None, str, or list of str")
+        if verbose:
+            print("roots={}".format(self.roots))
+
+    def _setup_vmlinux_debuginfo(self, vmlinux_debuginfo: PathSpecifier = None,
+                                 verbose: bool = False) -> None:
+        debugroot = "/usr/lib/debug"
+        if vmlinux_debuginfo is None:
+            x: List[str] = []
+            defaults = [
+                "{}.debug".format(self.kernel),
+                "vmlinux-{}.debug".format(self.version),
+                "{}/{}.debug".format(debugroot, self.kernel),
+                "{}/boot/{}.debug".format(debugroot,
+                                          os.path.basename(self.kernel)),
+                "{}/boot/vmlinux-{}.debug".format(debugroot, self.version),
+            ]
+            for root in self.roots:
+                for mpath in defaults:
+                    path = "{}/{}".format(root, mpath)
+                    if os.path.exists(path):
+                        if x is None:
+                            x = [path]
+                        else:
+                            x.append(path)
+
+            self.vmlinux_debuginfo = x
+
+        elif (isinstance(vmlinux_debuginfo, list) and vmlinux_debuginfo and
+              isinstance(vmlinux_debuginfo[0], str)):
+            self.vmlinux_debuginfo = vmlinux_debuginfo
+        elif isinstance(vmlinux_debuginfo, str):
+            self.vmlinux_debuginfo = [vmlinux_debuginfo]
+        else:
+            raise InvalidArgumentError("vmlinux_debuginfo must be None, str, or list of str")
+
+        if verbose:
+            print("vmlinux_debuginfo={}".format(self.vmlinux_debuginfo))
+
+    def _setup_module_path(self, module_path: PathSpecifier = None,
+                           verbose: bool = False) -> None:
+        x: List[str] = []
+        if module_path is None:
+
+            path = "modules"
+            if os.path.exists(path):
+                x.append(path)
+
+            for root in self.roots:
+                path = "{}/lib/modules/{}".format(root, self.version)
+                if os.path.exists(path):
+                    x.append(path)
+
+            self.module_path = x
+        elif (isinstance(module_path, list) and
+              isinstance(module_path[0], str)):
+            for root in self.roots:
+                for mpath in module_path:
+                    path = "{}/{}".format(root, mpath)
+                    if os.path.exists(path):
+                        x.append(path)
+
+            self.module_path = x
+        elif isinstance(module_path, str):
+            if os.path.exists(module_path):
+                x.append(module_path)
+
+            self.module_path = x
+        else:
+            raise InvalidArgumentError("module_path must be None, str, or list of str")
+
+        if verbose:
+            print("module_path={}".format(self.module_path))
+
+    def _setup_module_debuginfo_path(self, module_debuginfo_path: PathSpecifier = None,
+                                     verbose: bool = False) -> None:
+        debugroot = "/usr/lib/debug"
+
+        x: List[str] = []
+        if module_debuginfo_path is None:
+
+            path = "modules.debug"
+            if os.path.exists(path):
+                x.append(path)
+
+            for root in self.roots:
+                path = "{}/{}/lib/modules/{}".format(root, debugroot,
+                                                     self.version)
+                if os.path.exists(path):
+                    x.append(path)
+            self.module_debuginfo_path = x
+        elif (isinstance(module_debuginfo_path, list) and
+              isinstance(module_debuginfo_path[0], str)):
+
+            for root in self.roots:
+                for mpath in module_debuginfo_path:
+                    path = "{}/{}".format(root, mpath)
+                    if os.path.exists(path):
+                        x.append(path)
+
+            self.module_debuginfo_path = x
+        elif isinstance(module_debuginfo_path, str):
+
+            for root in self.roots:
+                path = "{}/{}".format(root, module_debuginfo_path)
+                if os.path.exists(path):
+                    x.append(path)
+
+            self.module_debuginfo_path = x
+        else:
+            raise InvalidArgumentError("module_debuginfo_path must be None, str, or list of str")
+
+        if verbose:
+            print("module_debuginfo_path={}".format(self.module_debuginfo_path))
+
     # When working without a symbol table, we still need to be able
     # to resolve version information.
-    def get_minsymbol_as_string(self, name: str) -> str:
+    def _get_minsymbol_as_string(self, name: str) -> str:
         sym = gdb.lookup_minimal_symbol(name).value()
 
         return sym.address.cast(self.types.char_p_type).string()
@@ -319,7 +328,7 @@ class CrashKernel(object):
         except (AttributeError, NameError, MissingSymbolError):
             pass
 
-        banner = self.get_minsymbol_as_string('linux_banner')
+        banner = self._get_minsymbol_as_string('linux_banner')
 
         return banner.split(' ')[2]
 
@@ -330,7 +339,7 @@ class CrashKernel(object):
         except (AttributeError, NameError):
             pass
 
-        return self.get_minsymbol_as_string('vermagic')
+        return self._get_minsymbol_as_string('vermagic')
 
     def extract_modinfo_from_module(self, modpath: str) -> Dict[str, str]:
         f = open(modpath, 'rb')

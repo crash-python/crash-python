@@ -126,6 +126,14 @@ class Page(object):
     @classmethod
     # pylint: disable=unused-argument
     def setup_nodes_width(cls, symbol: Union[gdb.Symbol, gdb.MinSymbol]) -> None:
+        """
+        Detect NODES_WITH from the in-kernel config table
+
+        Args:
+            symbol: The ``kernel_config_data`` symbol or minimal symbol.
+                It is not used directly.  It is used to determine whether
+                the config data should be available.
+        """
         # TODO: handle kernels with no space for nodes in page flags
         try:
             cls.NODES_WIDTH = int(config['NODES_SHIFT'])

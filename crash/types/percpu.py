@@ -48,7 +48,7 @@ class PerCPUState(object):
 
     @classmethod
     # pylint: disable=unused-argument
-    def _setup_per_cpu_size(cls, unused: gdb.Symbol) -> None:
+    def setup_per_cpu_size(cls, unused: gdb.Symbol) -> None:
         try:
             size = msymvals['__per_cpu_end'] - msymvals['__per_cpu_start']
         except DelayedAttributeError:
@@ -67,7 +67,7 @@ class PerCPUState(object):
 
     @classmethod
     # pylint: disable=unused-argument
-    def _setup_nr_cpus(cls, unused: gdb.Symbol) -> None:
+    def setup_nr_cpus(cls, unused: gdb.Symbol) -> None:
         cls._nr_cpus = array_size(symvals['__per_cpu_offset'])
 
         if cls._last_cpu == -1:
@@ -75,7 +75,7 @@ class PerCPUState(object):
 
     @classmethod
     # pylint: disable=unused-argument
-    def _setup_module_ranges(cls, unused: gdb.Symbol) -> None:
+    def setup_module_ranges(cls, unused: gdb.Symbol) -> None:
         for module in for_each_module():
             start = int(module['percpu'])
             if start == 0:
@@ -367,11 +367,11 @@ class PerCPUState(object):
         return vals
 
 msym_cbs = MinimalSymbolCallbacks([('__per_cpu_start',
-                                    PerCPUState._setup_per_cpu_size),
+                                    PerCPUState.setup_per_cpu_size),
                                    ('__per_cpu_end',
-                                    PerCPUState._setup_per_cpu_size)])
-symbol_cbs = SymbolCallbacks([('__per_cpu_offset', PerCPUState._setup_nr_cpus),
-                              ('modules', PerCPUState._setup_module_ranges)])
+                                    PerCPUState.setup_per_cpu_size)])
+symbol_cbs = SymbolCallbacks([('__per_cpu_offset', PerCPUState.setup_nr_cpus),
+                              ('modules', PerCPUState.setup_module_ranges)])
 
 _state = PerCPUState()
 

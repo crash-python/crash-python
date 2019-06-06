@@ -67,7 +67,15 @@ class Mount(object):
                                    types.mount_type, 'mnt_list')
 
     @classmethod
-    def _check_task_interface(cls, init_task: gdb.Value) -> None:
+    def check_task_interface(cls, init_task: gdb.Symbol) -> None:
+        """
+        Check which interface to iterating over mount structures is in use
+
+        Meant to be used as a SymbolCallback.
+
+        Args:
+            init_task: The ``init_task`` symbol.
+        """
         if struct_has_member(init_task, 'nsproxy'):
             cls._for_each_mount = cls._for_each_mount_nsproxy
         else:
@@ -274,4 +282,4 @@ def d_path(mnt: gdb.Value, dentry: gdb.Value, root: gdb.Value = None) -> str:
     return name
 
 type_cbs = TypeCallbacks([('struct vfsmount', _check_mount_type)])
-symbols_cbs = SymbolCallbacks([('init_task', Mount._check_task_interface)])
+symbols_cbs = SymbolCallbacks([('init_task', Mount.check_task_interface)])
