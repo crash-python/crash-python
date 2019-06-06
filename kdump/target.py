@@ -35,6 +35,9 @@ class SymbolCallback(object):
         # pylint: disable=no-member
         raise addrxlat.exceptions.NoDataError()
 
+        # This silences pylint: disable=inconsistent-return-statements
+        return 0 # pylint: disable=unreachable
+
 class Target(gdb.Target):
     def __init__(self, debug: bool = False) -> None:
         super().__init__()
@@ -58,6 +61,7 @@ class Target(gdb.Target):
             raise gdb.GdbError("Failed to open `{}': {}"
                                .format(filename, str(e)))
 
+        # pylint: disable=unsupported-assignment-operation
         self.kdump.attr['addrxlat.ostype'] = 'linux'
         ctx = self.kdump.get_addrxlat_ctx()
         ctx.cb_sym = SymbolCallback(ctx)

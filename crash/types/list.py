@@ -131,7 +131,8 @@ def list_for_each(list_head: gdb.Value, include_head: bool = False,
         node = nxt.dereference()
 
     if pending_exception is not None:
-        raise pending_exception
+        # The pylint error seems to think we'll raise None here
+        raise pending_exception # pylint: disable=raising-bad-type
 
 def list_for_each_entry(list_head: gdb.Value, gdbtype: gdb.Type,
                         member: str, include_head: bool = False,
