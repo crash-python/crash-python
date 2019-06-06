@@ -214,10 +214,9 @@ class PerCPUState(object):
             :obj:`bool`: Whether this address belongs to a static range
         """
         for start in self._static_ranges:
-            for cpu in range(0, self._last_cpu):
-                size = self._static_ranges[start]
-                if addr >= start and addr < start + size:
-                    return True
+            size = self._static_ranges[start]
+            if addr >= start and addr < start + size:
+                return True
         return False
 
     # The percpu range should start at offset 0 but gdb relocation
@@ -244,10 +243,9 @@ class PerCPUState(object):
             :obj:`bool`: Whether this address belongs to a module range
         """
         for start in self._module_ranges:
-            for cpu in range(0, self._last_cpu):
-                size = self._module_ranges[start]
-                if addr >= start and addr < start + size:
-                    return True
+            size = self._module_ranges[start]
+            if addr >= start and addr < start + size:
+                return True
         return False
 
     def is_percpu_var(self, var: SymbolOrValue) -> bool:
