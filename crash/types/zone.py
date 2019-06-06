@@ -4,11 +4,11 @@
 import gdb
 from crash.util import container_of, find_member_variant, array_for_each
 from crash.util.symbols import Types
-import crash.types.node
 from crash.types.percpu import get_percpu_var
 from crash.types.vmstat import VmStat
 from crash.types.cpu import for_each_online_cpu
 from crash.types.list import list_for_each_entry
+import crash.types.page
 
 class Zone(object):
 
@@ -71,14 +71,3 @@ class Zone(object):
         for cpu in for_each_online_cpu():
             pageset = get_percpu_var(self.gdb_obj["pageset"], cpu)
             self._check_free_area(pageset["pcp"], True)
-
-def for_each_zone():
-    for node in crash.types.node.for_each_node():
-        for zone in node.for_each_zone():
-            yield zone
-
-def for_each_populated_zone():
-    #TODO: some filter thing?
-    for zone in for_each_zone():
-        if zone.is_populated():
-            yield zone

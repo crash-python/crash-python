@@ -178,3 +178,14 @@ def for_each_online_node() -> Iterable[Node]:
     """
     for nid in for_each_online_nid():
         yield Node.from_nid(nid)
+
+def for_each_zone():
+    for node in for_each_node():
+        for zone in node.for_each_zone():
+            yield zone
+
+def for_each_populated_zone():
+    #TODO: some filter thing?
+    for zone in for_each_zone():
+        if zone.is_populated():
+            yield zone

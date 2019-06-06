@@ -19,7 +19,7 @@ class TestNumaNode(unittest.TestCase):
 
     def test_for_each_populated_zone(self):
         count = 0
-        for zone in mmzone.for_each_populated_zone():
+        for zone in numa_node.for_each_populated_zone():
             self.assertTrue(type(zone) is mmzone.Zone)
             count += 1
 

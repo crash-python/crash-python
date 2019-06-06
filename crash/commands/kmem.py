@@ -7,7 +7,7 @@ from crash.commands import Command, ArgumentParser
 from crash.commands import CommandError, CommandLineError
 from crash.types.slab import kmem_cache_get_all, kmem_cache_from_name
 from crash.types.slab import slab_from_obj_addr
-from crash.types.zone import for_each_zone, for_each_populated_zone
+from crash.types.node import for_each_zone, for_each_populated_zone
 from crash.types.vmstat import VmStat
 from crash.util import get_symbol_value
 from crash.exceptions import MissingSymbolError
