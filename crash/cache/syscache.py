@@ -184,9 +184,9 @@ class CrashKernelCache(CrashCache):
 
     _jiffies_dv = DelayedValue('jiffies')
 
-    def __init__(self, config: CrashConfigCache) -> None:
+    def __init__(self, config_cache: CrashConfigCache) -> None:
         CrashCache.__init__(self)
-        self.config = config
+        self.config = config_cache
         self._hz = -1
         self._uptime = timedelta(seconds=0)
         self._loadavg = ""

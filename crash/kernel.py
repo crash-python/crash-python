@@ -395,7 +395,7 @@ class CrashKernel(object):
                                                 mod_srcversion)
 
     def load_modules(self, verbose: bool = False, debug: bool = False) -> None:
-        import crash.cache.syscache
+        import crash.cache.syscache # pylint: disable=redefined-outer-name
         version = crash.cache.syscache.utsname.release
         print("Loading modules for {}".format(version), end='')
         if verbose:
@@ -613,7 +613,7 @@ class CrashKernel(object):
     def setup_tasks(self) -> None:
         from crash.types.percpu import get_percpu_vars
         from crash.types.task import LinuxTask, for_each_all_tasks
-        import crash.cache.tasks
+        import crash.cache.tasks # pylint: disable=redefined-outer-name
         gdb.execute('set print thread-events 0')
 
         rqs = get_percpu_vars(self.symbols.runqueues)
