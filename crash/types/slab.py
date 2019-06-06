@@ -497,7 +497,7 @@ class KmemCache(object):
         addr = int(slab.gdb_obj.address)
         free = 0
 
-        if slab.error == False:
+        if slab.error is False:
             free = slab.check(slabtype, nid)
 
         if slab.misplaced_error is None and errors['num_misplaced'] > 0:
@@ -508,7 +508,7 @@ class KmemCache(object):
                 errors['num_misplaced'] = 0
                 errors['last_misplaced'] = None
 
-        if slab.error == False:
+        if slab.error is False:
             errors['num_ok'] += 1
             errors['last_ok'] = addr
             if not errors['first_ok']:
@@ -604,7 +604,7 @@ class KmemCache(object):
                       .format(ac_ptr, acs[ac_ptr], ac_obj_slab.kmem_cache.name))
             else:
                 ac_obj_obj = ac_obj_slab.contains_obj(ac_ptr)
-                if ac_obj_obj[0] == False and ac_obj_obj[2] is None:
+                if ac_obj_obj[0] is False and ac_obj_obj[2] is None:
                     print("cached pointer {:#x} in {} is not allocated: {}".format(
                         ac_ptr, acs[ac_ptr], ac_obj_obj))
                 elif ac_obj_obj[1] != ac_ptr:
