@@ -39,6 +39,6 @@ class Ext3Decoder(Decoder):
         self.length = int(self.bh['b_size'])
 
     def __str__(self):
-        return self._description(int(self.bh), self.fstype, self.devname)
+        return self._description.format(int(self.bh), self.fstype, self.devname)
 
 Ext3Decoder.register()
