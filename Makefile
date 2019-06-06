@@ -28,7 +28,7 @@ GZ_MAN1 = $(patsubst %.asciidoc,%.1.gz,$(MAN1_TXT))
 
 man: $(GZ_MAN1)
 
-PYLINT_ARGS ?= --rcfile tests/pylintrc-check -r n
+PYLINT_ARGS ?= --rcfile tests/pylintrc -r n
 
 ifeq ($(E),1)
 PYLINT_ARGS +=  -E
@@ -60,11 +60,6 @@ unit-tests: clean-build
 	make -C tests -s
 	sh tests/run-tests.sh
 
-PYLINT_ENFORCE=""
-
-lint-enforce: clean-build
-	sh tests/run-pylint.sh -r n --rcfile tests/pylintrc-enforce crash kdump
-
 lint: clean-build
 	sh tests/run-pylint.sh $(PYLINT_ARGS) crash kdump
 
@@ -74,7 +69,7 @@ static-check: clean-build
 live-tests: clean-build
 	sh tests/run-kernel-tests.sh $(INI_FILES)
 
-test: unit-tests static-check lint-enforce live-tests
+test: unit-tests static-check lint live-tests
 	@echo -n
 
 doc: build FORCE

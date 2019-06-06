@@ -65,7 +65,7 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=missing-docstring,too-few-public-methods,invalid-name,too-many-locals,too-many-instance-attributes,too-many-public-methods,fixme,no-self-use,too-many-branches,too-many-statements,too-many-arguments,too-many-boolean-expressions,line-too-long
+disable=missing-docstring,too-few-public-methods,invalid-name,too-many-locals,too-many-instance-attributes,too-many-public-methods,fixme,no-self-use,too-many-branches,too-many-statements,too-many-arguments,too-many-boolean-expressions,line-too-long,duplicate-code
 
 
 [REPORTS]
