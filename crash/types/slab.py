@@ -594,7 +594,7 @@ class KmemCache(object):
 
     def check_array_caches(self) -> None:
         acs = self.get_array_caches()
-        for ac_ptr in acs.keys():
+        for ac_ptr in acs:
             ac_obj_slab = slab_from_obj_addr(ac_ptr)
             if not ac_obj_slab:
                 print("cached pointer {:#x} in {} not found in slab"
