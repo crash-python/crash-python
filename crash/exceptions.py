@@ -29,8 +29,6 @@ class DelayedAttributeError(AttributeError):
 
 class InvalidArgumentError(TypeError):
     """Base class for invalid argument exceptions"""
-    def __init__(self, msg: str) -> None:
-        super().__init__(msg)
 
 class ArgumentTypeError(InvalidArgumentError):
     """The provided object could not be converted to the expected type"""

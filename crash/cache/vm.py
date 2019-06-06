@@ -4,9 +4,6 @@
 from crash.cache import CrashCache
 
 class CrashCacheVM(CrashCache):
-    def __init__(self) -> None:
-        super().__init__()
-
     def refresh(self) -> None:
         pass
 
