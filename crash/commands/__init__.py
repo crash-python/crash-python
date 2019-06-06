@@ -62,7 +62,7 @@ class Command(gdb.Command):
         except (SystemExit, KeyboardInterrupt):
             pass
 
-    def execute(self, argv: argparse.Namespace) -> None:
+    def execute(self, args: argparse.Namespace) -> None:
         raise NotImplementedError("Command should not be called directly")
 
 def discover() -> None:

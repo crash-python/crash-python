@@ -27,8 +27,8 @@ class HelpCommand(Command):
         parser.add_argument('args', nargs=argparse.REMAINDER)
         super().__init__('help', parser)
 
-    def execute(self, argv: argparse.Namespace) -> None:
-        if not argv.args:
+    def execute(self, args: argparse.Namespace) -> None:
+        if not args.args:
             print("Available commands:")
             for cmd in sorted(self.commands):
                 summary = self.commands[cmd].__doc__.strip()
@@ -36,7 +36,7 @@ class HelpCommand(Command):
                     summary = "no help text provided"
                 print("{:<15} - {}".format(cmd, summary))
         else:
-            for cmd in argv.args:
+            for cmd in args.args:
                 try:
                     text = self.commands[cmd].format_help().strip()
                 except KeyError:

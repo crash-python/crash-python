@@ -67,11 +67,11 @@ class ModuleCommand(Command):
                                            tabs, size))
 
 
-    def execute(self, argv: argparse.Namespace) -> None:
+    def execute(self, args: argparse.Namespace) -> None:
         regex = None
         print_header = True
-        if argv.args:
-            regex = re.compile(fnmatch.translate(argv.args[0]))
+        if args.args:
+            regex = re.compile(fnmatch.translate(args.args[0]))
 
         core_layout = None
 
@@ -85,15 +85,15 @@ class ModuleCommand(Command):
                 if m is None:
                     continue
 
-            if argv.p is not None:
+            if args.p is not None:
                 if print_header:
                     print_header = False
-                    if argv.p == -1:
+                    if args.p == -1:
                         print("Module\t\t\tPercpu Base\t\tSize")
                     else:
                         print("Module\t\t\tPercpu Base@CPU{:d}\t\tSize"
-                              .format(argv.p))
-                self.print_module_percpu(mod, argv.p)
+                              .format(args.p))
+                self.print_module_percpu(mod, args.p)
                 continue
 
             if print_header:

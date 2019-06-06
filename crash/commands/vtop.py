@@ -191,7 +191,7 @@ class VTOPCommand(Command):
 
         super().__init__("vtop", parser)
 
-    def execute(self, argv: argparse.Namespace) -> None:
+    def execute(self, args: argparse.Namespace) -> None:
         trans = CrashAddressTranslation()
         # Silly mypy bug means the base class needs come first
         if not trans.is_non_auto:
@@ -199,7 +199,7 @@ class VTOPCommand(Command):
         else:
             pgt = LinuxNonAutoPGT(trans.context, trans.system)
 
-        for addr in argv.args:
+        for addr in args.args:
             addr = int(addr, 16)
             fulladdr = addrxlat.FullAddress(addrxlat.KVADDR, addr)
             print('{:16}  {:16}'.format('VIRTUAL', 'PHYSICAL'))

@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Any
-
 import argparse
 
 from crash.commands import Command, ArgumentParser
@@ -34,14 +32,6 @@ class MountCommand(Command):
         parser.add_argument('-d', action='store_true', default=False)
 
         super().__init__(name, parser)
-
-    def __getattr__(self, name: str) -> Any:
-        if name == 'charp':
-            self.charp = gdb.lookup_type('char').pointer()
-        else:
-            raise AttributeError
-
-        return getattr(self, name)
 
     def execute(self, args: argparse.Namespace) -> None:
         if args.v:

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Pattern, Optional, Callable
+from typing import Pattern, Optional, Callable, Dict
 
 import argparse
 import fnmatch
@@ -18,31 +18,31 @@ class TaskFormat(object):
     This class is responsible for converting the arguments into formatting
     rules.
     """
-    def __init__(self, argv: argparse.Namespace,
+    def __init__(self, args: argparse.Namespace,
                  regex: Optional[Pattern[str]]) -> None:
         self.sort = lambda x: x.info.task_pid()
         self._filter: Callable[[LinuxTask], bool] = lambda x: True
         self._format_one_task = self._format_common_line
         self._regex = regex
 
-        if argv.s:
+        if args.s:
             self._format_header = self._format_stack_header
             self._format_column4 = self._format_stack_address
-        elif argv.n:
+        elif args.n:
             self._format_header = self._format_threadnum_header
             self._format_column4 = self._format_thread_num
         else:
             self._format_header = self._format_task_header
             self._format_column4 = self._format_task_address
 
-        if argv.k:
+        if args.k:
             self._filter = self._is_kernel_thread
-        elif argv.u:
+        elif args.u:
             self._filter = self._is_user_task
-        elif argv.G:
+        elif args.G:
             self._filter = self._is_thread_group_leader
 
-        if argv.l:
+        if args.l:
             self.sort = lambda x: -x.info.last_run()
             self._format_one_task = self._format_last_run
             self._format_header = lambda: ""
@@ -559,6 +559,8 @@ class PSCommand(Command):
 
         Command.__init__(self, "ps", parser)
 
+        self.task_states: Dict[int, str] = dict()
+
     def task_state_string(self, task: LinuxTask) -> str:
         state = task.task_state()
         buf = ""
@@ -603,19 +605,19 @@ class PSCommand(Command):
         if TF.has_flag('TASK_IDLE'):
             self.task_states[TF.TASK_IDLE] = "ID"
 
-    def execute(self, argv: argparse.Namespace) -> None:
+    def execute(self, args: argparse.Namespace) -> None:
         # Unimplemented
-        if argv.p or argv.c or argv.t or argv.a or argv.g or argv.r:
+        if args.p or args.c or args.t or args.a or args.g or args.r:
             raise CommandError("Support for the -p, -c, -t, -a, -g, and -r options is unimplemented.")
 
-        if not hasattr(self, 'task_states'):
+        if not self.task_states:
             self.setup_task_states()
 
         regex = None
-        if argv.args:
-            regex = re.compile(fnmatch.translate(argv.args[0]))
+        if args.args:
+            regex = re.compile(fnmatch.translate(args.args[0]))
 
-        taskformat = TaskFormat(argv, regex)
+        taskformat = TaskFormat(args, regex)
 
         count = 0
         header = taskformat.format_header()
@@ -638,7 +640,7 @@ class PSCommand(Command):
 
         if count == 0:
             if regex:
-                print(f"No matches for {argv.args[0]}.")
+                print(f"No matches for {args.args[0]}.")
             else:
                 raise CommandError("Unfiltered output has no matches. BUG?")
 
