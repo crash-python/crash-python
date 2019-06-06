@@ -113,7 +113,7 @@ class KmemCommand(Command):
                 raise RuntimeError("odd return value from contains_obj")
 
     def __print_vmstat(self, vmstat: List[int], diffs: List[int]) -> None:
-        vmstat_names = VmStat.get_stat_names();
+        vmstat_names = VmStat.get_stat_names()
         just = max(map(len, vmstat_names))
         nr_items = VmStat.nr_stat_items
 
