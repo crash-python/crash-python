@@ -11,20 +11,23 @@ class Powerpc64Architecture(CrashArchitecture):
 
     def __init__(self) -> None:
         super(Powerpc64Architecture, self).__init__()
-        self.ulong_type = gdb.lookup_type('unsigned long')
-        thread_info_type = gdb.lookup_type('struct thread_info')
-        self.thread_info_p_type = thread_info_type.pointer()
-
         # Stop stack traces with addresses below this
         self.filter = KernelFrameFilter(0xffff000000000000)
 
     def setup_thread_info(self, thread: gdb.InferiorThread) -> None:
         task = thread.info.task_struct
-        thread_info = task['stack'].cast(self.thread_info_p_type)
-        thread.info.set_thread_info(thread_info)
+        thread.info.set_thread_info(task['thread_info'].address)
 
     @classmethod
     def get_stack_pointer(cls, thread_struct: gdb.Value) -> gdb.Value:
         return thread_struct['ksp']
+
+    def fetch_register_active(self, thread: gdb.InferiorThread,
+                              register: int) -> None:
+        raise NotImplementedError("ppc64 support does not cover threads yet")
+
+    def fetch_register_scheduled(self, thread: gdb.InferiorThread,
+                                 register: gdb.Register) -> None:
+        raise NotImplementedError("ppc64 support does not cover threads yet")
 
 register_arch(Powerpc64Architecture)
