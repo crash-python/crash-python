@@ -40,6 +40,19 @@ class NamedCallback(ObjfileEventCallback):
 
         self._callback = callback
 
+    # This is silly but it avoids pylint abstract-method warnings
+    def check_ready(self) -> Any:
+        """
+        The method that derived classes implement for detecting when the
+        conditions required to call the callback have been met.
+
+        Returns:
+            :obj:`object`: This method can return an arbitrary object.  It will
+            be passed untouched to :meth:`callback` if the result is anything
+            other than :obj:`None` or :obj:`False`.
+        """
+        raise NotImplementedError("check_ready must be implemented by derived class.")
+
     def callback(self, result: Any) -> Union[None, bool]:
         """
         The callback for handling the sucessful result of :meth:`check_ready`.
