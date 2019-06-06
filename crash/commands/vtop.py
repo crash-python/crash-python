@@ -6,6 +6,7 @@ import addrxlat
 import addrxlat.exceptions
 
 from crash.commands import Command, ArgumentParser
+from crash.commands import CommandError, CommandLineError
 from crash.addrxlat import CrashAddressTranslation
 
 class LinuxPGT(object):
@@ -104,6 +105,10 @@ class _Parser(ArgumentParser):
                           each task specified by "foreach".
        address            A hexadecimal user or kernel virtual address.
 
+    NOTE
+      Although the -c option is referenced in the documentation, it
+      is currently unimplemented and will cause a command error.
+
     EXAMPLES
       Translate user virtual address 80b4000:
 
@@ -201,6 +206,9 @@ class VTOPCommand(Command):
         super().__init__("vtop", parser)
 
     def execute(self, args: argparse.Namespace) -> None:
+        if args.c:
+            raise CommandError("support for the -c argument is unimplemented")
+
         trans = CrashAddressTranslation()
         # Silly mypy bug means the base class needs come first
         if not trans.is_non_auto:
@@ -209,7 +217,10 @@ class VTOPCommand(Command):
             pgt = LinuxNonAutoPGT(trans.context, trans.system)
 
         for addr in args.args:
-            addr = int(addr, 16)
+            try:
+                addr = int(addr, 16)
+            except ValueError:
+                raise CommandLineError(f"{addr} is not a hex address")
             fulladdr = addrxlat.FullAddress(addrxlat.KVADDR, addr)
             print('{:16}  {:16}'.format('VIRTUAL', 'PHYSICAL'))
             try:

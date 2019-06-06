@@ -60,3 +60,21 @@ def skip_without_supers(name):
         return lambda func: func
 
     return unittest.skip(f"no {name} file systems in image")
+
+def bad_command_line(fn, ignored=True):
+    """Marks test to expect CommandLineError for unimplemented options"""
+    def test_decorator(fn):
+        def test_decorated(self, *args, **kwargs):
+            self.assertRaises(CommandLineError, fn, self, *args, **kwargs)
+        return test_decorated
+    test_decorator.__doc__ = fn.__doc__ + " (bad command line raises CommandLineError)"
+    return test_decorator
+
+def unimplemented(fn, ignored=True):
+    """Marks test to expect CommandError for unimplemented options"""
+    def test_decorator(fn):
+        def test_decorated(self, *args, **kwargs):
+            self.assertRaises(CommandError, fn, self, *args, **kwargs)
+        return test_decorated
+    test_decorator.__doc__ = fn.__doc__ + " (unimplemented command raises CommandError)"
+    return test_decorator
