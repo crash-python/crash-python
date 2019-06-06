@@ -523,7 +523,7 @@ class LinuxTask(object):
     def _get_anon_file_rss_fields(self):
         mm = self.task_struct['mm']
         rss = 0
-        for name in cls.anon_file_rss_fields:
+        for name in self.anon_file_rss_fields:
             if mm[name].type == self.atomic_long_type:
                 rss += int(mm[name]['counter'])
             else:

@@ -3,6 +3,7 @@
 
 import gdb
 
+from crash.subsystem.storage import block_device_name
 from crash.subsystem.storage.decoders import Decoder
 
 class Ext3Decoder(Decoder):

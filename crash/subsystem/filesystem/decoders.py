@@ -84,13 +84,13 @@ class DecodeMPage(Decoder):
 
     def interpret(self):
         """Interpret the multipage bio to populate its attributes"""
-        self.inode = bio['bi_io_vec'][0]['bv_page']['mapping']['host']
-        self.fstype = super_fstype(inode['i_sb'])
+        self.inode = self.bio['bi_io_vec'][0]['bv_page']['mapping']['host']
+        self.fstype = super_fstype(self.inode['i_sb'])
 
     def __str__(self):
         return self.description.format(int(self.bio), self.inode['i_ino'],
                                        self.fstype,
-                                       block_device_name(bio['bi_bdev']))
+                                       block_device_name(self.bio['bi_bdev']))
 
 DecodeMPage.register()
 
@@ -124,7 +124,7 @@ class DecodeBioBH(Decoder):
         self.bh = self.bio['bi_private'].cast(self._types.buffer_head_p_type)
 
     def __str__(self):
-        return self._description.format(int(bio))
+        return self._description.format(int(self.bio))
 
     def __next__(self):
         return decode_bh(self.bh)
@@ -152,7 +152,7 @@ class DecodeSyncWBBH(Decoder):
         self.bh = bh
 
     def __str__(self):
-        self._description.format(block_device_name(bh['b_bdev']),
-                                self.bh['b_blocknr'], self.bh['b_size'])
+        self._description.format(block_device_name(self.bh['b_bdev']),
+                                 self.bh['b_blocknr'], self.bh['b_size'])
 
 DecodeSyncWBBH.register()

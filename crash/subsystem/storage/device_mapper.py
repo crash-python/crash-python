@@ -3,6 +3,7 @@
 
 import gdb
 
+from crash.util import container_of
 from crash.util.symbols import Types
 from crash.subsystem.storage import block_device_name
 from crash.subsystem.storage.decoders import Decoder, decode_bio
@@ -37,7 +38,7 @@ class ClonedBioReqDecoder(Decoder):
     def interpret(self):
         """Interprets the request-based device mapper bio to populate its
         attributes"""
-        self.info = cls._get_clone_bio_rq_info(bio)
+        self.info = self._get_clone_bio_rq_info(self.bio)
         self.tio = self.info['tio']
 
     def __str__(self):
@@ -95,14 +96,14 @@ class ClonedBioDecoder(Decoder):
     def interpret(self):
         """Interprets the cloned device mapper bio to populate its
         attributes"""
-        self.tio = self._get_clone_bio_tio(bio)
-        self.next_bio = tio['io']['bio']
+        self.tio = self._get_clone_bio_tio(self.bio)
+        self.next_bio = self.tio['io']['bio']
 
     def __str__(self):
         return self._description.format(
                                 int(self.bio),
                                 block_device_name(self.bio['bi_bdev']),
-                                int(bself.io['bi_sector']),
+                                int(self.bio['bi_sector']),
                                 block_device_name(self.next_bio['bi_bdev']),
                                 int(self.next_bio['bi_sector']))
 

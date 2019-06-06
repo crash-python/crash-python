@@ -9,36 +9,12 @@ from gdb.types import get_basic_type
 from crash.util import container_of
 from crash.util.symbols import Types, Symvals, SymbolCallbacks, TypeCallbacks
 from crash.types.classdev import for_each_class_device
-from . import decoders
 from crash.exceptions import DelayedAttributeError, InvalidArgumentError
 
 types = Types([ 'struct gendisk', 'struct hd_struct', 'struct device',
                   'struct device_type', 'struct bdev_inode' ])
 symvals = Symvals([ 'block_class', 'blockdev_superblock', 'disk_type',
                     'part_type' ])
-
-def for_each_bio_in_stack(bio: gdb.Value) -> Iterable[decoders.Decoder]:
-    """
-    Iterates and decodes each bio involved in a stacked storage environment
-
-    This method will yield a Decoder object describing each level
-    in the storage stack, starting with the provided bio, as
-    processed by each level's decoder.  The stack will be interrupted
-    if an encountered object doesn't have a decoder specified.
-
-    See :mod:`crash.subsystem.storage.decoders` for more detail.
-
-    Args:
-        bio: The initial struct bio to start decoding.  The value must be
-            of type ``struct bio``.
-
-    Yields:
-        :obj:`.Decoder`: The next :obj:`.Decoder` in the stack, if any remain.
-    """
-    decoder = decoders.decode_bio(bio)
-    while decoder is not None:
-        yield decoder
-        decoder = next(decoder)
 
 def dev_to_gendisk(dev: gdb.Value) -> gdb.Value:
     """

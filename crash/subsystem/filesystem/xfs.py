@@ -243,11 +243,11 @@ class XFSBufBioDecoder(Decoder):
 
     def interpret(self):
         """Interpret the xfsbuf bio to populate its attributes"""
-        self.xfsbuf = bio['bi_private'].cast(cls._types.xfs_buf_p_type)
-        self.devname = block_device_name(bio['bi_bdev'])
+        self.xfsbuf = self.bio['bi_private'].cast(self._types.xfs_buf_p_type)
+        self.devname = block_device_name(self.bio['bi_bdev'])
 
     def __next__(self):
-        return XFSBufDecoder(xfs.xfsbuf)
+        return XFSBufDecoder(self.xfsbuf)
 
     def __str__(self):
         return self._description.format(self.bio, self.devname)

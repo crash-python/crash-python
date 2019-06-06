@@ -2,8 +2,10 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Iterable
+
 from crash.infra.lookup import SymbolCallback
+from crash.subsystem.storage import block_device_name
 
 EndIOSpecifier = Union[int, str, List[str], gdb.Value, gdb.Symbol, None]
 
@@ -243,7 +245,7 @@ class GenericBioDecoder(Decoder):
     def __str__(self):
         return self._description.format(int(self.bio),
                                        block_device_name(self.bio['bi_bdev']),
-                                       bio['bi_end_io'])
+                                       self.bio['bi_end_io'])
 
 def decode_bio(bio: gdb.Value) -> Decoder:
     """
@@ -295,3 +297,24 @@ def decode_bh(bh: gdb.Value) -> Decoder:
         return GenericBHDecoder(bh)
     except gdb.NotAvailableError:
         return BadBHDecoder(bh)
+
+def for_each_bio_in_stack(bio: gdb.Value) -> Iterable[Decoder]:
+    """
+    Iterates and decodes each bio involved in a stacked storage environment
+
+    This method will yield a Decoder object describing each level
+    in the storage stack, starting with the provided bio, as
+    processed by each level's decoder.  The stack will be interrupted
+    if an encountered object doesn't have a decoder specified.
+
+    Args:
+        bio: The initial struct bio to start decoding.  The value must be
+            of type ``struct bio``.
+
+    Yields:
+        :obj:`.Decoder`: The next :obj:`.Decoder` in the stack, if any remain.
+    """
+    decoder = decode_bio(bio)
+    while decoder is not None:
+        yield decoder
+        decoder = next(decoder)
