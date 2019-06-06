@@ -272,7 +272,7 @@ class PerCPUState(object):
 
     def _resolve_percpu_var(self, var: SymbolOrValue) -> gdb.Value:
         orig_var = var
-        if isinstance(var, gdb.Symbol) or isinstance(var, gdb.MinSymbol):
+        if isinstance(var, (gdb.Symbol, gdb.MinSymbol)):
             var = var.value()
         if not isinstance(var, gdb.Value):
             raise InvalidArgumentError("Argument must be gdb.Symbol or gdb.Value")
