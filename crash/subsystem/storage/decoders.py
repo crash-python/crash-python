@@ -86,7 +86,7 @@ class Decoder(object):
         If there are no objects beyond this one, it does not need to be
         overridden.
         """
-        return None
+        pass
 
 class BadBHDecoder(Decoder):
     """
@@ -320,4 +320,7 @@ def for_each_bio_in_stack(bio: gdb.Value) -> Iterable[Decoder]:
     decoder = decode_bio(bio)
     while decoder is not None:
         yield decoder
-        decoder = next(decoder)
+        try:
+            decoder = next(decoder)
+        except StopIteration:
+            break
