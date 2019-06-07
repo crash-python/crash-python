@@ -197,7 +197,9 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'crash-python', 'crash-python Documentation',
+    ('crash-python', 'crash-python', 'crash-python Documentation',
+     [author], 1),
+    ('crash-python', 'pycrash', 'crash-python Documentation',
      [author], 1)
 ]
 

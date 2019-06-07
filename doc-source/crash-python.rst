@@ -49,7 +49,8 @@ OPTIONS
 
 Each of the following options may be specified multiple times.
 
-*-r <dir> | --root <dir>*::
+``-r <dir> | --root <dir>``
+
     Use the specified directory as the root for all file searches.  When
     using properly configured .build-id symbolic links, this is the
     best method to use as the debuginfo will be loaded automatically via
@@ -57,35 +58,43 @@ Each of the following options may be specified multiple times.
     specified, the defaults documented above will be used relative to
     each root.
 
-*-m <dir> | --modules <dir>*::
+``-m <dir> | --modules <dir>``
+
     Use the specified directory to search for modules
 
-*-d <dir> | --modules-debuginfo <dir>*::
+``-d <dir> | --modules-debuginfo <dir>``
+
     Use the specified directory to search for module debuginfo
 
-*-D <dir> | --vmlinux-debuginfo <dir>*::
+``-D <dir> | --vmlinux-debuginfo <dir>``
+
     Use the specified directory to search for vmlinux debuginfo
 
-*-b <dir> | --build-dir <dir>*::
+``-b <dir> | --build-dir <dir>``
+
     Use the specified directory as the root for all file searches.  This
     directory should be the root of a built kernel source tree.  This is
-    shorthand for *-r <dir> -m . -d . -D .* and will override preceding
+    shorthand for ``-r <dir> -m . -d . -D .`` and will override preceding
     options.
 
 DEBUGGING OPTIONS:
 ------------------
 
-*-v | --verbose*::
+``-v | --verbose``
+
     Enable verbose output for debugging the debugger
 
-*--debug*::
+``--debug``
+
     Enable even noisier output for debugging the debugger
 
-*--gdb*::
+``--gdb``
+
     Run the embedded gdb underneath a separate gdb instance.  This is useful
     for debugging issues in gdb that are seen while running crash-python.
 
-*--valgrind*::
+``--valgrind``
+
     Run the embedded gdb underneath valgrind.  This is useful
     for debugging memory leaks in gdb patches.
 
@@ -101,5 +110,5 @@ Please refer to the GitHub repository at https://github.com/jeffmahoney/crash-py
 
 SEE ALSO
 --------
-`gdb`(1)
-`libdkumpfile`
+gdb(1)
+libkdumpfile(7)

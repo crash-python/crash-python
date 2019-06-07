@@ -1,32 +1,5 @@
-ASCIIDOC = /usr/bin/asciidoc
-ASCIIDOC_EXTRA =
-MANPAGE_XSL = manpage-normal.xsl
-XMLTO = /usr/bin/xmlto
-XMLTO_EXTRA = -m manpage-bold-literal.xsl
 GZIPCMD = /usr/bin/gzip
 INSTALL = /usr/bin/install -c
-
-MAN1_TXT = pycrash.asciidoc
-prefix ?= /usr
-mandir ?= $(prefix)/share/man
-man1dir = $(mandir)/man1
-
-GZ_MAN1 = $(patsubst %.asciidoc,%.1.gz,$(MAN1_TXT))
-
-%.1.gz : %.1
-	$(GZIPCMD) -n -c $< > $@
-
-%.1 : %.xml
-	$(RM) -f $@ && \
-	$(XMLTO) -m $(MANPAGE_XSL) $(XMLTO_EXTRA) man $<
-
-%.xml : %.asciidoc asciidoc.conf
-	rm -f $@+ $@
-	$(ASCIIDOC) -b docbook -d manpage -f asciidoc.conf \
-		$(ASCIIDOC_EXTRA) -o $@+ $<
-	mv $@+ $@
-
-man: $(GZ_MAN1)
 
 PYLINT_ARGS ?= --rcfile tests/pylintrc -r n
 
@@ -34,21 +7,19 @@ ifeq ($(E),1)
 PYLINT_ARGS +=  -E
 endif
 
-all: man
+all: clean build doc test
 
-man-install: man
-	$(INSTALL) -d -m 755 $(DESTDIR)$(man1dir)
-	$(INSTALL) -m 644 $(GZ_MAN1) $(DESTDIR)$(man1dir)
-
-doc-clean:
-	rm -rf docs
+doc-source-clean:
 	rm -f doc-source/crash/*.rst doc-source/kdump/*.rst
 
-clean: doc-clean
+doc-clean: doc-source-clean
+	rm -rf docs
+
+clean: doc-clean man-clean
 	make -C tests clean
 	rm -rf build
 
-build: crash tests
+build: FORCE
 	python3 setup.py -q build
 
 clean-build: clean build
@@ -74,8 +45,29 @@ test: unit-tests static-check lint live-tests
 
 full-test: test doc
 
-doc: build FORCE
-	rm -rf docs
-	rm -f doc-source/crash/.*rst doc-source/kdump/*.rst
-	python3 setup.py -q build_sphinx
+doc: doc-source-clean man
+	sphinx-build -a -b html doc-source docs/html
+
+pycrash.1 : crash-python.1
+
+%.1 : doc-source/%.rst doc-source/conf.py
+	sphinx-build -a -b man doc-source .
+
+%.1.gz : %.1
+	$(GZIPCMD) -n -c $< > $@
+
+GZ_MAN1 :=  pycrash.1.gz crash-python.1.gz
+MAN1 := $(patsubst %.asciidoc,%.1.gz,$(MAN1_TXT))
+
+man: $(GZ_MAN1)
+
+man-clean: FORCE
+	rm -f $(GZ_MAN1)
+	rm -f pycrash.1 crash-python.1
+
+man-install: man
+	$(INSTALL) -d -m 755 $(DESTDIR)$(man1dir)
+	$(INSTALL) -m 644 $(GZ_MAN1) $(DESTDIR)$(man1dir)
+
+
 FORCE:
