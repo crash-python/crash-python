@@ -70,7 +70,7 @@ class TaskStateFlags(object):
 
         Different kernels use different task flags or even different values
         for the same flags.  This method tries to determine the flags for
-            the kernel.
+        the kernel.
 
         Args:
             symbol: The ``task_state_array`` symbol.

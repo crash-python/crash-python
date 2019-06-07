@@ -280,7 +280,7 @@ class XFS(object):
         Meant to be used as a TypeCallback.
 
         Args:
-            gdbtype: The ``struct xfs_ail` type.
+            gdbtype: The ``struct xfs_ail`` type.
         """
         if struct_has_member(gdbtype, 'ail_head'):
             cls._ail_head_name = 'ail_head'

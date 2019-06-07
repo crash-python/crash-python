@@ -72,6 +72,8 @@ live-tests: clean-build
 test: unit-tests static-check lint live-tests
 	@echo -n
 
+full-test: test doc
+
 doc: build FORCE
 	rm -rf docs
 	rm -f doc-source/crash/.*rst doc-source/kdump/*.rst

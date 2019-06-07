@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+
 class Context(object):
     pass
 
@@ -9,6 +12,9 @@ class System(object):
         pass
 
 def CAPS(x):
+    pass
+
+class FullAddress(object):
     pass
 
 KVADDR = 0

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 class Target(object):
     class kdump(object):
@@ -64,6 +66,12 @@ class Block(object):
 class Command(object):
     def __init__(self, x, y):
         pass
+
+class NewObjFileEvent(object):
+    pass
+
+class Frame(object):
+    pass
 
 SYMBOL_VAR_DOMAIN = 0
 COMMAND_USER = 0
