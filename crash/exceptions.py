@@ -32,11 +32,11 @@ class InvalidArgumentError(TypeError):
 
 class ArgumentTypeError(InvalidArgumentError):
     """The provided object could not be converted to the expected type"""
-    formatter = "cannot convert argument `{}' of type {} to {}"
+    _fmt = "cannot convert argument `{}' of type {} to {}"
 
     def __init__(self, name: str, val: Type, expected_type: Type) -> None:
-        msg = self.formatter.format(name, self.format_clsname(val.__class__),
-                                    self.format_clsname(expected_type))
+        msg = self._fmt.format(name, self.format_clsname(val.__class__),
+                               self.format_clsname(expected_type))
         super().__init__(msg)
         self.val = val
 
@@ -52,15 +52,15 @@ class UnexpectedGDBTypeBaseError(InvalidArgumentError):
 
 class UnexpectedGDBTypeError(UnexpectedGDBTypeBaseError):
     """The gdb.Type passed describes an inappropriate type for the operation"""
-    formatter = "expected gdb.Type `{}' to describe `{}' not `{}'"
+    _fmt = "expected gdb.Type `{}' to describe `{}' not `{}'"
     def __init__(self, name: str, gdbtype: gdb.Type,
                  expected_type: gdb.Type) -> None:
-        msg = self.formatter.format(name, str(gdbtype), str(expected_type))
+        msg = self._fmt.format(name, str(gdbtype), str(expected_type))
         super().__init__(msg)
 
 class NotStructOrUnionError(UnexpectedGDBTypeBaseError):
     """The provided type is not a struct or union"""
-    formatter = "argument `{}' describes type `{}' which is not a struct or union"
+    _fmt = "argument `{}' describes type `{}' which is not a struct or union"
     def __init__(self, name: str, gdbtype: gdb.Type) -> None:
-        msg = self.formatter.format(name, str(gdbtype))
+        msg = self._fmt.format(name, str(gdbtype))
         super().__init__(msg)

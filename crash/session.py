@@ -14,10 +14,10 @@ class Session(object):
     any sub modules for autoinitializing commands and subsystems.
 
     Args:
-        kernel (CrashKernel): The kernel to debug during this session
-        verbose (bool, optional, default=False): Whether to enable verbose
+        kernel: The kernel to debug during this session
+        verbose (optional, default=False): Whether to enable verbose
             output
-        debug (bool, optional, default=False): Whether to enable verbose
+        debug (optional, default=False): Whether to enable verbose
             debugging output
     """
     def __init__(self, kernel: CrashKernel, verbose: bool = False,

@@ -21,12 +21,13 @@ from crash.exceptions import MissingSymbolError, InvalidArgumentError
 import gdb
 
 class CrashKernelError(RuntimeError):
+    """Raised when an error occurs while initializing the debugging session"""
     pass
 
-class NoMatchingFileError(FileNotFoundError):
+class _NoMatchingFileError(FileNotFoundError):
     pass
 
-class ModinfoMismatchError(ValueError):
+class _ModinfoMismatchError(ValueError):
     _fmt = "module {} has mismatched {} (got `{}' expected `{}')"
     def __init__(self, attribute: str, path: str, value: Optional[str],
                  expected_value: Optional[str]) -> None:
@@ -37,12 +38,12 @@ class ModinfoMismatchError(ValueError):
         self.expected_value = expected_value
         self.attribute = attribute
 
-class ModVersionMismatchError(ModinfoMismatchError):
+class _ModVersionMismatchError(_ModinfoMismatchError):
     def __init__(self, path: str, module_value: Optional[str],
                  expected_value: Optional[str]) -> None:
         super().__init__('vermagic', path, module_value, expected_value)
 
-class ModSourceVersionMismatchError(ModinfoMismatchError):
+class _ModSourceVersionMismatchError(_ModinfoMismatchError):
     def __init__(self, path: str, module_value: Optional[str],
                  expected_value: Optional[str]) -> None:
         super().__init__('srcversion', path, module_value, expected_value)
@@ -52,6 +53,78 @@ LINUX_KERNEL_PID = 1
 PathSpecifier = Union[List[str], str]
 
 class CrashKernel(object):
+    """
+    Initialize a basic kernel semantic debugging session.
+
+    This means that we load the following:
+
+    - Kernel image symbol table (and debuginfo, if not integrated)
+      relocated to the base offset used by kASLR
+    - Kernel modules that were loaded on the the crashed system (again,
+      with debuginfo if not integrated)
+    - Percpu ranges used by kernel module
+    - Architecture-specific details
+    - Linux tasks populated into the GDB thread table
+
+    If kernel module files and debuginfo cannot be located, backtraces
+    may be incomplete if the addresses used by the modules are crossed.
+    Percpu ranges will be properly loaded regardless.
+
+    For arguments that accept paths to specify a base directory to be
+    used, the entire directory structure will be read and cached to
+    speed up subsequent searches.  Still, reading large directory trees
+    is a time consuming operation and being exact as possible will
+    improve startup time.
+
+    Args:
+        root (None for defaults): The roots of trees
+            to search for debuginfo files.  When specified, all roots
+            will be searched using the following arguments (including
+            the absolute paths in the defaults if unspecified).
+
+            Defaults to: /
+
+        vmlinux_debuginfo (None for defaults): The
+            location of the separate debuginfo file corresponding
+            to the kernel being debugged.
+
+            Defaults to:
+
+            - <loaded kernel path>.debug
+            - ./vmlinux-<kernel version>.debug
+            - /usr/lib/debug/.build-id/xx/<build-id>.debug
+            - /usr/lib/debug/<loaded kernel path>.debug
+            - /usr/lib/debug/boot/<loaded kernel name>.debug
+            - /usr/lib/debug/boot/vmlinux-<kernel version>
+
+
+        module_path (None for defaults): The base directory to
+            be used to search for kernel modules (e.g. module.ko) to be
+            used to load symbols for the kernel being debugged.
+
+            Defaults to:
+
+            - ./modules
+            - /lib/modules/<kernel-version>
+
+
+        module_debuginfo_path (None for defaults): The base
+            directory to search for debuginfo matching the kernel
+            modules already loaded.
+
+            Defaults to:
+
+            - ./modules.debug
+            - /usr/lib/debug/.build-id/xx/<build-id>.debug
+            - /usr/lib/debug/lib/modules/<kernel-version>
+
+
+    Raises:
+        CrashKernelError: If the kernel debuginfo cannot be loaded.
+        InvalidArgumentError: If any of the arguments are not None, str,
+                   or list of str
+
+    """
     types = Types(['char *'])
     symvals = Symvals(['init_task'])
     symbols = Symbols(['runqueues'])
@@ -62,70 +135,6 @@ class CrashKernel(object):
                  module_path: PathSpecifier = None,
                  module_debuginfo_path: PathSpecifier = None,
                  verbose: bool = False, debug: bool = False) -> None:
-        """
-        Initialize a basic kernel semantic debugging session.
-
-        This means that we load the following:
-        - Kernel image symbol table (and debuginfo, if not integrated)
-          relocated to the base offset used by kASLR
-        - Kernel modules that were loaded on the the crashed system (again,
-          with debuginfo if not integrated)
-        - Percpu ranges used by kernel module
-        - Architecture-specific details
-        - Linux tasks populated into the GDB thread table
-
-        If kernel module files and debuginfo cannot be located, backtraces
-        may be incomplete if the addresses used by the modules are crossed.
-        Percpu ranges will be properly loaded regardless.
-
-        For arguments that accept paths to specify a base directory to be
-        used, the entire directory structure will be read and cached to
-        speed up subsequent searches.  Still, reading large directory trees
-        is a time consuming operation and being exact as possible will
-        improve startup time.
-
-        Args:
-            root (str or list of str, None for defaults): The roots of trees
-                to search for debuginfo files.  When specified, all roots
-                will be searched using the following arguments (including
-                the absolute paths in the defaults if unspecified).
-
-                Defaults to: /
-
-            vmlinux_debuginfo (str or list of str, None for defaults): The
-                location of the separate debuginfo file corresponding
-                to the kernel being debugged.
-
-                Defaults to:
-                - <loaded kernel path>.debug
-                - ./vmlinux-<kernel version>.debug
-                - /usr/lib/debug/.build-id/xx/<build-id>.debug
-                - /usr/lib/debug/<loaded kernel path>.debug
-                - /usr/lib/debug/boot/<loaded kernel name>.debug
-                - /usr/lib/debug/boot/vmlinux-<kernel version>
-
-            module_path (string, None for defaults): The base directory to
-                be used to search for kernel modules (e.g. module.ko) to be
-                used to load symbols for the kernel being debugged.
-
-                Defaults to:
-                - ./modules
-                - /lib/modules/<kernel-version>
-
-            module_debuginfo_path (string, None for defaults): The base
-                directory to search for debuginfo matching the kernel
-                modules already loaded.
-
-                Defaults to:
-                - ./modules.debug
-                - /usr/lib/debug/.build-id/xx/<build-id>.debug
-                - /usr/lib/debug/lib/modules/<kernel-version>
-        Raises:
-            CrashKernelError: If the kernel debuginfo cannot be loaded.
-            InvalidArgumentError: If any of the arguments are not None, str,
-                       or list of str
-
-        """
         self.findmap: Dict[str, Dict[Any, Any]] = dict()
         self.modules_order: Dict[str, Dict[str, str]] = dict()
         obj = gdb.objfiles()[0]
@@ -322,6 +331,15 @@ class CrashKernel(object):
         return sym.address.cast(self.types.char_p_type).string()
 
     def extract_version(self) -> str:
+        """
+        Returns the version from the loaded vmlinux
+
+        If debuginfo is available, ``init_uts_ns`` will be used.
+        Otherwise, it will be extracted from the version banner.
+
+        Returns:
+            str: The version text.
+        """
         try:
             uts = get_symbol_value('init_uts_ns')
             return uts['name']['release'].string()
@@ -333,6 +351,12 @@ class CrashKernel(object):
         return banner.split(' ')[2]
 
     def extract_vermagic(self) -> str:
+        """
+        Returns the vermagic from the loaded vmlinux
+
+        Returns:
+            str: The version text.
+        """
         try:
             magic = get_symbol_value('vermagic')
             return magic.string()
@@ -342,6 +366,16 @@ class CrashKernel(object):
         return self._get_minsymbol_as_string('vermagic')
 
     def extract_modinfo_from_module(self, modpath: str) -> Dict[str, str]:
+        """
+        Returns the modinfo from a module file
+
+        Args:
+            modpath: The path to the module file.
+
+        Returns:
+            dict: A dictionary containing the names and values of the modinfo
+            variables.
+        """
         f = open(modpath, 'rb')
 
         elf = ELFFile(f)
@@ -360,19 +394,29 @@ class CrashKernel(object):
 
     def fetch_registers(self, thread: gdb.InferiorThread,
                         register: gdb.Register) -> None:
+        """
+        Loads the value for a register (or registers if Register.regnum is
+        ``-1``)
+
+        Meant to be used as a callback from gdb.Target.
+
+        Args:
+            thread: The thread for which to load the registers
+            register: The register (or registers) to load.
+        """
         if register is None:
             regnum = -1
         else:
             regnum = register.regnum
         self.arch.fetch_register(thread, regnum)
 
-    def get_module_sections(self, module: gdb.Value) -> str:
+    def _get_module_sections(self, module: gdb.Value) -> str:
         out = []
         for (name, addr) in for_each_module_section(module):
             out.append("-s {} {:#x}".format(name, addr))
         return " ".join(out)
 
-    def check_module_version(self, modpath: str, module: gdb.Value) -> None:
+    def _check_module_version(self, modpath: str, module: gdb.Value) -> None:
         modinfo = self.extract_modinfo_from_module(modpath)
 
         vermagic = None
@@ -380,7 +424,7 @@ class CrashKernel(object):
             vermagic = modinfo['vermagic']
 
         if vermagic != self.vermagic:
-            raise ModVersionMismatchError(modpath, vermagic, self.vermagic)
+            raise _ModVersionMismatchError(modpath, vermagic, self.vermagic)
 
         mi_srcversion = None
         if 'srcversion' in modinfo:
@@ -391,10 +435,26 @@ class CrashKernel(object):
             mod_srcversion = module['srcversion'].string()
 
         if mi_srcversion != mod_srcversion:
-            raise ModSourceVersionMismatchError(modpath, mi_srcversion,
-                                                mod_srcversion)
+            raise _ModSourceVersionMismatchError(modpath, mi_srcversion,
+                                                 mod_srcversion)
 
     def load_modules(self, verbose: bool = False, debug: bool = False) -> None:
+        """
+        Load modules (including debuginfo) into the crash session.
+
+        This routine will attempt to locate modules and the corresponding
+        debuginfo files, if separate, using the parameters defined
+        when the CrashKernel object was initialized.
+
+        Args:
+            verbose (default=False): enable verbose output
+            debug (default=False): enable even more verbose debugging output
+
+        Raises:
+            CrashKernelError: An error was encountered while loading a module.
+                This does not include a failure to locate a module or
+                its debuginfo.
+        """
         import crash.cache.syscache # pylint: disable=redefined-outer-name
         version = crash.cache.syscache.utsname.release
         print("Loading modules for {}".format(version), end='')
@@ -409,13 +469,13 @@ class CrashKernel(object):
             for path in self.module_path:
 
                 try:
-                    modpath = self.find_module_file(modfname, path)
-                except NoMatchingFileError:
+                    modpath = self._find_module_file(modfname, path)
+                except _NoMatchingFileError:
                     continue
 
                 try:
-                    self.check_module_version(modpath, module)
-                except ModinfoMismatchError as e:
+                    self._check_module_version(modpath, module)
+                except _ModinfoMismatchError as e:
                     if verbose:
                         print(str(e))
                     continue
@@ -435,7 +495,7 @@ class CrashKernel(object):
                     print(".", end='')
                     sys.stdout.flush()
 
-                sections = self.get_module_sections(module)
+                sections = self._get_module_sections(module)
 
                 percpu = int(module['percpu'])
                 if percpu > 0:
@@ -453,7 +513,7 @@ class CrashKernel(object):
 
                 objfile = gdb.lookup_objfile(modpath)
                 if not objfile.has_symbols():
-                    self.load_module_debuginfo(objfile, modpath, verbose)
+                    self._load_module_debuginfo(objfile, modpath, verbose)
                 elif debug:
                     print(" + has debug symbols")
 
@@ -481,18 +541,17 @@ class CrashKernel(object):
         del self.findmap
         self.findmap = {}
 
-    @staticmethod
-    def normalize_modname(mod: str) -> str:
+    def _normalize_modname(self, mod: str) -> str:
         return mod.replace('-', '_')
 
-    def cache_modules_order(self, path: str) -> None:
+    def _cache_modules_order(self, path: str) -> None:
         self.modules_order[path] = dict()
         order = os.path.join(path, "modules.order")
         try:
             f = open(order)
             for line in f.readlines():
                 modpath = line.rstrip()
-                modname = self.normalize_modname(os.path.basename(modpath))
+                modname = self._normalize_modname(os.path.basename(modpath))
                 if modname[:7] == "kernel/":
                     modname = modname[7:]
                 modpath = os.path.join(path, modpath)
@@ -502,16 +561,16 @@ class CrashKernel(object):
         except OSError:
             pass
 
-    def get_module_path_from_modules_order(self, path: str, name: str) -> str:
+    def _get_module_path_from_modules_order(self, path: str, name: str) -> str:
         if not path in self.modules_order:
-            self.cache_modules_order(path)
+            self._cache_modules_order(path)
 
         try:
             return self.modules_order[path][name]
         except KeyError:
-            raise NoMatchingFileError(name)
+            raise _NoMatchingFileError(name)
 
-    def cache_file_tree(self, path: str, regex: Pattern[str] = None) -> None:
+    def _cache_file_tree(self, path: str, regex: Pattern[str] = None) -> None:
         if not path in self.findmap:
             self.findmap[path] = {
                 'filters' : [],
@@ -534,7 +593,7 @@ class CrashKernel(object):
         # pylint: disable=unused-variable
         for root, dirs, files in os.walk(path):
             for filename in files:
-                modname = self.normalize_modname(filename)
+                modname = self._normalize_modname(filename)
 
                 if regex and regex.match(modname) is None:
                     continue
@@ -542,36 +601,42 @@ class CrashKernel(object):
                 modpath = os.path.join(root, filename)
                 self.findmap[path]['files'][modname] = modpath
 
-    def get_file_path_from_tree_search(self, path: str, name: str,
-                                       regex: Pattern[str] = None) -> str:
-        self.cache_file_tree(path, regex)
+    def _get_file_path_from_tree_search(self, path: str, name: str,
+                                        regex: Pattern[str] = None) -> str:
+        self._cache_file_tree(path, regex)
 
         try:
-            modname = self.normalize_modname(name)
+            modname = self._normalize_modname(name)
             return self.findmap[path]['files'][modname]
         except KeyError:
-            raise NoMatchingFileError(name)
+            raise _NoMatchingFileError(name)
 
-    def find_module_file(self, name: str, path: str) -> str:
+    def _find_module_file(self, name: str, path: str) -> str:
         try:
-            return self.get_module_path_from_modules_order(path, name)
-        except NoMatchingFileError:
+            return self._get_module_path_from_modules_order(path, name)
+        except _NoMatchingFileError:
             pass
 
         regex = re.compile(fnmatch.translate("*.ko"))
-        return self.get_file_path_from_tree_search(path, name, regex)
+        return self._get_file_path_from_tree_search(path, name, regex)
 
-    def find_module_debuginfo_file(self, name: str, path: str) -> str:
+    def _find_module_debuginfo_file(self, name: str, path: str) -> str:
         regex = re.compile(fnmatch.translate("*.ko.debug"))
-        return self.get_file_path_from_tree_search(path, name, regex)
+        return self._get_file_path_from_tree_search(path, name, regex)
 
     @staticmethod
     def build_id_path(objfile: gdb.Objfile) -> str:
+        """
+        Returns the relative path for debuginfo using the objfile's build-id.
+
+        Args:
+            objfile: The objfile for which to return the path
+        """
         build_id = objfile.build_id
         return ".build_id/{}/{}.debug".format(build_id[0:2], build_id[2:])
 
-    def try_load_debuginfo(self, objfile: gdb.Objfile,
-                           path: str, verbose: bool = False) -> bool:
+    def _try_load_debuginfo(self, objfile: gdb.Objfile,
+                            path: str, verbose: bool = False) -> bool:
         if not os.path.exists(path):
             return False
 
@@ -586,9 +651,9 @@ class CrashKernel(object):
 
         return False
 
-    def load_module_debuginfo(self, objfile: gdb.Objfile,
-                              modpath: str = None,
-                              verbose: bool = False) -> None:
+    def _load_module_debuginfo(self, objfile: gdb.Objfile,
+                               modpath: str = None,
+                               verbose: bool = False) -> None:
         if modpath is None:
             modpath = objfile.filename
         if ".gz" in modpath:
@@ -599,18 +664,26 @@ class CrashKernel(object):
 
         for path in self.module_debuginfo_path:
             filepath = "{}/{}".format(path, build_id_path)
-            if self.try_load_debuginfo(objfile, filepath, verbose):
+            if self._try_load_debuginfo(objfile, filepath, verbose):
                 break
 
             try:
-                filepath = self.find_module_debuginfo_file(filename, path)
-            except NoMatchingFileError:
+                filepath = self._find_module_debuginfo_file(filename, path)
+            except _NoMatchingFileError:
                 continue
 
-            if self.try_load_debuginfo(objfile, filepath, verbose):
+            if self._try_load_debuginfo(objfile, filepath, verbose):
                 break
 
     def setup_tasks(self) -> None:
+        """
+        Populate GDB's thread list using the kernel's task lists
+
+        This method will iterate over the kernel's task lists, create a
+        LinuxTask object, and create a gdb thread for each one.  The
+        threads will be built so that the registers are ready to be
+        populated, which allows symbolic stack traces to be made available.
+        """
         from crash.types.percpu import get_percpu_vars
         from crash.types.task import LinuxTask, for_each_all_tasks
         import crash.cache.tasks # pylint: disable=redefined-outer-name
