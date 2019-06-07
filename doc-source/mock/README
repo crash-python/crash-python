@@ -1,3 +1,7 @@
-This directory contains a mockup of the gdb and addrxlat modules.
+This directory contains a mockup of modules that are used as dependencies
+of this project.
 
-Otherwise, sphinx fails to import the modules and can't build the docs.
+They are used to build the documentation as sphinx fails to import the
+dependencies offered by gdb and can't build the docs.  Likewise,
+readthedocs.org doesn't provide the dependencies (and shouldn't), so
+the mock modules are used to allow the build process to succeed.
