@@ -33,6 +33,8 @@ Table of Contents
    kdump/modules
    crash/modules
 
+   gdb-internals
+
 Indices and tables
 ------------------
 
