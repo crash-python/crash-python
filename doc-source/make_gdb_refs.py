@@ -2,7 +2,6 @@
 
 # This creates a mock objects.inv file to reference external documentation
 
-from sphinx.ext import intersphinx
 from sphinx.util.inventory import InventoryFile
 
 class config(object):
@@ -41,7 +40,8 @@ class MockBuilder(object):
     def get_target_uri(self, docname):
         return docname
 
-def make_gdb_refs():
+def make_gdb_refs(root):
+    print("*** Generating gdb inventory file")
     env = MockEnvironment()
     builder = MockBuilder()
 
@@ -62,4 +62,5 @@ def make_gdb_refs():
 
     env.add_domain(classes)
 
-    InventoryFile.dump("gdb.inv", env, builder)
+    print(f"Writing {root}/gdb.inv")
+    InventoryFile.dump(f"{root}/gdb.inv", env, builder)

@@ -2,5 +2,10 @@
 *~
 doc-source/crash.*.rst
 doc-source/modules.rst
+doc-source/gdb.inv
+doc-source/commands
+doc-source/_static
+doc-source/_templates
 docs
 tests/test_imports.py
+__pycache__

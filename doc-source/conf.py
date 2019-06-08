@@ -28,30 +28,27 @@ from sphinx.ext import autodoc
 def run_apidoc(_):
     try:
         from sphinx.ext.apidoc import main
-        crash_mod = "../crash"
-        kdump_mod = "../kdump"
-        out = "."
     except ImportError as e:
         from sphinx.apidoc import main
-        crash_mod = "crash"
-        kdump_mod = "kdump"
-        out = "doc-source"
     import make_gdb_refs
+    import gen_command_docs
     import os
     import sys
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     cur_dir = os.path.abspath(os.path.dirname(__file__))
-    argv = [ '-M', '-e', '-H', 'Crash API Reference', '-f',
-            '-o', out + "/crash", crash_mod , f'*crash/commands/[a-z]*' ]
-    main(argv)
 
+    out_dir = os.path.join(cur_dir, "crash")
+    mod_dir = os.path.join(cur_dir, "..", "crash")
+    argv = [ '-M', '-e', '-H', 'Crash API Reference', '-f',
+            '-o', out_dir, mod_dir , f'*crash/commands/[a-z]*' ]
+    main(argv)
 
     # We want to document the commands as part of the command reference
     # not the API documentation.
-    f = open("doc-source/crash/crash.commands.rst")
+    f = open(f"{cur_dir}/crash/crash.commands.rst")
     lines = f.readlines()
     f.close()
-    f = open("doc-source/crash/crash.commands.rst", "w")
+    f = open(f"{cur_dir}/crash/crash.commands.rst", "w")
     printit = True
     for line in lines:
         if 'Submodules' in line:
@@ -63,11 +60,16 @@ def run_apidoc(_):
             print(line, file=f, end='')
     f.close()
 
+    out_dir = os.path.join(cur_dir, "kdump")
+    mod_dir = os.path.join(cur_dir, "..", "kdump")
     argv = [ '-M', '-e', '-H', 'Kdump Target API Reference', '-f',
-            '-o', out + "/kdump", kdump_mod ]
+            '-o', out_dir, mod_dir ]
     main(argv)
 
-    make_gdb_refs.make_gdb_refs()
+    print("*** Generating doc templates")
+
+    make_gdb_refs.make_gdb_refs(cur_dir)
+    gen_command_docs.gen_command_docs(cur_dir)
 
 def setup(app):
     app.connect('builder-inited', run_apidoc)

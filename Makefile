@@ -68,13 +68,10 @@ man-install: man
 	$(INSTALL) -d -m 755 $(DESTDIR)$(man1dir)
 	$(INSTALL) -m 644 $(GZ_MAN1) $(DESTDIR)$(man1dir)
 
-doc-commands: FORCE
-	sh doc-source/gen-command-docs.sh
-
-doc-html: doc-source-clean doc-commands
+doc-html: doc-source-clean
 	sphinx-build -a -b html doc-source docs/html
 
-doc-help: doc-source-clean doc-commands
+doc-help: doc-source-clean
 	sphinx-build -a -b text doc-source docs/text
 
 doc: doc-source-clean doc-html doc-help man FORCE
