@@ -1,5 +1,31 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+"""
+SUMMARY
+-------
+
+Display module information
+
+::
+
+  lsmod [-p [n]] [name-wildcard]
+
+DESCRIPTION
+-----------
+
+This command displays information about loaded modules.
+
+The default output will show all loaded modules, the core address,
+its size, and any users of the module.  By specifying [name-wildcard],
+the results can be filtered to modules matching the wildcard.
+
+The following options are available:
+
+-p       display the percpu base for the module and the size of its region
+-p CPU   display the percpu base for the module and the size of its region
+         for the specified CPU number
+
+"""
 
 import re
 import fnmatch
@@ -14,36 +40,13 @@ from crash.types.percpu import get_percpu_var
 
 import gdb
 
-class _Parser(ArgumentParser):
-    """
-    NAME
-      lsmod - display module information
-
-    SYNOPSIS
-      lsmod [-p [n]] [name-wildcard]
-
-    DESCRIPTION
-      This command displays information about loaded modules.
-
-      The default output will show all loaded modules, the core address,
-      its size, and any users of the module.  By specifying [name-wildcard],
-      the results can be filtered to modules matching the wildcard.
-
-      The following options are available:
-      -p       display the percpu base for the module and the size of its region
-      -p CPU#  display the percpu base for the module and the size of its region
-               for the specified CPU number
-    """
-    def format_usage(self) -> str:
-        return "lsmod [-p] [regex] ...\n"
-
 types = Types(['struct module_use'])
 
 class ModuleCommand(Command):
     """display module information"""
 
     def __init__(self) -> None:
-        parser = _Parser(prog="lsmod")
+        parser = ArgumentParser(prog="lsmod")
 
         parser.add_argument('-p', nargs='?', const=-1, default=None, type=int)
         parser.add_argument('args', nargs=argparse.REMAINDER)

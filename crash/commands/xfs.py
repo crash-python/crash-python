@@ -1,5 +1,25 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+"""
+SUMMARY
+-------
+
+Display XFS internal data structures
+
+::
+
+  xfs <command> [arguments ...]
+
+COMMANDS
+--------
+
+::
+
+  xfs list
+  xfs show <superblock>
+  xfs dump-ail <superblock>
+  xfs dump-buft <buftarg>
+"""
 
 import argparse
 
@@ -26,21 +46,6 @@ from crash.util.symbols import Types
 import gdb
 
 types = Types(['struct xfs_buf *'])
-
-class _Parser(ArgumentParser):
-    """
-    NAME
-      xfs - display XFS internal data structures
-
-    SYNOPSIS
-      xfs <command> [arguments ...]
-
-    COMMANDS
-      xfs list
-      xfs show <superblock>
-      xfs dump-ail <superblock>
-      xfs dump-buft <buftarg>
-    """
 
 class XFSCommand(Command):
     """display XFS internal data structures"""

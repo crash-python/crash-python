@@ -63,9 +63,12 @@ def current_target():
 class Block(object):
     pass
 
+commands = list()
+
 class Command(object):
-    def __init__(self, x, y):
-        pass
+    def __init__(self, name, parser):
+        self.name = name
+        commands.append(name)
 
 class NewObjFileEvent(object):
     pass

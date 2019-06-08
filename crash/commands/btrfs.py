@@ -1,5 +1,20 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+"""
+SUMMARY
+-------
+
+Display Btrfs internal data structures
+
+::
+
+  btrfs <command> <superblock>
+
+COMMANDS
+--------
+
+  ``btrfs list [-m]`` -- list all btrfs file systems (-m to show metadata uuid)
+"""
 
 import argparse
 from crash.commands import Command, ArgumentParser
@@ -8,16 +23,6 @@ from crash.subsystem.filesystem import for_each_super_block, super_fstype
 from crash.subsystem.filesystem.btrfs import btrfs_fsid, btrfs_metadata_uuid
 
 class _Parser(ArgumentParser):
-    """
-    NAME
-      btrfs - display Btrfs internal data structures
-
-    SYNOPSIS
-      btrfs <command> <superblock>
-
-    COMMANDS
-      btrfs list [-m] - list all btrfs file systems (-m to show metadata uuid)
-    """
     def format_usage(self) -> str:
         return "btrfs <subcommand> [args...]\n"
 

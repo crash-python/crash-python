@@ -19,9 +19,11 @@
 #
 import os
 import sys
+sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('./mock'))
 sys.path.insert(0, os.path.abspath('.'))
 
+from sphinx.ext import autodoc
 
 def run_apidoc(_):
     try:
@@ -40,17 +42,36 @@ def run_apidoc(_):
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     argv = [ '-M', '-e', '-H', 'Crash API Reference', '-f',
-	    '-o', out + "/crash", crash_mod ]
+            '-o', out + "/crash", crash_mod , f'*crash/commands/[a-z]*' ]
     main(argv)
 
+
+    # We want to document the commands as part of the command reference
+    # not the API documentation.
+    f = open("doc-source/crash/crash.commands.rst")
+    lines = f.readlines()
+    f.close()
+    f = open("doc-source/crash/crash.commands.rst", "w")
+    printit = True
+    for line in lines:
+        if 'Submodules' in line:
+            printit = False
+        elif 'Module contents' in line:
+            printit = True
+
+        if printit:
+            print(line, file=f, end='')
+    f.close()
+
     argv = [ '-M', '-e', '-H', 'Kdump Target API Reference', '-f',
-	    '-o', out + "/kdump", kdump_mod ]
+            '-o', out + "/kdump", kdump_mod ]
     main(argv)
 
     make_gdb_refs.make_gdb_refs()
 
 def setup(app):
-	app.connect('builder-inited', run_apidoc)
+    app.connect('builder-inited', run_apidoc)
+
 
 # -- General configuration ------------------------------------------------
 
@@ -62,13 +83,13 @@ def setup(app):
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc',
-	      'sphinx.ext.coverage',
-	      'sphinx.ext.intersphinx',
-	      'sphinx.ext.viewcode',
-	      'sphinx.ext.napoleon']
+              'sphinx.ext.coverage',
+              'sphinx.ext.intersphinx',
+              'sphinx.ext.viewcode',
+              'sphinx.ext.napoleon']
 
 intersphinx_mapping = { 'gdb' :
-	("https://sourceware.org/gdb/onlinedocs/gdb/", "gdb.inv") }
+        ("https://sourceware.org/gdb/onlinedocs/gdb/", "gdb.inv") }
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

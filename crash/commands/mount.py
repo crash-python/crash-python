@@ -1,5 +1,15 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+"""
+SUMMARY
+-------
+
+Display mounted file systems
+
+  -f    display common mount flags
+  -v    display superblock and vfsmount addresses
+  -d    display device obtained from super_block
+"""
 
 import argparse
 
@@ -11,21 +21,11 @@ from crash.subsystem.filesystem.mount import mount_root
 
 import gdb
 
-class _Parser(ArgumentParser):
-    """
-    NAME
-      mount - display mounted file systems
-
-      -f    display common mount flags
-      -v    display superblock and vfsmount addresses
-      -d    display device obtained from super_block
-    """
-
 class MountCommand(Command):
     """display mounted file systems"""
 
     def __init__(self, name: str) -> None:
-        parser = _Parser(prog=name)
+        parser = ArgumentParser(prog=name)
 
         parser.add_argument('-v', action='store_true', default=False)
         parser.add_argument('-f', action='store_true', default=False)

@@ -170,6 +170,9 @@ if [ -e "$DIR/setup.py" ]; then
     python3 setup.py build > /dev/null
     echo "python sys.path.insert(0, '$DIR/build/lib')" >> $GDBINIT
     popd > /dev/null
+    export CRASH_PYTHON_HELP="$DIR/docs/text"
+else
+    export CRASH_PYTHON_HELP="/usr/share/doc/packages/crash-python"
 fi
 
 ZKERNEL="$1"

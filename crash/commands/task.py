@@ -1,5 +1,28 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+"""
+SUMMARY
+-------
+
+Select task by pid
+
+::
+
+  task <pid>
+
+DESCRIPTION
+-----------
+
+This command selects the appropriate gdb thread using its Linux pid.
+
+If no pid is specified, the current pid will be displayed.
+
+EXAMPLES
+--------
+
+::
+  task 1402
+"""
 
 import argparse
 
@@ -7,21 +30,6 @@ from crash.commands import Command, ArgumentParser
 import crash.cache.tasks
 
 import gdb
-
-class _Parser(ArgumentParser):
-    """
-    NAME
-      task - select task by pid
-
-    SYNOPSIS
-      task <pid>
-
-    DESCRIPTION
-      This command selects the appropriate gdb thread using its Linux pid.
-
-    EXAMPLES
-        task 1402
-    """
 
 class TaskCommand(Command):
     """select task by pid"""

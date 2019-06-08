@@ -11,6 +11,7 @@ all: clean build doc test
 
 doc-source-clean:
 	rm -f doc-source/crash/*.rst doc-source/kdump/*.rst
+	rm -f doc-source/commands/*.rst
 
 doc-clean: doc-source-clean
 	rm -rf docs
@@ -19,7 +20,7 @@ clean: doc-clean man-clean
 	make -C tests clean
 	rm -rf build
 
-build: FORCE
+build: doc-help FORCE
 	python3 setup.py -q build
 
 clean-build: clean build
@@ -45,8 +46,6 @@ test: unit-tests static-check lint live-tests
 
 full-test: test doc
 
-doc: doc-source-clean man
-	sphinx-build -a -b html doc-source docs/html
 
 pycrash.1 : crash-python.1
 
@@ -69,5 +68,15 @@ man-install: man
 	$(INSTALL) -d -m 755 $(DESTDIR)$(man1dir)
 	$(INSTALL) -m 644 $(GZ_MAN1) $(DESTDIR)$(man1dir)
 
+doc-commands: FORCE
+	sh doc-source/gen-command-docs.sh
+
+doc-html: doc-source-clean doc-commands
+	sphinx-build -a -b html doc-source docs/html
+
+doc-help: doc-source-clean doc-commands
+	sphinx-build -a -b text doc-source docs/text
+
+doc: doc-source-clean doc-html doc-help man FORCE
 
 FORCE:

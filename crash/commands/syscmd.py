@@ -1,5 +1,44 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+"""
+SUMMARY
+-------
+
+Display system information and configuration data
+::
+
+  sys [config]
+
+DESCRIPTION
+-----------
+
+  This command displays system-specific data. If no arguments are entered,
+  the same system data shown during crash invocation is shown.
+
+    ``config``  If the kernel was configured with ``CONFIG_IKCONFIG``, then
+                dump the in-kernel configuration data.
+
+EXAMPLES
+--------
+
+  Display essential system information:
+
+::
+
+    py-crash> sys config
+          KERNEL: vmlinux.4
+        DUMPFILE: lcore.cr.4
+            CPUS: 4
+            DATE: Mon Oct 11 18:48:55 1999
+          UPTIME: 10 days, 14:14:39
+    LOAD AVERAGE: 0.74, 0.23, 0.08
+           TASKS: 77
+        NODENAME: test.mclinux.com
+         RELEASE: 2.2.5-15smp
+         VERSION: #24 SMP Mon Oct 11 17:41:40 CDT 1999
+         MACHINE: i686  (500 MHz)
+          MEMORY: 1 GB
+"""
 
 import argparse
 
@@ -7,44 +46,11 @@ from crash.commands import Command, ArgumentParser
 from crash.commands import CommandLineError
 from crash.cache.syscache import utsname, config, kernel
 
-class _Parser(ArgumentParser):
-    """
-    NAME
-      sys - system data
-
-    SYNOPSIS
-      sys [config]
-
-    DESCRIPTION
-      This command displays system-specific data. If no arguments are entered,
-      the same system data shown during crash invocation is shown.
-
-        config            If the kernel was configured with CONFIG_IKCONFIG, then
-                          dump the in-kernel configuration data.
-
-    EXAMPLES
-      Display essential system information:
-
-        crash> sys config
-              KERNEL: vmlinux.4
-            DUMPFILE: lcore.cr.4
-                CPUS: 4
-                DATE: Mon Oct 11 18:48:55 1999
-              UPTIME: 10 days, 14:14:39
-        LOAD AVERAGE: 0.74, 0.23, 0.08
-               TASKS: 77
-            NODENAME: test.mclinux.com
-             RELEASE: 2.2.5-15smp
-             VERSION: #24 SMP Mon Oct 11 17:41:40 CDT 1999
-             MACHINE: i686  (500 MHz)
-              MEMORY: 1 GB
-    """
-
 class SysCommand(Command):
     """system data"""
     def __init__(self, name: str) -> None:
 
-        parser = _Parser(prog=name)
+        parser = ArgumentParser(prog=name)
 
         parser.add_argument('config', nargs='?')
 

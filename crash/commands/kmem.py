@@ -1,5 +1,23 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
+"""
+SUMMARY
+-------
+
+Kernel memory inspection
+
+::
+
+  kmem addr             - try to find addr within kmem caches
+  kmem -s [slabname]    - check consistency of single or all kmem cache
+  kmem -z               - report zones
+  kmem -V               - report vmstats
+
+DESCRIPTION
+-----------
+
+This command currently offers very basic kmem cache query and checking.
+"""
 
 from typing import List
 
@@ -13,21 +31,6 @@ from crash.types.node import for_each_zone, for_each_populated_zone
 from crash.types.vmstat import VmStat
 from crash.util import get_symbol_value
 from crash.exceptions import MissingSymbolError
-
-class _Parser(ArgumentParser):
-    """
-    NAME
-      kmem - kernel memory inspection
-
-    SYNOPSIS
-      kmem addr             - try to find addr within kmem caches
-      kmem -s [slabname]    - check consistency of single or all kmem cache
-      kmem -z               - report zones
-      kmem -V               - report vmstats
-
-    DESCRIPTION
-      This command currently offers very basic kmem cache query and checking.
-    """
 
 class KmemCommand(Command):
     """ kernel memory inspection"""
