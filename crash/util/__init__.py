@@ -210,8 +210,7 @@ def __offsetof(val: gdb.Type, spec: str,
         if not found:
             if error:
                 raise _InvalidComponentNameError(member, gdbtype)
-            else:
-                return None
+            return None
         gdbtype = nexttype
         offset += off
 
@@ -254,8 +253,7 @@ def offsetof_type(gdbtype: gdb.Type, member_name: str,
     except _InvalidComponentBaseError as e:
         if error:
             raise InvalidComponentError(gdbtype, member_name, str(e))
-        else:
-            return None
+        return None
 
 def offsetof(gdbtype: gdb.Type, member_name: str,
              error: bool = True) -> Union[int, None]:

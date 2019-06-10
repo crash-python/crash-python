@@ -126,9 +126,8 @@ class Slab:
         if obj_addr in self.free:
             self.__error(": object %x duplicated on freelist" % obj_addr)
             return False
-        else:
-            self.free.add(obj_addr)
 
+        self.free.add(obj_addr)
         return True
 
     def __populate_free(self) -> None:

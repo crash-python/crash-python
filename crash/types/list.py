@@ -87,8 +87,7 @@ def list_for_each(list_head: gdb.Value, include_head: bool = False,
         if exact_cycles:
             if int(node.address) in visited:
                 raise ListCycleError("Cycle in list detected.")
-            else:
-                visited.add(int(node.address))
+            visited.add(int(node.address))
         try:
             if int(prev.address) != int(node[prev_]):
                 error = ("broken {} link {:#x} -{}-> {:#x} -{}-> {:#x}"
