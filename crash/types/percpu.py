@@ -28,7 +28,7 @@ symvals = Symvals(['__per_cpu_offset', 'pcpu_base_addr', 'pcpu_slot',
                    'pcpu_nr_slots', 'pcpu_group_offsets'])
 msymvals = MinimalSymvals(['__per_cpu_start', '__per_cpu_end'])
 
-class PerCPUState(object):
+class PerCPUState:
     """
     Per-cpus come in a few forms:
     - "Array" of objects

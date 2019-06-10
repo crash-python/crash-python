@@ -259,7 +259,7 @@ class TypeCallback(NamedCallback):
         return ("<{}({}, {})>"
                 .format(self.__class__.__name__, self.name, self.block))
 
-class DelayedValue(object):
+class DelayedValue:
     """
     A generic class for making class attributes available that describe
     to-be-loaded symbols, minimal symbols, and types.

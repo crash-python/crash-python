@@ -9,7 +9,7 @@ from crash.types.cpu import for_each_online_cpu
 
 import gdb
 
-class VmStat(object):
+class VmStat:
     types = Types(['enum zone_stat_item', 'enum vm_event_item'])
     symbols = Symbols(['vm_event_states'])
 

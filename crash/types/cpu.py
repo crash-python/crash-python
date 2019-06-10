@@ -14,7 +14,7 @@ import gdb
 
 # this wraps no particular type, rather it's a placeholder for
 # functions to iterate over online cpu's etc.
-class TypesCPUClass(object):
+class TypesCPUClass:
     """A state holder class for handling CPUs.  Not meant to be instantiated.
 
     Attributes:

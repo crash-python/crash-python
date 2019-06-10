@@ -6,7 +6,7 @@ from typing import List, Iterator, Any, Optional, Type
 import gdb
 from gdb.FrameDecorator import FrameDecorator
 
-class CrashArchitecture(object):
+class CrashArchitecture:
     ident = "base-class"
     aliases: List[str] = list()
     def __init__(self) -> None:
@@ -33,7 +33,7 @@ class CrashArchitecture(object):
         raise NotImplementedError("get_stack_pointer is not implemented")
 
 # This keeps stack traces from continuing into userspace and causing problems.
-class KernelFrameFilter(object):
+class KernelFrameFilter:
     def __init__(self, address: int) -> None:
         self.name = "KernelFrameFilter"
         self.priority = 100
@@ -44,7 +44,7 @@ class KernelFrameFilter(object):
     def filter(self, frame_iter: Iterator[FrameDecorator]) -> Any:
         return KernelAddressIterator(frame_iter, self.address)
 
-class KernelAddressIterator(object):
+class KernelAddressIterator:
     def __init__(self, ii: Iterator[gdb.Frame], address: int) -> None:
         self.input_iterator = ii
         self.address = address

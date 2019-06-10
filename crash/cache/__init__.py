@@ -9,7 +9,7 @@ from crash.infra import autoload_submodules
 
 import gdb
 
-class CrashCache(object):
+class CrashCache:
     def refresh(self) -> None:
         pass
 

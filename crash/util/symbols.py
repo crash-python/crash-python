@@ -29,7 +29,7 @@ import gdb
 CollectedValue = Union[gdb.Type, gdb.Value, gdb.Symbol, gdb.MinSymbol, Any]
 Names = Union[List[str], str]
 
-class DelayedCollection(object):
+class DelayedCollection:
     """
     A generic container for delayed lookups.
 
@@ -309,7 +309,7 @@ class DelayedValues(DelayedCollection):
 CallbackSpecifier = Tuple[str, Callable]
 CallbackSpecifiers = Union[List[CallbackSpecifier], CallbackSpecifier]
 
-class CallbackCollection(object):
+class CallbackCollection:
     def __init__(self, cls: Type[NamedCallback],
                  cbs: CallbackSpecifiers) -> None:
         if isinstance(cbs, tuple):

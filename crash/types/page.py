@@ -22,7 +22,7 @@ symvals = Symvals(['mem_section'])
 
 PageType = TypeVar('PageType', bound='Page')
 
-class Page(object):
+class Page:
     slab_cache_name = None
     slab_page_name = None
     compound_head_name = None

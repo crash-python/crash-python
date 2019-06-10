@@ -14,7 +14,7 @@ import gdb
 
 PTID = Tuple[int, int, int]
 
-class SymbolCallback(object):
+class SymbolCallback:
     "addrxlat symbolic callback"
 
     def __init__(self, ctx: Optional[addrxlat.Context] = None) -> None:

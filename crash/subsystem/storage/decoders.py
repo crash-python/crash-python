@@ -10,7 +10,7 @@ import gdb
 
 EndIOSpecifier = Union[int, str, List[str], gdb.Value, gdb.Symbol, None]
 
-class Decoder(object):
+class Decoder:
     """Decoder objects are used to unwind the storage stack
 
     They are relatively lightweight at runtime, meaning that the object

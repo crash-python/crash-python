@@ -21,7 +21,7 @@ symvals = Symvals(['init_task', 'init_mm'])
 # task_state_array which doesn't include all of them.  All we can do
 # is make some assumptions based on the changes upstream.  This will
 # be fragile.
-class TaskStateFlags(object):
+class TaskStateFlags:
     """
     A class to contain state related to discovering task flag values.
     Not meant to be instantiated.
@@ -183,7 +183,7 @@ symbol_cbs = SymbolCallbacks([('task_state_array',
 
 TF = TaskStateFlags
 
-class LinuxTask(object):
+class LinuxTask:
     """
     A wrapper class for ``struct task_struct``.  There will be typically
     one of these allocated for every task discovered in the debugging

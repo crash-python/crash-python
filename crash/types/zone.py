@@ -13,7 +13,7 @@ import crash.types.page
 
 import gdb
 
-class Zone(object):
+class Zone:
 
     types = Types(['struct page'])
 

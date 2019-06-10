@@ -14,7 +14,7 @@ import gdb
 
 types = Types(['struct device', 'struct device_private'])
 
-class ClassdevState(object):
+class ClassdevState:
     _class_is_private = True
 
     @classmethod

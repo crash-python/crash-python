@@ -44,7 +44,7 @@ class TranslationContext(addrxlat.Context):
         v = gdb.Value(faddr.addr).cast(types.uint64_t_p_type)
         return int(v.dereference())
 
-class CrashAddressTranslation(object):
+class CrashAddressTranslation:
     def __init__(self) -> None:
         try:
             target = gdb.current_target()

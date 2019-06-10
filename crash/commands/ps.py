@@ -430,7 +430,7 @@ from crash.types.task import LinuxTask, TaskStateFlags as TF
 
 import gdb
 
-class TaskFormat(object):
+class TaskFormat:
     """
     This class is responsible for converting the arguments into formatting
     rules.

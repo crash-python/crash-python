@@ -33,7 +33,7 @@ def numa_node_id(cpu: int) -> int:
 
 NodeType = TypeVar('NodeType', bound='Node')
 
-class Node(object):
+class Node:
     """
     A wrapper around the Linux kernel 'struct node' structure
     """
@@ -81,7 +81,7 @@ class Node(object):
         """
         self.gdb_obj = obj
 
-class NodeStates(object):
+class NodeStates:
     """
     A state holder for Node states.
 

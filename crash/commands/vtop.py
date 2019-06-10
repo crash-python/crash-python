@@ -140,7 +140,7 @@ from crash.commands import Command, ArgumentParser
 from crash.commands import CommandError, CommandLineError
 from crash.addrxlat import CrashAddressTranslation
 
-class LinuxPGT(object):
+class LinuxPGT:
     table_names = ('PTE', 'PMD', 'PUD', 'PGD')
 
     def __init__(self, ctx: addrxlat.Context, sys: addrxlat.System) -> None:

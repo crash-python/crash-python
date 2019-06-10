@@ -16,7 +16,7 @@ class CallbackCompleted(RuntimeError):
         super().__init__(msg)
         self.callback_obj = callback_obj
 
-class ObjfileEventCallback(object):
+class ObjfileEventCallback:
     """
     A generic objfile callback class
 

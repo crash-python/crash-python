@@ -51,7 +51,7 @@ LINUX_KERNEL_PID = 1
 
 PathSpecifier = Union[List[str], str]
 
-class CrashKernel(object):
+class CrashKernel:
     """
     Initialize a basic kernel semantic debugging session.
 

@@ -6,7 +6,7 @@ from crash.kernel import CrashKernel, CrashKernelError
 
 import gdb
 
-class Session(object):
+class Session:
     """
     crash.Session is the main driver component for crash-python
 

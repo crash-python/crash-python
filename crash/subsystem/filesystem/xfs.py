@@ -262,7 +262,7 @@ types = Types(['struct xfs_log_item', 'struct xfs_buf_log_item',
                'struct xfs_qoff_logitem', 'struct xfs_inode',
                'struct xfs_mount *', 'struct xfs_buf *'])
 
-class XFS(object):
+class XFS:
     """
     XFS File system state class.  Not meant to be instantiated directly.
     """

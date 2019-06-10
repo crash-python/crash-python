@@ -42,7 +42,7 @@ types = Types(['kmem_cache', 'struct kmem_cache'])
 SlabType = TypeVar('SlabType', bound='Slab')
 KmemCacheType = TypeVar('KmemCacheType', bound='KmemCache')
 
-class Slab(object):
+class Slab:
 
     slab_list_head: str = 'list'
     page_slab: bool = False
@@ -311,7 +311,7 @@ class Slab(object):
                              (obj, slab_addr))
         return num_free
 
-class KmemCache(object):
+class KmemCache:
     buffer_size_name = None
     nodelists_name = None
     percpu_name = None

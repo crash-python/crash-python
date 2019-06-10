@@ -54,7 +54,7 @@ MNT_FLAGS_HIDDEN.update(MNT_FLAGS)
 types = Types(['struct mount', 'struct vfsmount'])
 symvals = Symvals(['init_task'])
 
-class Mount(object):
+class Mount:
     _for_each_mount: Callable[[Any, gdb.Value], Iterator[gdb.Value]]
 
     def _for_each_mount_nsproxy(self, task: gdb.Value) -> Iterator[gdb.Value]:
