@@ -418,16 +418,12 @@ class CrashKernel:
     def _check_module_version(self, modpath: str, module: gdb.Value) -> None:
         modinfo = self.extract_modinfo_from_module(modpath)
 
-        vermagic = None
-        if 'vermagic' in modinfo:
-            vermagic = modinfo['vermagic']
+        vermagic = modinfo.get('vermagic', None)
 
         if vermagic != self.vermagic:
             raise _ModVersionMismatchError(modpath, vermagic, self.vermagic)
 
-        mi_srcversion = None
-        if 'srcversion' in modinfo:
-            mi_srcversion = modinfo['srcversion']
+        mi_srcversion = modinfo.get('srcversion', None)
 
         mod_srcversion = None
         if 'srcversion' in module.type:
