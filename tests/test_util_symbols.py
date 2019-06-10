@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*- # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import unittest
+import platform
 import gdb
 
 from crash.exceptions import DelayedAttributeError
@@ -238,4 +239,7 @@ class TestDelayedContainers(unittest.TestCase):
         self.assertTrue(x.ulong_valid)
         y = x.types.unsigned_long_type
         self.assertTrue(isinstance(y, gdb.Type))
-        self.assertTrue(y.sizeof > 4)
+        if platform.architecture()[0] == '64bit':
+            self.assertTrue(y.sizeof == 8)
+        else:
+            self.assertTrue(y.sizeof == 4)
