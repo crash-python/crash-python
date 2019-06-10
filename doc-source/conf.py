@@ -24,13 +24,13 @@ sys.path.insert(0, os.path.abspath('./mock'))
 sys.path.insert(0, os.path.abspath('.'))
 
 from sphinx.ext import autodoc
+from sphinx.errors import ExtensionError
 
 def run_apidoc(_):
     try:
         from sphinx.ext.apidoc import main
     except ImportError as e:
         from sphinx.apidoc import main
-    import make_gdb_refs
     import gen_command_docs
     import os
     import sys
@@ -68,10 +68,20 @@ def run_apidoc(_):
 
     print("*** Generating doc templates")
 
-    make_gdb_refs.make_gdb_refs(cur_dir)
     gen_command_docs.gen_command_docs(cur_dir)
 
+def init_callback(x, y):
+    import make_gdb_refs
+    import os
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    make_gdb_refs.make_gdb_refs(cur_dir)
+
 def setup(app):
+    try:
+        app.connect('config-inited', init_callback)
+    except ExtensionError as e:
+        pass
+
     app.connect('builder-inited', run_apidoc)
 
 

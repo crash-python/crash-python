@@ -104,10 +104,13 @@ man-install: man
 	$(INSTALL) -d -m 755 $(DESTDIR)$(man1dir)
 	$(INSTALL) -m 644 $(GZ_MAN1) $(DESTDIR)$(man1dir)
 
-doc-html: doc-source-clean
+gdb.inv:
+	python3 doc-source/make_gdb_refs.py
+
+doc-html: gdb.inv doc-source-clean
 	sphinx-build -b html doc-source docs/html
 
-doc-help: doc-source-clean
+doc-help: gdb.inv doc-source-clean
 	sphinx-build -b text doc-source docs/text
 	rm -f docs/text/commands/commands.txt
 

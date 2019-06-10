@@ -64,3 +64,8 @@ def make_gdb_refs(root):
 
     print(f"Writing {root}/gdb.inv")
     InventoryFile.dump(f"{root}/gdb.inv", env, builder)
+
+if __name__ == '__main__':
+    import os
+    import sys
+    make_gdb_refs(os.path.dirname(sys.argv[0]))
