@@ -32,10 +32,30 @@ ifneq ($(DESTDIR),)
 ROOT=--root $(DESTDIR)
 endif
 
-install: man-install build
+install: man-install doc-help-install doc-text-install doc-html-install build
 	python3 setup.py install $(ROOT)
 	install -m 755 -d $(DESTDIR)$(pkgdatadir)
 	install -m 644 -t $(DESTDIR)$(pkgdatadir) test-gdb-compatibility.gdbinit
+
+helpdir=$(pkgdatadir)/help
+doc-help-install: doc-help
+	install -d $(DESTDIR)$(helpdir)/commands
+	install -t $(DESTDIR)$(helpdir)/commands docs/text/commands/*.txt
+
+docdir=$(datadir)/doc/packages/crash-python
+textdir=$(docdir)/text
+
+doc-text-install: doc-help
+	install -m 755 -d $(DESTDIR)$(textdir)/crash
+	install -m 644 -t $(DESTDIR)$(textdir)/crash docs/text/crash/*.txt
+	install -m 755 -d $(DESTDIR)$(textdir)/kdump
+	install -m 644 -t $(DESTDIR)$(textdir)/kdump docs/text/kdump/*.txt
+	install -m 644 -t $(DESTDIR)$(textdir) docs/text/*.txt
+
+htmldir=$(docdir)/html
+doc-html-install: doc-html
+	install -m 755 -d $(DESTDIR)$(docdir)
+	cp -a docs/html $(DESTDIR)$(htmldir)
 
 unit-tests: clean-build
 	make -C tests -s
@@ -84,6 +104,7 @@ doc-html: doc-source-clean
 
 doc-help: doc-source-clean
 	sphinx-build -a -b text doc-source docs/text
+	rm -f docs/text/commands/commands.txt
 
 doc: doc-source-clean doc-html doc-help man FORCE
 

@@ -173,7 +173,7 @@ if [ -e "$DIR/setup.py" ]; then
     export CRASH_PYTHON_HELP="$DIR/docs/text"
     TEST_GDBINIT="test-gdb-compatibility.gdbinit"
 else
-    export CRASH_PYTHON_HELP="/usr/share/doc/packages/crash-python"
+    export CRASH_PYTHON_HELP="/usr/share/crash-python/help"
     :> $GDBINIT
     TEST_GDBINIT="/usr/share/crash-python/test-gdb-compatibility.gdbinit"
 fi
