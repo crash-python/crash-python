@@ -16,14 +16,17 @@ doc-source-clean:
 doc-clean: doc-source-clean
 	rm -rf docs
 
-clean: doc-clean man-clean
+clean: doc-clean man-clean build-clean
 	make -C tests clean
+
+build-clean:
 	rm -rf build
 
 build: doc-help FORCE
 	python3 setup.py -q build
 
-clean-build: clean build
+force-rebuild: build-clean
+	python3 setup.py -q build
 
 datadir ?= /usr/share
 pkgdatadir = $(datadir)/crash-python
@@ -57,24 +60,23 @@ doc-html-install: doc-html
 	install -m 755 -d $(DESTDIR)$(docdir)
 	cp -a docs/html $(DESTDIR)$(htmldir)
 
-unit-tests: clean-build
+unit-tests: force-rebuild
 	make -C tests -s
 	sh tests/run-tests.sh
 
-lint: clean-build
+lint: force-rebuild
 	sh tests/run-pylint.sh $(PYLINT_ARGS) crash kdump
 
-static-check: clean-build
+static-check: force-rebuild
 	sh tests/run-static-checks.sh
 
-live-tests: clean-build
+live-tests: force-rebuild
 	sh tests/run-kernel-tests.sh $(INI_FILES)
 
 test: unit-tests static-check lint live-tests
 	@echo -n
 
 full-test: test doc
-
 
 pycrash.1 : crash-python.1
 
@@ -100,10 +102,10 @@ man-install: man
 	$(INSTALL) -m 644 $(GZ_MAN1) $(DESTDIR)$(man1dir)
 
 doc-html: doc-source-clean
-	sphinx-build -a -b html doc-source docs/html
+	sphinx-build -b html doc-source docs/html
 
 doc-help: doc-source-clean
-	sphinx-build -a -b text doc-source docs/text
+	sphinx-build -b text doc-source docs/text
 	rm -f docs/text/commands/commands.txt
 
 doc: doc-source-clean doc-html doc-help man FORCE
