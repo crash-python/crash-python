@@ -5,6 +5,12 @@ from typing import Type
 
 import gdb
 
+class IncompatibleGDBError(RuntimeError):
+    """This version of GDB is incompatible"""
+    _fmt = "The installed gdb doesn't provide {}"
+    def __init__(self, message: str) -> None:
+        super().__init__(self._fmt.format(message))
+
 class MissingSymbolError(RuntimeError):
     """The requested symbol cannot be located."""
     pass

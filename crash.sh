@@ -171,8 +171,16 @@ if [ -e "$DIR/setup.py" ]; then
     echo "python sys.path.insert(0, '$DIR/build/lib')" >> $GDBINIT
     popd > /dev/null
     export CRASH_PYTHON_HELP="$DIR/docs/text"
+    TEST_GDBINIT="test-gdb-compatibility.gdbinit"
 else
     export CRASH_PYTHON_HELP="/usr/share/doc/packages/crash-python"
+    :> $GDBINIT
+    TEST_GDBINIT="/usr/share/crash-python/test-gdb-compatibility.gdbinit"
+fi
+
+if ! $GDB -nx -batch -x $GDBINIT -x $TEST_TARGET; then
+    echo "fatal: crash-python cannot initialize" >&2
+    exit 1
 fi
 
 ZKERNEL="$1"

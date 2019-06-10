@@ -25,8 +25,13 @@ build: doc-help FORCE
 
 clean-build: clean build
 
+datadir ?= /usr/share
+pkgdatadir = $(datadir)/crash-python
+
 install: man-install build
 	python3 setup.py install
+	install -m 755 -d $(DESTDIR)$(pkgdatadir)
+	install -m 644 -t $(DESTDIR)$(pkgdatadir) test-gdb-compatibility.gdbinit
 
 unit-tests: clean-build
 	make -C tests -s
