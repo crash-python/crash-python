@@ -39,6 +39,9 @@ install: man-install doc-help-install doc-text-install doc-html-install build
 	python3 setup.py install $(ROOT)
 	install -m 755 -d $(DESTDIR)$(pkgdatadir)
 	install -m 644 -t $(DESTDIR)$(pkgdatadir) test-gdb-compatibility.gdbinit
+	install -m 755 -d $(DESTDIR)/usr/bin
+	install -m 755 crash.sh $(DESTDIR)/usr/bin/crash-python
+	ln -fs crash-python $(DESTDIR)/usr/bin/pycrash
 
 helpdir=$(pkgdatadir)/help
 doc-help-install: doc-help
