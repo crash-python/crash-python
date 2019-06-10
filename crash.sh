@@ -177,6 +177,12 @@ fi
 
 ZKERNEL="$1"
 KERNEL="${ZKERNEL%.gz}"
+
+if ! test -e "$ZKERNEL"; then
+    echo "$ZKERNEL: No such file or directory"
+    exit 1
+fi
+
 if test "$KERNEL" != "$ZKERNEL"; then
     KERNEL="$TMPDIR/$(basename "$KERNEL")"
     zcat $ZKERNEL > $KERNEL
