@@ -64,8 +64,10 @@ pycrash.1 : crash-python.1
 %.1.gz : %.1
 	$(GZIPCMD) -n -c $< > $@
 
+prefix ?= /usr
+mandir ?= $(prefix)/share/man
+man1dir = $(mandir)/man1
 GZ_MAN1 :=  pycrash.1.gz crash-python.1.gz
-MAN1 := $(patsubst %.asciidoc,%.1.gz,$(MAN1_TXT))
 
 man: $(GZ_MAN1)
 
