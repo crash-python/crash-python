@@ -28,8 +28,12 @@ clean-build: clean build
 datadir ?= /usr/share
 pkgdatadir = $(datadir)/crash-python
 
+ifneq ($(DESTDIR),)
+ROOT=--root $(DESTDIR)
+endif
+
 install: man-install build
-	python3 setup.py install
+	python3 setup.py install $(ROOT)
 	install -m 755 -d $(DESTDIR)$(pkgdatadir)
 	install -m 644 -t $(DESTDIR)$(pkgdatadir) test-gdb-compatibility.gdbinit
 
