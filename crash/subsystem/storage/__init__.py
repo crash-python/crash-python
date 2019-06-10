@@ -157,14 +157,15 @@ def gendisk_name(gendisk: gdb.Value) -> str:
 
     if get_basic_type(gendisk.type) == types.gendisk_type:
         return gendisk['disk_name'].string()
-    elif get_basic_type(gendisk.type) == types.hd_struct_type:
+
+    if get_basic_type(gendisk.type) == types.hd_struct_type:
         parent = dev_to_gendisk(part_to_dev(gendisk)['parent'])
         return "{}{:d}".format(gendisk_name(parent), int(gendisk['partno']))
-    else:
-        raise InvalidArgumentError("expected {} or {}, not {}"
-                                   .format(types.gendisk_type,
-                                           types.hd_struct_type,
-                                           gendisk.type.unqualified()))
+
+    raise InvalidArgumentError("expected {} or {}, not {}"
+                               .format(types.gendisk_type,
+                                       types.hd_struct_type,
+                                       gendisk.type.unqualified()))
 
 def block_device_name(bdev: gdb.Value) -> str:
     """

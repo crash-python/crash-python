@@ -484,7 +484,8 @@ class LinuxTask:
         mm = self.task_struct['mm']
         if mm == 0:
             return True
-        elif symvals.init_mm and mm == symvals.init_mm.address:
+
+        if symvals.init_mm and mm == symvals.init_mm.address:
             return True
 
         return False

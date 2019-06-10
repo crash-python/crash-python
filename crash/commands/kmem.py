@@ -51,10 +51,12 @@ class KmemCommand(Command):
         if args.z:
             self.print_zones()
             return
-        elif args.V:
+
+        if args.V:
             self.print_vmstats()
             return
-        elif args.slabname:
+
+        if args.slabname:
             if args.slabname is True:
                 print("Checking all kmem caches...")
                 for cache in kmem_cache_get_all():
