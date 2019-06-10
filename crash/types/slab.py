@@ -234,7 +234,7 @@ class Slab:
             else:
                 struct_slab_cache = struct_slab_slab.kmem_cache.name
                 if not self.kmem_cache.off_slab_cache:
-                    if struct_slab_cache != "size-64" and struct_slab_cache != "size-128":
+                    if struct_slab_cache not in ("size-64", "size-128"):
                         self.__error(": OFF_SLAB struct slab is in a wrong cache %s" %
                                      struct_slab_cache)
                     else:
@@ -260,7 +260,7 @@ class Slab:
             if num_free != max_free:
                 self.__free_error("slab_free")
         elif slabtype == slab_partial:
-            if num_free == 0 or num_free == max_free:
+            if num_free in (0, max_free):
                 self.__free_error("slab_partial")
         elif slabtype == slab_full:
             if num_free > 0:

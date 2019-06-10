@@ -42,7 +42,7 @@ class x86_64Architecture(CrashArchitecture):
                               register: int) -> None:
         task = thread.info
         for reg in task.regs:
-            if reg == "rip" and (register != 16 and register != -1):
+            if reg == "rip" and register not in (16, -1):
                 continue
             try:
                 thread.registers[reg].value = task.regs[reg]
@@ -64,7 +64,7 @@ class x86_64Architecture(CrashArchitecture):
         frame = rsp.cast(self.inactive_task_frame_type.pointer()).dereference()
 
         # Only write rip when requested; It resets the frame cache
-        if register == 16 or register == -1:
+        if register in (16, -1):
             thread.registers['rip'].value = frame['ret_addr']
             if register == 16:
                 return
@@ -87,7 +87,7 @@ class x86_64Architecture(CrashArchitecture):
         task = thread.info.task_struct
 
         # Only write rip when requested; It resets the frame cache
-        if register == 16 or register == -1:
+        if register in (16, -1):
             thread.registers['rip'].value = self.thread_return
             if register == 16:
                 return

@@ -264,6 +264,7 @@ def d_path(mnt: gdb.Value, dentry: gdb.Value, root: gdb.Value = None) -> str:
     # Gone are the days where finding the root was as simple as
     # dentry == dentry->d_parent
     while dentry != root['dentry'] or mnt != root['mnt']:
+        # pylint: disable=consider-using-in
         if dentry == mnt['mnt_root'] or dentry == dentry['d_parent']:
             if mount != mount['mnt_parent']:
                 dentry = mount['mnt_mountpoint']
