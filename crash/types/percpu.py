@@ -182,7 +182,7 @@ class PerCPUState:
 
             # TODO: we could sort the list...
             for (start, end) in self._dynamic_offset_cache:
-                if var >= start and var < end:
+                if start <= var < end:
                     return True
         except DelayedAttributeError:
             # This can happen with the testcases or in kernels prior to 2.6.30
@@ -196,7 +196,7 @@ class PerCPUState:
             size = self._static_ranges[start]
             for cpu in range(0, self._last_cpu):
                 offset = int(symvals['__per_cpu_offset'][cpu]) + start
-                if addr >= offset and addr < offset + size:
+                if offset <= addr < offset + size:
                     return True
         return False
 
@@ -214,7 +214,7 @@ class PerCPUState:
         """
         for start in self._static_ranges:
             size = self._static_ranges[start]
-            if addr >= start and addr < start + size:
+            if start <= addr < start + size:
                 return True
         return False
 
@@ -226,7 +226,7 @@ class PerCPUState:
         addr = int(var)
         start = msymvals['__per_cpu_start']
         size = self._static_ranges[start]
-        if addr >= start and addr < start + size:
+        if start <= addr < start + size:
             return addr - start
         return addr
 
@@ -243,7 +243,7 @@ class PerCPUState:
         """
         for start in self._module_ranges:
             size = self._module_ranges[start]
-            if addr >= start and addr < start + size:
+            if start <= addr < start + size:
                 return True
         return False
 
