@@ -90,9 +90,9 @@ def list_for_each(list_head: gdb.Value, include_head: bool = False,
             visited.add(int(node.address))
         try:
             if int(prev.address) != int(node[prev_]):
-                error = ("broken {} link {:#x} -{}-> {:#x} -{}-> {:#x}"
-                         .format(prev_, int(prev.address), next_, int(node.address),
-                                 prev_, int(node[prev_])))
+                error = f"broken {prev_} link {int(prev.address):#x} "
+                error += f"-{next_}-> {int(node.address):#x} "
+                error += f"-{prev_}-> {int(node[prev_]):#x}"
                 pending_exception = CorruptListError(error)
                 if print_broken_links:
                     print(error)
