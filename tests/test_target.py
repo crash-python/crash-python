@@ -6,7 +6,7 @@ import gdb
 import os.path
 from kdump.target import Target
 
-class TestUtil(unittest.TestCase):
+class TestTarget(unittest.TestCase):
     def setUp(self):
         gdb.execute("file")
         self.do_real_tests = os.path.exists("tests/vmcore")
