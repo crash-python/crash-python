@@ -93,6 +93,8 @@ class Page:
             pagemap = section["section_mem_map"] & ~3
             return (pagemap.cast(types.page_type.pointer()) + pfn).dereference()
 
+        # pylint doesn't have the visibility it needs to evaluate this
+        # pylint: disable=unsubscriptable-object
         return cls.vmemmap[pfn]
 
     @classmethod
