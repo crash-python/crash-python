@@ -22,7 +22,6 @@ import gdb
 
 class CrashKernelError(RuntimeError):
     """Raised when an error occurs while initializing the debugging session"""
-    pass
 
 class _NoMatchingFileError(FileNotFoundError):
     pass

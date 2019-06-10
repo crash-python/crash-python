@@ -27,7 +27,6 @@ class InvalidComponentError(LookupError):
 # visible outside of this module.
 class _InvalidComponentBaseError(RuntimeError):
     """An internal error occured while resolving the member specification"""
-    pass
 
 class _InvalidComponentTypeError(_InvalidComponentBaseError):
     """The component expects the type to be a struct or union but it is not."""

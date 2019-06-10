@@ -13,15 +13,12 @@ class IncompatibleGDBError(RuntimeError):
 
 class MissingSymbolError(RuntimeError):
     """The requested symbol cannot be located."""
-    pass
 
 class MissingTypeError(RuntimeError):
     """The requested type cannot be located."""
-    pass
 
 class CorruptedError(RuntimeError):
     """A corrupted data structure has been encountered."""
-    pass
 
 class DelayedAttributeError(AttributeError):
     """
@@ -54,7 +51,6 @@ class ArgumentTypeError(InvalidArgumentError):
 
 class UnexpectedGDBTypeBaseError(InvalidArgumentError):
     """Base class for unexpected gdb type exceptions"""
-    pass
 
 class UnexpectedGDBTypeError(UnexpectedGDBTypeBaseError):
     """The gdb.Type passed describes an inappropriate type for the operation"""

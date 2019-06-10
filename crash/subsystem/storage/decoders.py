@@ -38,7 +38,6 @@ class Decoder(object):
         This method will examine the object passed to the derived class's
         constructor and produce the attributes required for each object.
         """
-        pass
 
     def __getattr__(self, name: str) -> Any:
         if self.interpreted:
@@ -66,7 +65,6 @@ class Decoder(object):
         :obj:`.Decoder`s include the address of the object, the block
         device it uses, and the location(s) affected by the object.
         """
-        pass
 
     def __next__(self) -> Any:
         """
@@ -86,7 +84,6 @@ class Decoder(object):
         If there are no objects beyond this one, it does not need to be
         overridden.
         """
-        pass
 
 class BadBHDecoder(Decoder):
     """

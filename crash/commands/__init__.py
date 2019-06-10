@@ -65,11 +65,9 @@ import gdb
 
 class CommandError(RuntimeError):
     """An error occured while executing this command"""
-    pass
 
 class CommandLineError(RuntimeError):
     """An error occured while handling the command line for this command"""
-    pass
 
 class ArgumentParser(argparse.ArgumentParser):
     """

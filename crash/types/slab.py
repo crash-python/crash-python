@@ -633,7 +633,6 @@ class KmemCache(object):
 
 class KmemCacheNotFound(RuntimeError):
     """The specified kmem_cache could not be found."""
-    pass
 
 kmem_caches: Dict[str, KmemCache] = dict()
 kmem_caches_by_addr: Dict[int, KmemCache] = dict()
