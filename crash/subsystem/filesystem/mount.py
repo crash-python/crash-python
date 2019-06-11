@@ -56,6 +56,7 @@ symvals = Symvals(['init_task'])
 
 class Mount:
     _for_each_mount: Callable[[Any, gdb.Value], Iterator[gdb.Value]]
+    _init_fs_root: gdb.Value
 
     def _for_each_mount_nsproxy(self, task: gdb.Value) -> Iterator[gdb.Value]:
         """
@@ -76,6 +77,7 @@ class Mount:
         Args:
             init_task: The ``init_task`` symbol.
         """
+        cls._init_fs_root = init_task.value()['fs']['root']
         if struct_has_member(init_task, 'nsproxy'):
             cls._for_each_mount = cls._for_each_mount_nsproxy
         else:
@@ -83,6 +85,10 @@ class Mount:
 
     def for_each_mount(self, task: gdb.Value) -> Iterator[gdb.Value]:
         return self._for_each_mount(task)
+
+    @property
+    def init_fs_root(self) -> gdb.Value:
+        return self._init_fs_root
 
 _Mount = Mount()
 
@@ -242,7 +248,7 @@ def d_path(mnt: gdb.Value, dentry: gdb.Value, root: gdb.Value = None) -> str:
         :obj:`gdb.NotAvailableError`: The target value was not available.
     """
     if root is None:
-        root = symvals.init_task['fs']['root']
+        root = _Mount.init_fs_root
 
     if dentry.type.code != gdb.TYPE_CODE_PTR:
         dentry = dentry.address
