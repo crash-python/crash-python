@@ -12,6 +12,14 @@ import shutil
 config = configparser.ConfigParser()
 filename = os.environ['CRASH_PYTHON_TESTFILE']
 try:
+    matchfn = os.environ['CRASH_PYTHON_TESTS']
+except KeyError:
+    matchfn =  None
+
+if not matchfn:
+    matchfn = "test_*.py"
+
+try:
     f = open(filename)
     config.read_file(f)
 except FileNotFoundError as e:
@@ -32,13 +40,13 @@ module_debuginfo_path = config['test'].get('module_debuginfo_path', None)
 from crash.kernel import CrashKernel
 kernel = CrashKernel(roots=roots, vmlinux_debuginfo=vmlinux_debuginfo,
                      module_path=module_path,
-                     module_debuginfo_path=module_debuginfo_path)
+                     module_debuginfo_path=module_debuginfo_path, verbose=True)
 
 kernel.setup_tasks()
 kernel.load_modules()
 
 test_loader = unittest.TestLoader()
-test_suite = test_loader.discover('kernel-tests', pattern='test_*.py')
+test_suite = test_loader.discover('kernel-tests', pattern=matchfn)
 ret = unittest.TextTestRunner(verbosity=2).run(test_suite)
 if not ret.wasSuccessful():
     sys.exit(1)

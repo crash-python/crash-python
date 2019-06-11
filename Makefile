@@ -73,8 +73,12 @@ lint: force-rebuild
 static-check: force-rebuild
 	sh tests/run-static-checks.sh
 
+ifneq ($(TESTS),)
+TESTSARG=--tests $(TESTS)
+endif
+
 live-tests: force-rebuild
-	sh tests/run-kernel-tests.sh $(INI_FILES)
+	sh tests/run-kernel-tests.sh $(TESTSARG) $(INI_FILES)
 
 test: unit-tests static-check lint live-tests
 	@echo -n
