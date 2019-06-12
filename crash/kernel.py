@@ -211,29 +211,29 @@ class CrashKernel:
         if verbose:
             print("roots={}".format(self.roots))
 
+    def _find_debuginfo_paths(self, variants: List[str]) -> List[str]:
+        x: List[str] = list()
+
+        for root in self.roots:
+            for debug_path in [ "", "usr/lib/debug" ]:
+                for variant in variants:
+                    path = os.path.join(root, debug_path, variant)
+                    if os.path.exists(path):
+                        x.append(path)
+
+        return x
+
     def _setup_vmlinux_debuginfo(self, vmlinux_debuginfo: PathSpecifier = None,
                                  verbose: bool = False) -> None:
-        debugroot = "/usr/lib/debug"
         if vmlinux_debuginfo is None:
-            x: List[str] = []
             defaults = [
                 "{}.debug".format(self.kernel),
                 "vmlinux-{}.debug".format(self.version),
-                "{}/{}.debug".format(debugroot, self.kernel),
-                "{}/boot/{}.debug".format(debugroot,
-                                          os.path.basename(self.kernel)),
-                "{}/boot/vmlinux-{}.debug".format(debugroot, self.version),
+                "boot/{}.debug".format(os.path.basename(self.kernel)),
+                "boot/vmlinux-{}.debug".format(self.version),
             ]
-            for root in self.roots:
-                for mpath in defaults:
-                    path = "{}/{}".format(root, mpath)
-                    if os.path.exists(path):
-                        if x is None:
-                            x = [path]
-                        else:
-                            x.append(path)
 
-            self.vmlinux_debuginfo = x
+            self.vmlinux_debuginfo = self._find_debuginfo_paths(defaults)
 
         elif (isinstance(vmlinux_debuginfo, list) and vmlinux_debuginfo and
               isinstance(vmlinux_debuginfo[0], str)):
@@ -283,21 +283,14 @@ class CrashKernel:
 
     def _setup_module_debuginfo_path(self, module_debuginfo_path: PathSpecifier = None,
                                      verbose: bool = False) -> None:
-        debugroot = "/usr/lib/debug"
-
         x: List[str] = []
         if module_debuginfo_path is None:
+            defaults = [
+                "modules.debug",
+                "lib/modules/{}".format(self.version),
+            ]
 
-            path = "modules.debug"
-            if os.path.exists(path):
-                x.append(path)
-
-            for root in self.roots:
-                path = "{}/{}/lib/modules/{}".format(root, debugroot,
-                                                     self.version)
-                if os.path.exists(path):
-                    x.append(path)
-            self.module_debuginfo_path = x
+            self.module_debuginfo_path = self._find_debuginfo_paths(defaults)
         elif (isinstance(module_debuginfo_path, list) and
               isinstance(module_debuginfo_path[0], str)):
 

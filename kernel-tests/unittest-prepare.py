@@ -29,6 +29,10 @@ vmlinux_debuginfo = config['test'].get('vmlinux_debuginfo', None)
 module_path = config['test'].get('module_path', None)
 module_debuginfo_path = config['test'].get('module_debuginfo_path', None)
 
+if roots:
+    dfd = ":".join(roots) + ":/usr/lib/debug"
+    gdb.execute(f"set debug-file-directory {dfd}")
+
 try:
     if vmlinux.endswith(".gz"):
         vmlinux_gz = vmlinux
