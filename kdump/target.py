@@ -1,42 +1,17 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Tuple, Optional
+from typing import Tuple
 
 import sys
 
 from kdumpfile import kdumpfile, KDUMP_KVADDR
 from kdumpfile.exceptions import AddressTranslationException, EOFException
-import addrxlat
 import addrxlat.exceptions
 
 import gdb
 
 PTID = Tuple[int, int, int]
-
-class SymbolCallback:
-    "addrxlat symbolic callback"
-
-    def __init__(self, ctx: Optional[addrxlat.Context] = None) -> None:
-        self.ctx = ctx
-
-    def __call__(self, symtype: int, *args: int) -> int:
-        if self.ctx is not None:
-            try:
-                return self.ctx.next_cb_sym(symtype, *args)
-            except addrxlat.exceptions.BaseException:
-                self.ctx.clear_err()
-
-        if symtype == addrxlat.SYM_VALUE:
-            ms = gdb.lookup_minimal_symbol(args[0])
-            if ms is not None:
-                return int(ms.value().address)
-
-        # pylint: disable=no-member
-        raise addrxlat.exceptions.NoDataError()
-
-        # This silences pylint: disable=inconsistent-return-statements
-        return 0 # pylint: disable=unreachable
 
 class Target(gdb.Target):
     def __init__(self, debug: bool = False) -> None:
@@ -63,8 +38,6 @@ class Target(gdb.Target):
 
         # pylint: disable=unsupported-assignment-operation
         self.kdump.attr['addrxlat.ostype'] = 'linux'
-        ctx = self.kdump.get_addrxlat_ctx()
-        ctx.cb_sym = SymbolCallback(ctx)
 
         KERNELOFFSET = "linux.vmcoreinfo.lines.KERNELOFFSET"
         try:
