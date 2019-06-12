@@ -172,6 +172,14 @@ if [ -e "$DIR/setup.py" ]; then
     popd > /dev/null
     export CRASH_PYTHON_HELP="$DIR/docs/text"
     TEST_GDBINIT="test-gdb-compatibility.gdbinit"
+
+    for command in $(find crash/commands/*.py); do
+        if test "$command" -nt "$CRASH_PYTHON_HELP"; then
+            echo "warning: help text documentation is out-of-date" >&2
+            echo "To update it, run 'make doc-help'" >&2
+            break
+        fi
+    done
 else
     export CRASH_PYTHON_HELP="/usr/share/crash-python/help"
     :> $GDBINIT
