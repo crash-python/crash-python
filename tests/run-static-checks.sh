@@ -12,4 +12,6 @@ fi
 set -e
 
 DIR=$(dirname "$0")
+export MYPYPATH="$(realpath $DIR/stubs)"
+
 python3 $DIR/run-mypy.py
