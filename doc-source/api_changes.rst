@@ -54,6 +54,11 @@ The current version of crash-python uses the :class:`crash.util.symbol` module t
 
 - There are accessors beyond attributes.  The :class:`.DelayedCollection` family of classes all have :meth:`~.DelayedCollection.__getattr__`, :meth:`~DelayedCollection.__getitem__`, and :meth:`~DelayedCollection.get` defined, so they can be accessed as attribute names, dictionary keys, or by function call.  The latter two can be used with any name, but the attribute names cannot be used for symbols that start with ``__``.
 
+Command documentation
+---------------------
+
+In earlier versions of crash-python, commands were documented using the docstring of the Command itself.  This has changed to use the docstring of the module instead.  More details can be found in :class:`~crash.command.Command` and :class:`~crash.command.ArgumentParser`.  The format of the docstring is `reStructuredText <http://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`_ and is parsed using `Sphinx <http://www.sphinx-doc.org/en/master/index.html>`_.  The documentation is used for both the user guide and the application command help.  This is an area that is subject to change in the future.
+
 Example
 -------
 
