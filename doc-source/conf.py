@@ -171,16 +171,15 @@ html_theme = 'alabaster'
 #
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
-html_sidebars = {
-    '**': [
-        'relations.html',  # needs 'show_related': True theme option to display
-        'searchbox.html',
-    ]
-}
+#html_sidebars = {
+#    '**': [
+#        'relations.html',  # needs 'show_related': True theme option to display
+#        'searchbox.html',
+#    ]
+#}
 
 html_theme_options = {
     'description': 'Kernel debugger in Python',
-    'logo': 'logo.png',
     'logo_name': True,
     'logo_text_align': 'center',
     'github_user': 'jeffmahoney',
