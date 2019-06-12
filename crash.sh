@@ -178,7 +178,7 @@ else
     TEST_GDBINIT="/usr/share/crash-python/test-gdb-compatibility.gdbinit"
 fi
 
-if ! $GDB -nx -batch -x $GDBINIT -x $TEST_TARGET; then
+if ! $GDB -nx -batch -x $GDBINIT -x $TEST_GDBINIT; then
     echo "fatal: crash-python cannot initialize" >&2
     exit 1
 fi
