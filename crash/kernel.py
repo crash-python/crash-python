@@ -143,7 +143,7 @@ class CrashKernel:
         self.version = self.extract_version()
 
         self._setup_roots(roots, verbose)
-        self._setup_vmlinux_debuginfo(vmlinux_debuginfo)
+        self._setup_vmlinux_debuginfo(vmlinux_debuginfo, verbose)
         self._setup_module_path(module_path, verbose)
         self._setup_module_debuginfo_path(module_debuginfo_path, verbose)
 
