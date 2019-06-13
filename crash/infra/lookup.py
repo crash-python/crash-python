@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Tuple, Any, Union
+from typing import Tuple, Any, Union, Optional
 
 from crash.infra.callback import ObjfileEventCallback
 from crash.infra.callback import Callback
@@ -153,7 +153,7 @@ class SymvalCallback(SymbolCallback):
 
     See :obj:`SymbolCallback` for arguments.
     """
-    def check_ready(self) -> gdb.Value:
+    def check_ready(self) -> Optional[gdb.Value]: # type: ignore
         """
         After successfully looking up the :obj:`gdb.Symbol`, returns
         the :obj:`gdb.Value` associated with it.

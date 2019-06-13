@@ -7,38 +7,43 @@ from crash.exceptions import IncompatibleGDBError
 import gdb
 
 try:
-    x = gdb.Target
+    x1 = gdb.Target
+    del x1
 except AttributeError as e:
     raise IncompatibleGDBError("gdb.Target")
 
 try:
-    x = gdb.lookup_symbol('x', None)
+    x2 = gdb.lookup_symbol('x', None)
+    del x2
 except TypeError as e:
     raise IncompatibleGDBError("a compatible gdb.lookup_symbol")
 
 try:
-    x = gdb.MinSymbol
+    x3 = gdb.MinSymbol
+    del x3
 except AttributeError as e:
     raise IncompatibleGDBError("gdb.MinSymbol")
 
 try:
-    x = gdb.Register
+    x4 = gdb.Register
+    del x4
 except AttributeError as e:
     raise IncompatibleGDBError("gdb.Register")
 
 try:
-    x = gdb.Symbol.section
+    x5 = gdb.Symbol.section
+    del x5
 except AttributeError as e:
     raise IncompatibleGDBError("gdb.Symbol.section")
 
 try:
-    x = gdb.Inferior.new_thread
+    x6 = gdb.Inferior.new_thread
+    del x6
 except AttributeError as e:
     raise IncompatibleGDBError("gdb.Inferior.new_thread")
 
 try:
-    x = gdb.Objfile.architecture
+    x7 = gdb.Objfile.architecture
+    del x7
 except AttributeError as e:
     raise IncompatibleGDBError("gdb.Objfile.architecture")
-
-del x

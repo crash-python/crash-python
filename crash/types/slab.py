@@ -176,7 +176,7 @@ class Slab:
         return self.s_mem + (idx * bufsize)
 
     def contains_obj(self,
-                     addr: int) -> Tuple[bool, int, Union[gdb.Value, None]]:
+                     addr: int) -> Tuple[bool, int, Optional[gdb.Value]]:
         obj_addr = self.find_obj(addr)
 
         if not obj_addr:

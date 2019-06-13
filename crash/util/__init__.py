@@ -334,7 +334,7 @@ def array_size(value: gdb.Value) -> int:
     """
     return value.type.sizeof // value[0].type.sizeof
 
-def get_typed_pointer(val: AddressSpecifier, gdbtype: gdb.Type) -> gdb.Type:
+def get_typed_pointer(val: AddressSpecifier, gdbtype: gdb.Type) -> gdb.Value:
     """
     Returns a pointer to the requested type at the given address
 

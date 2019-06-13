@@ -41,7 +41,7 @@ class KernelFrameFilter:
         self.address = address
         gdb.frame_filters[self.name] = self
 
-    def filter(self, frame_iter: Iterator[FrameDecorator]) -> Any:
+    def filter(self, frame_iter: Iterator[Any]) -> Any:
         return KernelAddressIterator(frame_iter, self.address)
 
 class KernelAddressIterator:

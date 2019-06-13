@@ -132,7 +132,7 @@ class Types(DelayedCollection):
     def __init__(self, names: Names) -> None:
         super(Types, self).__init__(DelayedType, names)
 
-    def override(self, name: str, value: gdb.Type) -> None:
+    def override(self, name: str, value: gdb.Type) -> None: # type: ignore
         """
         Override the type value, resolving the type name first.
 
