@@ -8,7 +8,7 @@ from crash.subsystem.storage import block_device_name
 
 import gdb
 
-EndIOSpecifier = Union[int, str, List[str], gdb.Value, gdb.Symbol, None]
+EndIOSpecifier = Union[int, str, List[str], gdb.Value, gdb.Symbol]
 
 class Decoder:
     """Decoder objects are used to unwind the storage stack
@@ -22,7 +22,7 @@ class Decoder:
         interpreted (:obj:`bool`): Whether the contents of this
             :obj:`.Decoder` have already been interpreted
     """
-    __endio__: EndIOSpecifier = None
+    __endio__: EndIOSpecifier
 
     # pylint: disable=unused-argument
     def __init__(self, value: gdb.Value = None) -> None:
