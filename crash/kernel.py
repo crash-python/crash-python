@@ -138,6 +138,8 @@ class CrashKernel:
         self.findmap: Dict[str, Dict[Any, Any]] = dict()
         self.modules_order: Dict[str, Dict[str, str]] = dict()
         obj = gdb.objfiles()[0]
+        if not obj.filename:
+            raise RuntimeError("loaded objfile has no filename???")
         kernel = os.path.basename(obj.filename)
 
         self.kernel = kernel
@@ -181,7 +183,7 @@ class CrashKernel:
         self.target = crash.current_target()
         self.vmcore = self.target.kdump
 
-        self.crashing_thread = None
+        self.crashing_thread: Optional[gdb.InferiorThread] = None
 
     def _setup_roots(self, roots: PathSpecifier = None,
                      verbose: bool = False) -> None:
@@ -637,6 +639,8 @@ class CrashKernel:
                                verbose: bool = False) -> None:
         if modpath is None:
             modpath = objfile.filename
+        if modpath is None:
+            raise RuntimeError("loaded objfile has no filename???")
         if ".gz" in modpath:
             modpath = modpath.replace(".gz", "")
         filename = "{}.debug".format(os.path.basename(modpath))
