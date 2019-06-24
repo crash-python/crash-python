@@ -22,6 +22,8 @@ AC_PERCPU = "percpu"
 AC_SHARED = "shared"
 AC_ALIEN = "alien"
 
+ArrayCacheEntry = Dict[str, Union[int, str]]
+
 slab_partial = 0
 slab_full = 1
 slab_free = 2
@@ -175,8 +177,8 @@ class Slab:
 
         return self.s_mem + (idx * bufsize)
 
-    def contains_obj(self,
-                     addr: int) -> Tuple[bool, int, Optional[gdb.Value]]:
+    def contains_obj(self, addr: int) -> Tuple[bool, int,
+                                               Optional[ArrayCacheEntry]]:
         obj_addr = self.find_obj(addr)
 
         if not obj_addr:
@@ -243,7 +245,8 @@ class Slab:
                     self.__error(": OFF_SLAB struct slab is in a wrong cache %s" %
                                  struct_slab_cache)
 
-                struct_slab_obj = struct_slab_slab.contains_obj(self.gdb_obj.address)
+                addr = int(self.gdb_obj.address)
+                struct_slab_obj = struct_slab_slab.contains_obj(addr)
                 if not struct_slab_obj[0]:
                     self.__error(": OFF_SLAB struct slab is not allocated")
                     print(struct_slab_obj)
@@ -358,8 +361,8 @@ class KmemCache:
             yield (nid, node.dereference())
 
     @staticmethod
-    def all_find_obj(addr: int) -> Union[None, Tuple[bool, int,
-                                                     Union[gdb.Value, None]]]:
+    def all_find_obj(addr: int) -> Optional[Tuple[bool, int,
+                                                  Optional[ArrayCacheEntry]]]:
         slab = slab_from_obj_addr(addr)
         if not slab:
             return None
@@ -444,7 +447,7 @@ class KmemCache:
 
             self.__fill_alien_caches(node, nid)
 
-    def get_array_caches(self) -> Dict[int, Dict]:
+    def get_array_caches(self) -> Dict[int, ArrayCacheEntry]:
         if not self.array_caches:
             self.__fill_all_array_caches()
 
