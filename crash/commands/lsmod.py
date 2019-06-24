@@ -60,13 +60,13 @@ class ModuleCommand(Command):
             return
 
         if cpu != -1:
-            addr = get_percpu_var(mod['percpu'], cpu)
+            addr = int(get_percpu_var(mod['percpu'], cpu))
             tabs = "\t\t"
         else:
             tabs = "\t\t\t"
 
         size = int(mod['percpu_size'])
-        print("{:16s}\t{:#x}{}{:d}".format(mod['name'].string(), int(addr),
+        print("{:16s}\t{:#x}{}{:d}".format(mod['name'].string(), addr,
                                            tabs, size))
 
 
