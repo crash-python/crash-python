@@ -261,19 +261,21 @@ class PerCPUState:
         if isinstance(var, gdb.Symbol):
             var = var.value().address
 
-        var = int(var)
-        if self.is_static_percpu_var(var):
+        ivar = int(var)
+        if self.is_static_percpu_var(ivar):
             return True
-        if self.is_module_percpu_var(var):
+        if self.is_module_percpu_var(ivar):
             return True
-        if self._is_percpu_var_dynamic(var):
+        if self._is_percpu_var_dynamic(ivar):
             return True
         return False
 
-    def _resolve_percpu_var(self, var: SymbolOrValue) -> gdb.Value:
-        orig_var = var
-        if isinstance(var, (gdb.Symbol, gdb.MinSymbol)):
-            var = var.value()
+    def _resolve_percpu_var(self, symvar: SymbolOrValue) -> gdb.Value:
+        orig_var = symvar
+        if isinstance(symvar, gdb.Symbol):
+            var = symvar.value()
+        else:
+            var = symvar
         if not isinstance(var, gdb.Value):
             raise InvalidArgumentError("Argument must be gdb.Symbol or gdb.Value")
 
@@ -296,7 +298,13 @@ class PerCPUState:
 
         return var
 
-    def _get_percpu_var(self, var: SymbolOrValue, cpu: int) -> gdb.Value:
+    def _get_percpu_var(self, symvar: SymbolOrValue, cpu: int) -> gdb.Value:
+        if isinstance(symvar, (gdb.Symbol, gdb.MinSymbol)):
+            var = symvar.value()
+        else:
+            var = symvar
+        if not isinstance(var, gdb.Value):
+            raise InvalidArgumentError("Argument must be gdb.Symbol or gdb.Value")
         if cpu < 0:
             raise ValueError("cpu must be >= 0")
 
