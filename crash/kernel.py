@@ -10,6 +10,7 @@ import os.path
 
 from elftools.elf.elffile import ELFFile
 
+import crash
 import crash.arch
 import crash.arch.x86_64
 import crash.arch.ppc64
@@ -177,7 +178,7 @@ class CrashKernel:
 
         self.arch = archclass()
 
-        self.target = gdb.current_target()
+        self.target = crash.current_target()
         self.vmcore = self.target.kdump
 
         self.crashing_thread = None

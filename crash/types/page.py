@@ -5,6 +5,7 @@ from typing import Dict, Union, TypeVar, Iterable, Callable
 
 from math import log, ceil
 
+import crash
 from crash.util import find_member_variant
 from crash.util.symbols import Types, Symvals, TypeCallbacks
 from crash.util.symbols import SymbolCallbacks, MinimalSymbolCallbacks
@@ -58,7 +59,7 @@ class Page:
     def setup_page_type(cls, gdbtype: gdb.Type) -> None:
         # TODO: should check config, but that failed to work on ppc64, hardcode
         # 64k for now
-        if gdb.current_target().arch.name() == "powerpc:common64":
+        if crash.current_target().arch.name() == "powerpc:common64":
             cls.PAGE_SHIFT = 16
             # also a config
             cls.directmap_base = 0xc000000000000000

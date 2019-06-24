@@ -2,6 +2,7 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import addrxlat
+import crash
 from crash.cache.syscache import utsname
 from crash.util import offsetof
 from crash.util.symbols import Types
@@ -47,7 +48,7 @@ class TranslationContext(addrxlat.Context):
 class CrashAddressTranslation:
     def __init__(self) -> None:
         try:
-            target = gdb.current_target()
+            target = crash.current_target()
             self.context = target.kdump.get_addrxlat_ctx()
             self.system = target.kdump.get_addrxlat_sys()
         except AttributeError:

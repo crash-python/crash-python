@@ -4,7 +4,6 @@
 from typing import List, Iterator, Any, Optional, Type
 
 import crash
-import kdump.target
 
 import gdb
 from gdb.FrameDecorator import FrameDecorator
@@ -42,9 +41,7 @@ class CrashArchitecture:
     _fetch_registers: Type[FetchRegistersCallback]
 
     def __init__(self) -> None:
-        target = gdb.current_target()
-        if not isinstance(target, kdump.target.Target):
-            raise ValueError("target is not kdumpfile")
+        target = crash.current_target()
         try:
             target.set_fetch_registers(self._fetch_registers())
         except AttributeError:

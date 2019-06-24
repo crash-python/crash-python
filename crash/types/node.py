@@ -6,6 +6,7 @@ The crash.types.node module offers helpers to work with NUMA nodes.
 
 from typing import Iterable, List, Type, TypeVar
 
+import crash
 from crash.util.symbols import Symbols, Symvals, Types, SymbolCallbacks
 from crash.types.percpu import get_percpu_var
 from crash.types.bitmap import for_each_set_bit
@@ -27,7 +28,7 @@ def numa_node_id(cpu: int) -> int:
     Returns:
         :obj:`int`: The NUMA node ID for the specified CPU.
     """
-    if gdb.current_target().arch.name() == "powerpc:common64":
+    if crash.current_target().arch.name() == "powerpc:common64":
         return int(symvals.numa_cpu_lookup_table[cpu])
     return int(get_percpu_var(symbols.numa_node, cpu))
 
