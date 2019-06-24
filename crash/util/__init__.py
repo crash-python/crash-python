@@ -131,7 +131,7 @@ def get_symbol_value(symname: str, block: gdb.Block = None,
     raise MissingSymbolError("Cannot locate symbol {}".format(symname))
 
 def safe_get_symbol_value(symname: str, block: gdb.Block = None,
-                          domain: int = None) -> gdb.Value:
+                          domain: int = None) -> Optional[gdb.Value]:
     """
     Returns the value associated with a named symbol
 
