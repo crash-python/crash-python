@@ -129,7 +129,7 @@ class Command(gdb.Command):
             :class:`.ArgumentParser`.
 
     """
-    _commands: Dict[str, gdb.Command] = dict()
+    _commands: Dict[str, 'Command'] = dict()
     def __init__(self, name: str, parser: ArgumentParser = None) -> None:
         """
         """

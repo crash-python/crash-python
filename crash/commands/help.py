@@ -34,7 +34,10 @@ class HelpCommand(Command):
         if not args.args:
             print("Available commands:")
             for cmd in sorted(self._commands):
-                summary = self._commands[cmd].__doc__.strip()
+                summary = None
+                doc = self._commands[cmd].__doc__
+                if doc:
+                    summary = doc.strip()
                 if not summary:
                     summary = "no help text provided"
                 print("{:<15} - {}".format(cmd, summary))
