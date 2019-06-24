@@ -81,13 +81,13 @@ class Page:
     @classmethod
     def setup_mem_section(cls, gdbtype: gdb.Type) -> None:
         # TODO assumes SPARSEMEM_EXTREME
-        cls.SECTIONS_PER_ROOT = cls.PAGE_SIZE / gdbtype.sizeof
+        cls.SECTIONS_PER_ROOT = cls.PAGE_SIZE // gdbtype.sizeof
 
     @classmethod
     def pfn_to_page(cls, pfn: int) -> gdb.Value:
         if cls.sparsemem:
             section_nr = pfn >> (cls.SECTION_SIZE_BITS - cls.PAGE_SHIFT)
-            root_idx = section_nr / cls.SECTIONS_PER_ROOT
+            root_idx = section_nr // cls.SECTIONS_PER_ROOT
             offset = section_nr & (cls.SECTIONS_PER_ROOT - 1)
             section = symvals.mem_section[root_idx][offset]
 
@@ -166,7 +166,7 @@ class Page:
 
     @classmethod
     def from_obj(cls, page: gdb.Value) -> 'Page':
-        pfn = (int(page.address) - Page.vmemmap_base) / types.page_type.sizeof
+        pfn = (int(page.address) - Page.vmemmap_base) // types.page_type.sizeof
         return Page(page, pfn)
 
     @classmethod
@@ -256,7 +256,7 @@ def page_from_addr(addr: int) -> 'Page':
     return pfn_to_page(pfn)
 
 def page_from_gdb_obj(gdb_obj: gdb.Value) -> 'Page':
-    pfn = (int(gdb_obj.address) - Page.vmemmap_base) / types.page_type.sizeof
+    pfn = (int(gdb_obj.address) - Page.vmemmap_base) // types.page_type.sizeof
     return Page(gdb_obj, pfn)
 
 def for_each_page() -> Iterable['Page']:
