@@ -166,8 +166,8 @@ class KmemCommand(Command):
             zone_struct = zone.gdb_obj
 
             print("NODE: %d  ZONE: %d  ADDR: %x  NAME: \"%s\"" %
-                  (zone_struct["node"], zone.zid, zone_struct.address,
-                   zone_struct["name"].string()))
+                  (int(zone_struct["node"]), zone.zid,
+                   int(zone_struct.address), zone_struct["name"].string()))
 
             if not zone.is_populated():
                 print("  [unpopulated]")
