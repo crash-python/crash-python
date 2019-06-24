@@ -171,9 +171,9 @@ if [ -e "$DIR/setup.py" ]; then
     echo "python sys.path.insert(0, '$DIR/build/lib')" >> $GDBINIT
     popd > /dev/null
     export CRASH_PYTHON_HELP="$DIR/docs/text"
-    TEST_GDBINIT="test-gdb-compatibility.gdbinit"
+    TEST_GDBINIT="$DIR/test-gdb-compatibility.gdbinit"
 
-    for command in $(find crash/commands/*.py); do
+    for command in $(find $DIR/crash/commands/*.py); do
         if test "$command" -nt "$CRASH_PYTHON_HELP"; then
             echo "warning: help text documentation is out-of-date" >&2
             echo "To update it, run 'make doc-help'" >&2
