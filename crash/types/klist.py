@@ -42,7 +42,7 @@ def klist_for_each(klist: gdb.Value) -> Iterable[gdb.Value]:
         yield node
 
 def klist_for_each_entry(klist: gdb.Value, gdbtype: gdb.Type,
-                         member: str) -> gdb.Value:
+                         member: str) -> Iterable[gdb.Value]:
     """
     Iterate over a klist and yield each node's containing object
 

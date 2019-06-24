@@ -636,7 +636,7 @@ def xfs_format_xfsbuf(buf: gdb.Value) -> str:
            f"size {buf['b_buffer_len']:d}, block number {buf['b_bn']:d}, " \
            f"flags {bflags}, state {state}"
 
-def xfs_for_each_ail_log_item_typed(mp: gdb.Value) -> gdb.Value:
+def xfs_for_each_ail_log_item_typed(mp: gdb.Value) -> Iterable[gdb.Value]:
     """
     Iterates over the XFS Active Item Log and returns each item, resolved
     to the specific type.
