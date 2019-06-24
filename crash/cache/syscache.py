@@ -192,7 +192,7 @@ class CrashKernelCache(CrashCache):
         self._loadavg = ""
 
     @property
-    def jiffies(self) -> gdb.Value:
+    def jiffies(self) -> int:
         v = self._jiffies_dv.get()
         return v
 
@@ -244,7 +244,7 @@ class CrashKernelCache(CrashCache):
         return metrics
 
     @classmethod
-    def set_jiffies(cls, value: gdb.Value) -> None:
+    def set_jiffies(cls, value: int) -> None:
         cls._jiffies_dv.value = None
         cls._jiffies_dv.callback(value)
         cls._reset_uptime = True
@@ -261,15 +261,17 @@ class CrashKernelCache(CrashCache):
                 return False
             cls._adjust_jiffies = True
         else:
-            jiffies = int(gdb.lookup_global_symbol('jiffies').value())
+            jiffies_sym = gdb.lookup_global_symbol('jiffies')
+            if not jiffies_sym:
+                return False
+            jiffies = int(jiffies_sym.value())
             cls._adjust_jiffies = False
 
         cls.set_jiffies(jiffies)
 
         return True
 
-
-    def _adjusted_jiffies(self) -> gdb.Value:
+    def _adjusted_jiffies(self) -> int:
         if self._adjust_jiffies:
             return self.jiffies -(int(0x100000000) - 300 * self.hz)
         return self.jiffies
