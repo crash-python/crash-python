@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Type
+from typing import Type, Any
 
 import gdb
 
@@ -37,7 +37,7 @@ class ArgumentTypeError(InvalidArgumentError):
     """The provided object could not be converted to the expected type"""
     _fmt = "cannot convert argument `{}' of type {} to {}"
 
-    def __init__(self, name: str, val: Type, expected_type: Type) -> None:
+    def __init__(self, name: str, val: Any, expected_type: Type) -> None:
         msg = self._fmt.format(name, self.format_clsname(val.__class__),
                                self.format_clsname(expected_type))
         super().__init__(msg)
