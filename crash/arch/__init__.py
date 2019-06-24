@@ -80,7 +80,7 @@ class KernelFrameFilter:
         return KernelAddressIterator(frame_iter, self.address)
 
 class KernelAddressIterator:
-    def __init__(self, ii: Iterator[gdb.Frame], address: int) -> None:
+    def __init__(self, ii: Iterator, address: int) -> None:
         self.input_iterator = ii
         self.address = address
 
