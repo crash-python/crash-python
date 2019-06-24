@@ -90,7 +90,7 @@ class MinimalSymbolCallback(NamedCallback):
 
         self.connect_callback()
 
-    def check_ready(self) -> gdb.MinSymbol:
+    def check_ready(self) -> Optional[gdb.MinSymbol]:
         """
         Returns the result of looking up the minimal symbol when a new
         object file is loaded.
@@ -128,7 +128,7 @@ class SymbolCallback(NamedCallback):
 
         self.connect_callback()
 
-    def check_ready(self) -> gdb.Symbol:
+    def check_ready(self) -> Optional[gdb.Symbol]:
         """
         Returns the result of looking up the symbol when a new object
         file is loaded.
@@ -249,7 +249,7 @@ class TypeCallback(NamedCallback):
 
         return (name, attrname, pointer)
 
-    def check_ready(self) -> Union[None, gdb.Type]:
+    def check_ready(self) -> Optional[gdb.Type]:
         try:
             return gdb.lookup_type(self.name, self.block)
         except gdb.error:
