@@ -53,8 +53,8 @@ def list_for_each(list_head: gdb.Value, include_head: bool = False,
     if list_head.type == types.list_head_type.pointer():
         list_head = list_head.dereference()
     elif list_head.type != types.list_head_type:
-        raise UnexpectedGDBTypeError('list_head', types.list_head_type,
-                                     list_head.type)
+        raise UnexpectedGDBTypeError('list_head', list_head,
+                                     types.list_head_type)
     if list_head.type is not types.list_head_type:
         types.override('struct list_head', list_head.type)
     fast = None

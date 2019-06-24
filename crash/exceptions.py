@@ -55,9 +55,9 @@ class UnexpectedGDBTypeBaseError(InvalidArgumentError):
 class UnexpectedGDBTypeError(UnexpectedGDBTypeBaseError):
     """The gdb.Type passed describes an inappropriate type for the operation"""
     _fmt = "expected gdb.Type `{}' to describe `{}' not `{}'"
-    def __init__(self, name: str, gdbtype: gdb.Type,
+    def __init__(self, name: str, val: gdb.Value,
                  expected_type: gdb.Type) -> None:
-        msg = self._fmt.format(name, str(gdbtype), str(expected_type))
+        msg = self._fmt.format(name, str(val.type), str(expected_type))
         super().__init__(msg)
 
 class NotStructOrUnionError(UnexpectedGDBTypeBaseError):
