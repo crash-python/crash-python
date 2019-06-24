@@ -36,11 +36,11 @@ class TranslationContext(addrxlat.Context):
 
         return super().cb_sym(symtype, *args)
 
-    def cb_read32(self, faddr: addrxlat.FullAddress) -> gdb.Value:
+    def cb_read32(self, faddr: addrxlat.FullAddress) -> int:
         v = gdb.Value(faddr.addr).cast(types.uint32_t_p_type)
         return int(v.dereference())
 
-    def cb_read64(self, faddr: addrxlat.FullAddress) -> gdb.Value:
+    def cb_read64(self, faddr: addrxlat.FullAddress) -> int:
         v = gdb.Value(faddr.addr).cast(types.uint64_t_p_type)
         return int(v.dereference())
 
