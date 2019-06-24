@@ -323,9 +323,13 @@ class CrashKernel:
     # When working without a symbol table, we still need to be able
     # to resolve version information.
     def _get_minsymbol_as_string(self, name: str) -> str:
-        sym = gdb.lookup_minimal_symbol(name).value()
+        sym = gdb.lookup_minimal_symbol(name)
+        if sym is None:
+            raise MissingSymbolError(name)
 
-        return sym.address.cast(self.types.char_p_type).string()
+        val = sym.value()
+
+        return val.address.cast(self.types.char_p_type).string()
 
     def extract_version(self) -> str:
         """
