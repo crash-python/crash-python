@@ -259,7 +259,7 @@ def page_from_gdb_obj(gdb_obj: gdb.Value) -> 'Page':
     pfn = (int(gdb_obj.address) - Page.vmemmap_base) // types.page_type.sizeof
     return Page(gdb_obj, pfn)
 
-def for_each_page() -> Iterable['Page']:
+def for_each_page() -> Iterable[gdb.Value]:
     # TODO works only on x86?
     max_pfn = int(gdb.lookup_global_symbol("max_pfn").value())
     for pfn in range(max_pfn):
