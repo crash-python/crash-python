@@ -351,7 +351,8 @@ def get_typed_pointer(val: AddressSpecifier, gdbtype: gdb.Type) -> gdb.Value:
         gdb.Value: The casted pointer of the requested type
 
     Raises:
-        TypeError: string value for val does not describe a hex address
+        TypeError: string value for val does not describe a hex address or
+            the type cannot be converted to an address
     """
     if gdbtype.code != gdb.TYPE_CODE_PTR:
         gdbtype = gdbtype.pointer()
@@ -363,12 +364,17 @@ def get_typed_pointer(val: AddressSpecifier, gdbtype: gdb.Type) -> gdb.Value:
             val = int(val, 16)
         except TypeError as e:
             raise TypeError("string must describe hex address: {}".format(e))
-    if isinstance(val, int):
-        val = gdb.Value(val).cast(gdbtype)
     else:
-        val = val.cast(gdbtype)
+        val = int(val)
 
-    return val
+    if isinstance(val, int):
+        ret = gdb.Value(val).cast(gdbtype)
+    elif isinstance(val, gdb.Value):
+        ret = val.cast(gdbtype)
+    else:
+        raise TypeError(f"val is unexpected type {type(val)}")
+
+    return ret
 
 def array_for_each(value: gdb.Value) -> Iterator[gdb.Value]:
     """
