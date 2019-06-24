@@ -27,7 +27,7 @@ class Page:
     slab_page_name = None
     compound_head_name = None
     vmemmap_base = 0xffffea0000000000
-    vmemmap: gdb.Value = None
+    vmemmap: gdb.Value
     directmap_base = 0xffff880000000000
     pageflags: Dict[str, int] = dict()
 
@@ -71,7 +71,8 @@ class Page:
         cls.slab_cache_name = find_member_variant(gdbtype, ['slab_cache', 'lru'])
         cls.slab_page_name = find_member_variant(gdbtype, ['slab_page', 'lru'])
         cls.compound_head_name = find_member_variant(gdbtype, ['compound_head', 'first_page'])
-        cls.vmemmap = gdb.Value(cls.vmemmap_base).cast(gdbtype.pointer())
+        if not hasattr(cls, 'vmemmap'):
+            cls.vmemmap = gdb.Value(cls.vmemmap_base).cast(gdbtype.pointer())
 
         cls.setup_page_type_done = True
         if cls.setup_pageflags_done and not cls.setup_pageflags_finish_done:
@@ -114,8 +115,7 @@ class Page:
         cls.vmemmap_base = int(symbol.value())
         # setup_page_type() was first and used the hardcoded initial value,
         # we have to update
-        if cls.vmemmap is not None:
-            cls.vmemmap = gdb.Value(cls.vmemmap_base).cast(types.page_type.pointer())
+        cls.vmemmap = gdb.Value(cls.vmemmap_base).cast(types.page_type.pointer())
 
     @classmethod
     def setup_directmap_base(cls, symbol: gdb.Symbol) -> None:

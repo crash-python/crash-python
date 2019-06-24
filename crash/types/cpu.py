@@ -25,8 +25,8 @@ class TypesCPUClass:
     cpus_online: List[int] = list()
     cpus_possible: List[int] = list()
 
-    _cpu_online_mask: gdb.Value = None
-    _cpu_possible_mask: gdb.Value = None
+    _cpu_online_mask: gdb.Value
+    _cpu_possible_mask: gdb.Value
 
     def __init__(self) -> None:
         raise NotImplementedError("This class is not meant to be instantiated")

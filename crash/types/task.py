@@ -242,8 +242,8 @@ class LinuxTask:
         self.cpu = -1
         self.regs: Dict[str, int] = dict()
 
-        self.thread_info: gdb.Value = None
-        self.thread: gdb.InferiorThread = None
+        self.thread_info: gdb.Value
+        self.thread: gdb.InferiorThread
 
         # mem data
         self.mem_valid = False

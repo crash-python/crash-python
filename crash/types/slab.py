@@ -46,8 +46,8 @@ class Slab:
 
     slab_list_head: str = 'list'
     page_slab: bool = False
-    real_slab_type: gdb.Type = None
-    bufctl_type: gdb.Type = None
+    real_slab_type: gdb.Type
+    bufctl_type: gdb.Type
 
     @classmethod
     def check_page_type(cls, gdbtype: gdb.Type) -> None:

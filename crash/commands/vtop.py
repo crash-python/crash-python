@@ -146,9 +146,9 @@ class LinuxPGT:
     def __init__(self, ctx: addrxlat.Context, sys: addrxlat.System) -> None:
         self.context = ctx
         self.system = sys
-        self.step: addrxlat.Step = None
+        self.step: addrxlat.Step
         self.table = self.table_names[0]
-        self.ptr: addrxlat.FullAddress = None
+        self.ptr: addrxlat.FullAddress
         self.note = ''
 
     def begin(self, addr: int) -> bool:
