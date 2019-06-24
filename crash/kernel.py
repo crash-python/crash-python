@@ -215,7 +215,7 @@ class CrashKernel:
         x: List[str] = list()
 
         for root in self.roots:
-            for debug_path in [ "", "usr/lib/debug" ]:
+            for debug_path in ["", "usr/lib/debug"]:
                 for variant in variants:
                     path = os.path.join(root, debug_path, variant)
                     if os.path.exists(path):
