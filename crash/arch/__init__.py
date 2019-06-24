@@ -3,33 +3,71 @@
 
 from typing import List, Iterator, Any, Optional, Type
 
+import crash
+import kdump.target
+
 import gdb
 from gdb.FrameDecorator import FrameDecorator
+
+class FetchRegistersCallback:
+    """
+    The base class from which to implement the fetch_registers callback.
+
+    The architecture code must implement the :meth:`fetch_active` and
+    :meth:`fetch_scheduled` methods.
+    """
+    def fetch_active(self, thread: gdb.InferiorThread, register: int) -> None:
+        raise NotImplementedError("Target has no fetch_active callback")
+
+    def fetch_scheduled(self, thread: gdb.InferiorThread,
+                        register: int) -> None:
+        raise NotImplementedError("Target has no fetch_scheduled callback")
+
+    def __call__(self, thread: gdb.InferiorThread,
+                 register: gdb.Register) -> None:
+        if register is None:
+            regnum = -1
+        else:
+            regnum = register.regnum
+
+        if thread.info.active:
+            return self.fetch_active(thread, regnum)
+
+        return self.fetch_scheduled(thread, regnum)
 
 class CrashArchitecture:
     ident = "base-class"
     aliases: List[str] = list()
+
+    _fetch_registers: Type[FetchRegistersCallback]
+
     def __init__(self) -> None:
-        pass
+        target = gdb.current_target()
+        if not isinstance(target, kdump.target.Target):
+            raise ValueError("target is not kdumpfile")
+        try:
+            target.set_fetch_registers(self._fetch_registers())
+        except AttributeError:
+            raise NotImplementedError("No fetch_registers callback defined")
 
-    def fetch_register_active(self, thread: gdb.InferiorThread,
-                              register: int) -> None:
-        raise NotImplementedError("setup_thread_active not implemented")
+    @classmethod
+    def set_fetch_registers(cls,
+                            callback: Type[FetchRegistersCallback]) -> None:
+        """
+        Set a fetch_regisers callback for the Target to use.
 
-    def fetch_register_scheduled(self, thread: gdb.InferiorThread,
-                                 register: int) -> None:
-        raise NotImplementedError("setup_thread_scheduled not implemented")
+        Args:
+            callback: A Callable that accepts a :obj:`gdb.InferiorThread` and
+                :obj:`gdb.Register` and populates the requested registers for
+                the specified thread.  A register with the seemingly invalid
+                register number of -1 is a request to populate all registers.
+        """
+        cls._fetch_registers = callback
 
     def setup_thread_info(self, thread: gdb.InferiorThread) -> None:
         raise NotImplementedError("setup_thread_info not implemented")
 
-    def fetch_register(self, thread: gdb.InferiorThread, register: int) -> None:
-        if thread.info.active:
-            self.fetch_register_active(thread, register)
-        else:
-            self.fetch_register_scheduled(thread, register)
-
-    def get_stack_pointer(self, thread_struct: gdb.Value) -> gdb.Value:
+    def get_stack_pointer(self, thread_struct: gdb.Value) -> int:
         raise NotImplementedError("get_stack_pointer is not implemented")
 
 # This keeps stack traces from continuing into userspace and causing problems.

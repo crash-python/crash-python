@@ -180,7 +180,6 @@ class CrashKernel:
         self.target = gdb.current_target()
         self.vmcore = self.target.kdump
 
-        self.target.fetch_registers = self.fetch_registers
         self.crashing_thread = None
 
     def _setup_roots(self, roots: PathSpecifier = None,
@@ -392,24 +391,6 @@ class CrashKernel:
         del elf
         f.close()
         return d
-
-    def fetch_registers(self, thread: gdb.InferiorThread,
-                        register: gdb.Register) -> None:
-        """
-        Loads the value for a register (or registers if Register.regnum is
-        ``-1``)
-
-        Meant to be used as a callback from gdb.Target.
-
-        Args:
-            thread: The thread for which to load the registers
-            register: The register (or registers) to load.
-        """
-        if register is None:
-            regnum = -1
-        else:
-            regnum = register.regnum
-        self.arch.fetch_register(thread, regnum)
 
     def _get_module_sections(self, module: gdb.Value) -> str:
         out = []

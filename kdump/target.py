@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Tuple
+from typing import Tuple, Callable
 
 import sys
 
@@ -11,9 +11,14 @@ import addrxlat.exceptions
 
 import gdb
 
+TargetFetchRegisters = Callable[[gdb.InferiorThread, gdb.Register], None]
+
 PTID = Tuple[int, int, int]
 
 class Target(gdb.Target):
+
+    _fetch_registers: TargetFetchRegisters
+
     def __init__(self, debug: bool = False) -> None:
         super().__init__()
         self.debug = debug
@@ -107,9 +112,15 @@ class Target(gdb.Target):
     def pid_to_str(self, ptid: PTID) -> str:
         return "pid {:d}".format(ptid[1])
 
+    def set_fetch_registers(self, callback: TargetFetchRegisters) -> None:
+        self._fetch_registers = callback # type: ignore
+
     def fetch_registers(self, thread: gdb.InferiorThread,
                         register: gdb.Register) -> None:
-        pass
+        try:
+            return self._fetch_registers(thread, register) # type: ignore
+        except AttributeError:
+            raise NotImplementedError("Target did not define fetch_registers callback")
 
     def prepare_to_store(self, thread: gdb.InferiorThread) -> None:
         pass
