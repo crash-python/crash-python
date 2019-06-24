@@ -148,9 +148,14 @@ class CrashKernel:
         self._setup_module_debuginfo_path(module_debuginfo_path, verbose)
 
         # We need separate debuginfo.  Let's go find it.
+        path_list = []
+        build_id_path = self.build_id_path(obj)
+        if build_id_path:
+            path_list.append(build_id_path)
+        path_list += self.vmlinux_debuginfo
         if not obj.has_symbols():
             print("Loading debug symbols for vmlinux")
-            for path in [self.build_id_path(obj)] + self.vmlinux_debuginfo:
+            for path in path_list:
                 try:
                     obj.add_separate_debug_file(path)
                     if obj.has_symbols():
@@ -613,7 +618,7 @@ class CrashKernel:
         return self._get_file_path_from_tree_search(path, name, regex)
 
     @staticmethod
-    def build_id_path(objfile: gdb.Objfile) -> str:
+    def build_id_path(objfile: gdb.Objfile) -> Optional[str]:
         """
         Returns the relative path for debuginfo using the objfile's build-id.
 
@@ -621,6 +626,8 @@ class CrashKernel:
             objfile: The objfile for which to return the path
         """
         build_id = objfile.build_id
+        if build_id is None:
+            return None
         return ".build_id/{}/{}.debug".format(build_id[0:2], build_id[2:])
 
     def _try_load_debuginfo(self, objfile: gdb.Objfile,
@@ -651,9 +658,10 @@ class CrashKernel:
         build_id_path = self.build_id_path(objfile)
 
         for path in self.module_debuginfo_path:
-            filepath = "{}/{}".format(path, build_id_path)
-            if self._try_load_debuginfo(objfile, filepath, verbose):
-                break
+            if build_id_path:
+                filepath = "{}/{}".format(path, build_id_path)
+                if self._try_load_debuginfo(objfile, filepath, verbose):
+                    break
 
             try:
                 filepath = self._find_module_debuginfo_file(filename, path)
