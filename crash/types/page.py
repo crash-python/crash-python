@@ -18,7 +18,7 @@ PAGE_MAPPING_ANON = 1
 
 types = Types(['unsigned long', 'struct page', 'enum pageflags',
                'enum zone_type', 'struct mem_section'])
-symvals = Symvals(['mem_section'])
+symvals = Symvals(['mem_section', 'max_pfn'])
 
 PageType = TypeVar('PageType', bound='Page')
 
@@ -261,7 +261,7 @@ def page_from_gdb_obj(gdb_obj: gdb.Value) -> 'Page':
 
 def for_each_page() -> Iterable[gdb.Value]:
     # TODO works only on x86?
-    max_pfn = int(gdb.lookup_global_symbol("max_pfn").value())
+    max_pfn = int(symvals.max_pfn)
     for pfn in range(max_pfn):
         try:
             yield Page.pfn_to_page(pfn)
