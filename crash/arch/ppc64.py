@@ -25,7 +25,7 @@ class Powerpc64Architecture(CrashArchitecture):
         thread.info.set_thread_info(task['thread_info'].address)
 
     @classmethod
-    def get_stack_pointer(cls, thread_struct: gdb.Value) -> gdb.Value:
-        return thread_struct['ksp']
+    def get_stack_pointer(cls, thread_struct: gdb.Value) -> int:
+        return int(thread_struct['ksp'])
 
 register_arch(Powerpc64Architecture)

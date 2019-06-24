@@ -118,8 +118,8 @@ class x86_64Architecture(CrashArchitecture):
         cls.set_fetch_registers(_FRC_thread_return)
 
     @classmethod
-    def get_stack_pointer(cls, thread_struct: gdb.Value) -> gdb.Value:
-        return thread_struct['sp']
+    def get_stack_pointer(cls, thread_struct: gdb.Value) -> int:
+        return int(thread_struct['sp'])
 
 type_cbs = TypeCallbacks([('struct inactive_task_frame',
                            x86_64Architecture.setup_inactive_task_frame_handler)])

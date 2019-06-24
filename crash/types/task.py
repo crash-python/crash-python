@@ -520,7 +520,7 @@ class LinuxTask:
         except AttributeError:
             raise NotImplementedError("Architecture hasn't provided stack pointer callback")
 
-        return int(fn(self.task_struct['thread']))
+        return fn(self.task_struct['thread'])
 
     def _get_rss_field(self) -> int:
         return int(self.task_struct['mm']['rss'].value())
