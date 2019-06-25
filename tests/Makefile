@@ -1,5 +1,6 @@
 CFLAGS = -ggdb
-TARGETS := test-util.o test-list.o test-list test-util test-percpu
+TARGETS := test-util.o test-list.o test-list test-util test-percpu \
+		test-rbtree.o test-rbtree
 TARGETS += test-syscache test_imports.py
 all: $(TARGETS)
 
