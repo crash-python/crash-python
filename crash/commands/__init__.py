@@ -108,6 +108,10 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return helptext
 
+    @staticmethod
+    def address(v: str) -> int:
+        return int(v, 16)
+
 class Command(gdb.Command):
     """
     The Command class is the starting point for implementing a new command.
