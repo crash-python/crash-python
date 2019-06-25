@@ -45,8 +45,8 @@ install: man-install doc-help-install doc-text-install doc-html-install build
 
 helpdir=$(pkgdatadir)/help
 doc-help-install: doc-help
-	install -d $(DESTDIR)$(helpdir)/commands
-	install -t $(DESTDIR)$(helpdir)/commands docs/text/commands/*.txt
+	install -m 755 -d $(DESTDIR)$(helpdir)/commands
+	install -m 644 -t $(DESTDIR)$(helpdir)/commands docs/text/commands/*.txt
 
 docdir=$(datadir)/doc/packages/crash-python
 textdir=$(docdir)/text
