@@ -304,6 +304,27 @@ def find_member_variant(gdbtype: gdb.Type, variants: List[str]) -> str:
     raise TypeError("Unrecognized '{}': could not find member '{}'"
                     .format(str(gdbtype), variants[0]))
 
+def safe_find_member_variant(gdbtype: gdb.Type, variants: List[str]) -> Optional[str]:
+    """
+    Examines the given type and returns the first found member name
+
+    Over time, structure member names may change.  This routine
+    allows the caller to provide a list of potential names and returns
+    the first one found.
+
+    Args:
+        gdbtype (gdb.Type): The type of structure or union to examine
+        variants (list of str): The names of members to search
+
+    Returns:
+        str: The first member name found or
+        None: if no named member could be found
+    """
+    try:
+        return find_member_variant(gdbtype, variants)
+    except TypeError:
+        return None
+
 def safe_lookup_type(name: str,
                      block: gdb.Block = None) -> Union[gdb.Type, None]:
     """
