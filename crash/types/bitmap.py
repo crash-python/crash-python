@@ -11,7 +11,7 @@ A bitmap is represented as either an array of ``unsigned long`` or as
 requires that it be of either type.
 """
 
-from typing import Iterable
+from typing import Iterable, Tuple
 
 from crash.exceptions import InvalidArgumentError
 from crash.util.symbols import Types
@@ -29,6 +29,13 @@ def _check_bitmap_type(bitmap: gdb.Value) -> None:
              bitmap.type.target().sizeof != types.unsigned_long_type.sizeof)):
         raise InvalidArgumentError("bitmaps are expected to be arrays of unsigned long not `{}'"
                                    .format(bitmap.type))
+
+def _get_bit_location(bit: int) -> Tuple[int, int]:
+    element = bit // (types.unsigned_long_type.sizeof << 3)
+    offset = bit % (types.unsigned_long_type.sizeof << 3)
+
+    return (element, offset)
+
 
 def for_each_set_bit(bitmap: gdb.Value,
                      size_in_bytes: int = None) -> Iterable[int]:
@@ -211,8 +218,7 @@ def find_next_set_bit(bitmap: gdb.Value, start: int,
         raise IndexError("Element {} is out of range ({} elements)"
                          .format(start, elements))
 
-    element = start // (types.unsigned_long_type.sizeof << 3)
-    offset = start % (types.unsigned_long_type.sizeof << 3)
+    (element, offset) = _get_bit_location(start)
 
     for n in range(element, elements):
         if bitmap[n] == 0:
@@ -316,3 +322,35 @@ def find_last_set_bit(bitmap: gdb.Value, size_in_bytes: int = None) -> int:
             return n * (types.unsigned_long_type.sizeof << 3) + v
 
     return 0
+
+def test_bit(bitmap: gdb.Value, bit: int, size_in_bytes: int = None) -> bool:
+    """
+    Test a bit in a bitmap.  Unlike the ``find`` family of functions,
+    the index starts at 0.
+
+    Args:
+        bitmap: The bitmap to use for testing
+        bit: The bit in the bitmap to test, starting at offset 0
+        size_in_bytes (optional, default = None): The size of the bitmap
+            if a pointer is used.
+    Returns:
+        :obj:`bool`: Whether the bit is set or not
+
+    Raises:
+        :obj:`.InvalidArgumentError`: The :obj:`gdb.Value` is not
+            of type ``unsigned long[]`` or ``unsigned long *``.
+
+    """
+    _check_bitmap_type(bitmap)
+
+    if size_in_bytes is None:
+        size_in_bytes = bitmap.type.sizeof
+
+    elements = size_in_bytes // types.unsigned_long_type.sizeof
+
+    (element, offset) = _get_bit_location(bit)
+
+    if element >= elements:
+        raise ValueError(f"bit {bit} is out of range > {size_in_bytes << 3}")
+
+    return (bitmap[element] & (1 << offset)) != 0
