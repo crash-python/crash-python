@@ -280,7 +280,8 @@ def offsetof(gdbtype: gdb.Type, member_name: str,
         return res[0]
     return None
 
-def find_member_variant(gdbtype: gdb.Type, variants: List[str]) -> str:
+def find_member_variant(gdbtype: gdb.Type, variants: List[str],
+                        error: bool = True) -> str:
     """
     Examines the given type and returns the first found member name
 
@@ -291,6 +292,8 @@ def find_member_variant(gdbtype: gdb.Type, variants: List[str]) -> str:
     Args:
         gdbtype (gdb.Type): The type of structure or union to examine
         variants (list of str): The names of members to search
+        error (bool, optional, default=True): Whether to consider lookup
+            failures an error, or return None
 
     Returns:
         str: The first member name found
@@ -301,8 +304,11 @@ def find_member_variant(gdbtype: gdb.Type, variants: List[str]) -> str:
     for v in variants:
         if offsetof(gdbtype, v, False) is not None:
             return v
-    raise TypeError("Unrecognized '{}': could not find member '{}'"
+    if error:
+        raise TypeError("Unrecognized '{}': could not find member '{}'"
                     .format(str(gdbtype), variants[0]))
+    else:
+        return None
 
 def safe_lookup_type(name: str,
                      block: gdb.Block = None) -> Union[gdb.Type, None]:
