@@ -77,6 +77,144 @@ SB_FLAGS = {
     MS_NOUSER       : "MS_NOUSER",
 }
 
+S_IFMT = 0o170000
+S_IFSOCK = 0o140000
+S_IFLNK = 0o120000
+S_IFREG = 0o100000
+S_IFBLK = 0o060000
+S_IFDIR = 0o040000
+S_IFCHR = 0o020000
+S_IFIFO = 0o010000
+
+S_ISUID = 0o0004000
+S_ISGID = 0o0002000
+S_ISVTX = 0o0001000
+
+S_IRWXU = 0o00700
+S_IRUSR = 0o00400
+S_IWUSR = 0o00200
+S_IXUSR = 0o00100
+
+S_IRWXG = 0o00070
+S_IRGRP = 0o00040
+S_IWGRP = 0o00020
+S_IXGRP = 0o00010
+
+S_IRWXO = 0o00007
+S_IROTH = 0o00004
+S_IWOTH = 0o00002
+S_IXOTH = 0o00001
+
+INODE_MODE_BITS = {
+    S_IFSOCK : 'S_IFSOCK',
+    S_IFLNK : 'S_IFLNK',
+    S_IFREG : 'S_IFREG',
+    S_IFBLK : 'S_IFBLK',
+    S_IFDIR : 'S_IFDIR',
+    S_IFCHR : 'S_IFCHR',
+    S_IFIFO : 'S_IFIFO',
+    S_ISUID : 'S_ISUID',
+    S_ISGID : 'S_ISGID',
+    S_ISVTX : 'S_ISVTX',
+    S_IRWXU : 'S_IRWXU',
+    S_IRUSR : 'S_IRUSR',
+    S_IWUSR : 'S_IWUSR',
+    S_IXUSR : 'S_IXUSR',
+    S_IRWXG : 'S_IRWXG',
+    S_IRGRP : 'S_IRGRP',
+    S_IWGRP : 'S_IWGRP',
+    S_IXGRP : 'S_IXGRP',
+    S_IRWXO : 'S_IRWXO',
+    S_IROTH : 'S_IROTH',
+    S_IWOTH : 'S_IWOTH',
+    S_IXOTH : 'S_IXOTH',
+}
+
+_inode_fmt_bits = {
+    S_IFSOCK : 's',
+    S_IFLNK : 'l',
+    S_IFREG : '-',
+    S_IFBLK : 'b',
+    S_IFDIR : 'd',
+    S_IFCHR : 'c',
+    S_IFIFO : 'p',
+}
+
+_inode_rwx_bits = {
+    S_IRUSR : 'r',
+    S_IWUSR : 'w',
+    S_IXUSR : 'x',
+    S_IRGRP : 'r',
+    S_IWGRP : 'w',
+    S_IXGRP : 'x',
+    S_IROTH : 'r',
+    S_IWOTH : 'w',
+    S_IXOTH : 'x',
+}
+
+def ls_style_mode_perms(i_mode: gdb.Value) -> str:
+    mode = int(i_mode)
+
+    fmt = '?'
+    for bit in sorted(_inode_fmt_bits.keys()):
+        if (bit & i_mode) == bit:
+            fmt = _inode_fmt_bits[bit]
+
+    perms = [fmt]
+
+    for bit in sorted(_inode_rwx_bits.keys(), reverse=True):
+        if (bit & i_mode) == bit:
+            perms.append(_inode_rwx_bits[bit])
+        else:
+            perms.append('-')
+
+    if mode & S_ISUID:
+        if mode & S_IXUSR:
+            perms[3] = 's'
+        else:
+            perms[3] = 'S'
+
+    if mode & S_ISGID:
+        if mode & S_IXGRP:
+            perms[6] = 's'
+        else:
+            perms[6] = 'S'
+
+    if mode & S_ISVTX:
+        if mode & S_IXOTH:
+            perms[9] = 't'
+        else:
+            perms[9] = 'T'
+
+    return "".join(perms)
+
+def ls_style_inode_perms(inode: gdb.Value) -> str:
+    return ls_style_mode_perms(inode['i_mode'])
+
+def _S_ISMODE(i_mode: int, mode: int) -> bool:
+    return (i_mode & S_IFMT) == mode
+
+def S_ISLNK(i_mode: int) -> bool:
+    return _S_ISMODE(i_mode, S_IFLNK)
+
+def S_ISREG(i_mode: int) -> bool:
+    return _S_ISMODE(i_mode, S_IFREG)
+
+def S_ISDIR(i_mode: int) -> bool:
+    return _S_ISMODE(i_mode, S_IFDIR)
+
+def S_ISCHR(i_mode: int) -> bool:
+    return _S_ISMODE(i_mode, S_IFCHR)
+
+def S_ISBLK(i_mode: int) -> bool:
+    return _S_ISMODE(i_mode, S_IFBLK)
+
+def S_ISFIFO(i_mode: int) -> bool:
+    return _S_ISMODE(i_mode, S_IFIFO)
+
+def S_ISSOCK(i_mode: int) -> bool:
+    return _S_ISMODE(i_mode, S_IFSOCK)
+
 def super_fstype(sb: gdb.Value) -> str:
     """
     Returns the file system type's name for a given superblock.
