@@ -78,7 +78,7 @@ class KmemCommand(Command):
             raise CommandLineError("no address specified")
 
         try:
-            addr = int(args.address[0], 0)
+            addr = int(args.address, 0)
         except ValueError:
             raise CommandLineError("address must be numeric")
         slab = slab_from_obj_addr(addr)
