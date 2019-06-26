@@ -3,7 +3,7 @@
 
 from typing import Iterable
 
-from crash.util import container_of
+from crash.util import container_of, struct_has_member
 from crash.util.symbols import Types, Symvals, SymbolCallbacks, TypeCallbacks
 from crash.types.classdev import for_each_class_device
 from crash.exceptions import DelayedAttributeError, InvalidArgumentError
@@ -13,7 +13,8 @@ import gdb
 from gdb.types import get_basic_type
 
 types = Types(['struct gendisk', 'struct hd_struct', 'struct device',
-               'struct device_type', 'struct bdev_inode'])
+               'struct device_type', 'struct bdev_inode',
+               'struct request_queue', 'struct request'])
 symvals = Symvals(['block_class', 'blockdev_superblock', 'disk_type',
                    'part_type'])
 
@@ -261,6 +262,21 @@ def request_age_ms(request: gdb.Value) -> int:
             current ``jiffies`` in milliseconds.
     """
     return jiffies_to_msec(kernel.jiffies - request['start_time'])
+
+def queue_is_mq(queue: gdb.Value) -> bool:
+    """
+    Tests whether the queue is blk-mq queue.
+
+    Args:
+        queue: The request queue to test. The value must be
+            of type ``struct request_queue``.
+
+    Returns:
+        :obj:`bool`: whether the ``struct request_queue`` is a multiqueue queue
+    """
+    if not struct_has_member(queue, 'mq_ops'):
+        return False
+    return int(queue['mq_ops']) != 0
 
 # pylint: disable=unused-argument
 def _check_types(result: gdb.Symbol) -> None:
