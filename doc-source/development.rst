@@ -10,6 +10,7 @@ Development
    crash/modules
 
    gdb-internals
+   patterns
 
 
 Documentation is automatically built from the python code for the user
