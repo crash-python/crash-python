@@ -5,7 +5,6 @@ from typing import Iterable, Tuple
 
 from crash.util.symbols import Types
 from crash.types.list import list_for_each_entry
-from crash.cache.syscache import kernel, jiffies_to_msec
 
 import gdb
 
@@ -14,7 +13,7 @@ class NoQueueError(RuntimeError):
 
 types = Types(['struct request'])
 
-def for_each_request_in_queue(queue: gdb.Value) -> Iterable[gdb.Value]:
+def sq_for_each_request_in_queue(queue: gdb.Value) -> Iterable[gdb.Value]:
     """
     Iterates over each ``struct request`` in request_queue
 
@@ -34,24 +33,7 @@ def for_each_request_in_queue(queue: gdb.Value) -> Iterable[gdb.Value]:
     return list_for_each_entry(queue['queue_head'], types.request_type,
                                'queuelist')
 
-def request_age_ms(request: gdb.Value) -> int:
-    """
-    Returns the age of the request in milliseconds
-
-    This method returns the difference between the current time
-    (``jiffies``) and the request's ``start_time``, in milliseconds.
-
-    Args:
-        request: The ``struct request`` used to determine age.  The value
-            is of type ``struct request``.
-
-    Returns:
-        :obj:`int`: Difference between the request's ``start_time`` and
-            current ``jiffies`` in milliseconds.
-    """
-    return jiffies_to_msec(kernel.jiffies - request['start_time'])
-
-def requests_in_flight(queue: gdb.Value) -> Tuple[int, int]:
+def sq_requests_in_flight(queue: gdb.Value) -> Tuple[int, int]:
     """
     Report how many requests are in flight for this queue
 

@@ -7,6 +7,7 @@ from crash.util import container_of
 from crash.util.symbols import Types, Symvals, SymbolCallbacks, TypeCallbacks
 from crash.types.classdev import for_each_class_device
 from crash.exceptions import DelayedAttributeError, InvalidArgumentError
+from crash.cache.syscache import kernel, jiffies_to_msec
 
 import gdb
 from gdb.types import get_basic_type
@@ -243,6 +244,23 @@ def inode_on_bdev(inode: gdb.Value) -> gdb.Value:
     if is_bdev_inode(inode):
         return inode_to_block_device(inode)
     return inode['i_sb']['s_bdev'].dereference()
+
+def request_age_ms(request: gdb.Value) -> int:
+    """
+    Returns the age of the request in milliseconds
+
+    This method returns the difference between the current time
+    (``jiffies``) and the request's ``start_time``, in milliseconds.
+
+    Args:
+        request: The ``struct request`` used to determine age.  The value
+            is of type ``struct request``.
+
+    Returns:
+        :obj:`int`: Difference between the request's ``start_time`` and
+            current ``jiffies`` in milliseconds.
+    """
+    return jiffies_to_msec(kernel.jiffies - request['start_time'])
 
 # pylint: disable=unused-argument
 def _check_types(result: gdb.Symbol) -> None:
