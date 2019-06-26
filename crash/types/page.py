@@ -248,6 +248,9 @@ symbol_cbs = SymbolCallbacks([('vmemmap_base', Page.setup_vmemmap_base),
                               ('page_offset_base',
                                Page.setup_directmap_base)])
 
+def page_addr(struct_page_addr: int) -> int:
+    pfn = (struct_page_addr - Page.vmemmap_base) // types.page_type.sizeof
+    return Page.directmap_base + (pfn * Page.PAGE_SIZE)
 
 def pfn_to_page(pfn: int) -> 'Page':
     return Page(Page.pfn_to_page(pfn), pfn)
