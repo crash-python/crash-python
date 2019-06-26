@@ -164,7 +164,8 @@ class Slab:
 
                 f = int(bufctl[f])
 
-    def find_obj(self, addr: int) -> Union[int, None]:
+    def find_obj(self, addr: int) -> Optional[int]:
+
         bufsize = self.kmem_cache.buffer_size
         objs_per_slab = self.kmem_cache.objs_per_slab
 
@@ -175,25 +176,42 @@ class Slab:
         if idx >= objs_per_slab:
             return None
 
-        return self.s_mem + (idx * bufsize)
+        return int(self.s_mem + (idx * bufsize))
 
-    def contains_obj(self, addr: int) -> Tuple[bool, int,
-                                               Optional[ArrayCacheEntry]]:
+    def contains_obj(self, addr: int) -> Tuple[bool, int, Optional[str]]:
         obj_addr = self.find_obj(addr)
 
         if not obj_addr:
-            return (False, 0, None)
+            return (False, 0, "address outside of valid object range")
+
+        return (True, obj_addr, None)
+
+    def obj_in_use(self, addr: int) -> Tuple[bool, Optional[str]]:
 
         self.__populate_free()
-        if obj_addr in self.free:
-            return (False, int(obj_addr), None)
+        if addr in self.free:
+            return (False, None)
 
-        ac = self.kmem_cache.get_array_caches()
+        array_caches = self.kmem_cache.get_array_caches()
 
-        if obj_addr in ac:
-            return (False, int(obj_addr), ac[obj_addr])
+        if addr in array_caches:
+            ac = array_caches[addr]
 
-        return (True, int(obj_addr), None)
+            ac_type = ac['ac_type'] # pylint: disable=unsubscriptable-object
+            nid_tgt = int(ac['nid_tgt']) # pylint: disable=unsubscriptable-object
+            if ac_type == AC_PERCPU:
+                ac_desc = f"cpu {nid_tgt} cache"
+            elif ac_type == AC_SHARED:
+                ac_desc = f"shared cache on node {nid_tgt}"
+            elif ac_type == AC_ALIEN:
+                nid_src = int(ac['nid_src']) # pylint: disable=unsubscriptable-object
+                ac_desc = f"alien cache on node {nid_src} for node {nid_tgt}"
+            else:
+                ac_desc = "unknown cache"
+
+            return (False, ac_desc)
+
+        return (True, None)
 
     def __error(self, msg: str, misplaced: bool = False) -> None:
         msg = col_error("cache %s slab %x%s" % (self.kmem_cache.name,
@@ -361,8 +379,7 @@ class KmemCache:
             yield (nid, node.dereference())
 
     @staticmethod
-    def all_find_obj(addr: int) -> Optional[Tuple[bool, int,
-                                                  Optional[ArrayCacheEntry]]]:
+    def all_find_obj(addr: int) -> Optional[Tuple[bool, int, Optional[str]]]:
         slab = slab_from_obj_addr(addr)
         if not slab:
             return None

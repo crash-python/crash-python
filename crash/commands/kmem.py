@@ -86,36 +86,27 @@ class KmemCommand(Command):
         if not slab:
             raise CommandError("Address not found in any kmem cache.")
 
-        obj = slab.contains_obj(addr)
+        (valid, obj, reason) = slab.contains_obj(addr)
         name = slab.kmem_cache.name
 
-        if obj[0]:
-            print("ALLOCATED object %x from slab %s" % (obj[1], name))
-        else:
-            if obj[1] == 0:
-                print("Address on slab %s but not within valid object slot"
-                      % name)
-            elif not obj[2]:
-                print("FREE object %x from slab %s" % (obj[1], name))
-            elif obj[2] is not None:
-                ac = obj[2]
-                ac_type = ac['ac_type'] # pylint: disable=unsubscriptable-object
-                nid_tgt = int(ac['nid_tgt']) # pylint: disable=unsubscriptable-object
-                if ac_type == "percpu":
-                    ac_desc = "cpu %d cache" % nid_tgt
-                elif ac_type == "shared":
-                    ac_desc = "shared cache on node %d" % nid_tgt
-                elif ac_type == "alien":
-                    nid_src = int(ac['nid_src']) # pylint: disable=unsubscriptable-object
-                    ac_desc = "alien cache of node %d for node %d" % \
-                        (nid_src, nid_tgt)
-                else:
-                    raise CommandError(f"unexpected array cache type {str(ac)}")
+        if valid:
+            (is_used, details) = slab.obj_in_use(obj)
+            offset = addr - obj
 
-                print("FREE object %x from slab %s (in %s)" %
-                      (obj[1], name, ac_desc))
-            else:
-                raise RuntimeError("odd return value from contains_obj")
+            offset_str = "" if offset == 0 else f" offset {offset}/0x{offset:x}"
+            details_str = "" if details is None else f" (in {details})"
+
+            print(f"{'ALLOCATED' if is_used else 'FREE'}{details_str} "
+                  f"object 0x{obj:x}{offset_str} from cache {name}")
+        else:
+            obj_str = ""
+            if obj is not None:
+                obj_str = f" object 0x{obj:x}"
+            reason_str = ""
+            if reason is not None:
+                reason_str = f" ({reason})"
+            print(f"INVALID address on slab {slab.gdb_obj.address} "
+                  f"from cache {name}{obj_str}{reason_str}")
 
     def __print_vmstat(self, vmstat: List[int], diffs: List[int]) -> None:
         vmstat_names = VmStat.get_stat_names()
