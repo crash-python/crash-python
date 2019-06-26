@@ -12,7 +12,7 @@ Development
    gdb-internals
 
 
-Documentation is automatically build from the python code for the user
+Documentation is automatically built from the python code for the user
 guide, command help text, and API reference.
 
 There are several make targets to assist in your development efforts:
