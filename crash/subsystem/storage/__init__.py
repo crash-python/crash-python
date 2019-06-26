@@ -14,9 +14,12 @@ from gdb.types import get_basic_type
 
 types = Types(['struct gendisk', 'struct hd_struct', 'struct device',
                'struct device_type', 'struct bdev_inode',
-               'struct request_queue', 'struct request'])
+               'struct request_queue', 'struct request', 'enum req_flag_bits',
+               'enum mq_rq_state', 'enum rq_atomic_flags'])
 symvals = Symvals(['block_class', 'blockdev_superblock', 'disk_type',
                    'part_type'])
+READ = 0
+WRITE = 1
 
 def dev_to_gendisk(dev: gdb.Value) -> gdb.Value:
     """
@@ -263,6 +266,56 @@ def request_age_ms(request: gdb.Value) -> int:
     """
     return jiffies_to_msec(kernel.jiffies - request['start_time'])
 
+def rq_data_dir(request: gdb.Value) -> int:
+    """
+    Returns direction of the request
+
+    This method returns 0 if the request is read and 1 if the request is write.
+
+    Args:
+        request: The ``struct request`` to query data direction in.
+
+    Returns:
+        :obj:`int`: 0 for reads, 1 for writes.
+    """
+    if request['cmd_flags'] & 1 != 0:
+        return WRITE
+    return READ
+
+def rq_is_sync(request: gdb.Value) -> bool:
+    """
+    Returns whether request is synchronous
+
+    This method returns True if the request is synchronous and False otherwise.
+
+    Args:
+        request: The ``struct request`` to query.
+
+    Returns:
+        :obj:`bool`: True for synchronous requests, False otherwise.
+    """
+    return (request['cmd_flags'] & 1 == 0 or
+            request['cmd_flags'] & (REQ_SYNC | REQ_FUA | REQ_PREFLUSH) != 0) # type: ignore
+
+# This is a stub to make static checker happy. It gets overridden once 'struct
+# request' is resolved.
+def _rq_in_flight(request: gdb.Value) -> bool:
+    raise RuntimeError("struct request type not resolved yet!")
+
+def rq_in_flight(request: gdb.Value) -> bool:
+    """
+    Returns whether request is currently processed by the device
+
+    This method returns True if the request is being processed by the device
+
+    Args:
+        request: The ``struct request`` to query.
+
+    Returns:
+        :obj:`bool`: True for requests in flight, False otherwise.
+    """
+    return _rq_in_flight(request)
+
 def queue_is_mq(queue: gdb.Value) -> bool:
     """
     Tests whether the queue is blk-mq queue.
@@ -293,6 +346,35 @@ def _check_types(result: gdb.Symbol) -> None:
     except DelayedAttributeError:
         pass
 
+# Export REQ_ flags into namespace as constants
+def _export_req_flags(req_flag_bits: gdb.Type) -> None:
+    for (name, field) in req_flag_bits.items():
+        globals()[name[2:]] = 1 << field.enumval
+
+    # Define to 0 flags that don't exist.
+    for name in ['REQ_PREFLUSH', 'REQ_FLUSH']:
+        if not name in globals():
+            globals()[name] = 0
+
+# Check struct request and define functions based on its current form in this
+# kernel
+def _check_struct_request(request_s: gdb.Type) -> None:
+    global _rq_in_flight
+    if struct_has_member(request_s, 'rq_state'):
+        def _rq_in_flight(request: gdb.Value) -> bool:
+            return (request['rq_state'] !=
+                    types.enum_mq_rq_state_type['MQ_RQ_IDLE'])
+    elif struct_has_member(request_s, 'atomic_flags'):
+        def _rq_in_flight(request: gdb.Value) -> bool:
+            return (request['atomic_flags'] &
+                (1 << int(types.enum_rq_atomic_flags_type['REQ_ATOM_STARTED'].enumval)) != 0)
+    else:
+        def _rq_in_flight(request: gdb.Value) -> bool:
+            return request['cmd_flags'] & REQ_STARTED != 0 # type: ignore
+
 symbol_cbs = SymbolCallbacks([('disk_type', _check_types),
                               ('part_type', _check_types)])
-type_cbs = TypeCallbacks([('struct device_type', _check_types)])
+type_cbs = TypeCallbacks([('struct device_type', _check_types),
+                          ('enum req_flag_bits', _export_req_flags),
+                          ('struct request', _check_struct_request)])
+
