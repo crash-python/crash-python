@@ -31,12 +31,6 @@ except AttributeError as e:
     raise IncompatibleGDBError("gdb.Register")
 
 try:
-    x5 = gdb.Symbol.section
-    del x5
-except AttributeError as e:
-    raise IncompatibleGDBError("gdb.Symbol.section")
-
-try:
     x6 = gdb.Inferior.new_thread
     del x6
 except AttributeError as e:
