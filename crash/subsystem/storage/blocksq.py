@@ -3,6 +3,7 @@
 
 from typing import Iterable, Tuple
 
+from crash.util import struct_has_member
 from crash.util.symbols import Types
 from crash.types.list import list_for_each_entry
 from crash.subsystem.storage import queue_is_mq
@@ -50,9 +51,31 @@ def sq_requests_in_flight(queue: gdb.Value) -> Tuple[int, int]:
 
     Returns:
         (:obj:`int`, :obj:`int`): The requests in flight.  The first member of
-        the 2-tuple is the number of read requests, the second is the number
-        of write requests.
+        the 2-tuple is the number of async requests, the second is the number
+        of sync requests.
     """
     _check_queue_type(queue)
     return (int(queue['in_flight'][0]),
             int(queue['in_flight'][1]))
+
+def sq_requests_queued(queue: gdb.Value) -> Tuple[int, int]:
+    """
+    Report how many requests are queued for this queue
+
+    Args:
+        queue: The request queue to inspect for queued requests.
+            The value must be of type ``struct request_queue``.
+
+    Returns:
+        (:obj:`int`, :obj:`int`): The queued requests.  The first member of
+        the 2-tuple is the number of async requests, the second is the number
+        of sync requests.
+    """
+    _check_queue_type(queue)
+    if struct_has_member(queue, 'rq'):
+        rqlist = queue['rq']
+    else:
+        rqlist = queue['root_rl']
+    return (int(rqlist['count'][0]),
+            int(rqlist['count'][1]))
+
