@@ -1,3 +1,4 @@
+.*.sw[op]
 *.pyc
 *~
 doc-source/crash.*.rst
