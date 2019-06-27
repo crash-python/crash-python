@@ -119,3 +119,26 @@ def mq_requests_queued(queue: gdb.Value) -> Tuple[int, int]:
         queued[rq_is_sync(rq)] += 1
 
     return (queued[0], queued[1])
+
+def mq_queue_request_stats(queue: gdb.Value) -> Tuple[int, int, int, int]:
+    """
+    Report various request information for this queue
+
+    Args:
+        queue: The request queue to inspect for request information.
+            The value must be of type ``struct request_queue``.
+
+    Returns:
+        (:obj:`int`, :obj:`int`, :obj:`int`, :obj:`int`): Number queued async
+        requests, number of queued sync requests, number of async requests
+        being processed by the driver, number of sync requests being processed
+        by the driver.
+    """
+    _check_queue_type(queue)
+    stats = [0, 0, 0, 0]
+    for rq in mq_for_each_request_in_queue(queue):
+        stats[rq_is_sync(rq)] += 1
+        if rq_in_flight(rq):
+            stats[2 + rq_is_sync(rq)] += 1
+
+    return (stats[0], stats[1], stats[2], stats[3])

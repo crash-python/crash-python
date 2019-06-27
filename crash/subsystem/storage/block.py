@@ -8,7 +8,7 @@ from crash.subsystem.storage import queue_is_mq
 from crash.subsystem.storage.blocksq import sq_for_each_request_in_queue, \
     sq_requests_in_flight, sq_requests_queued
 from crash.subsystem.storage.blockmq import mq_for_each_request_in_queue, \
-    mq_requests_in_flight, mq_requests_queued
+    mq_requests_in_flight, mq_requests_queued, mq_queue_request_stats
 
 import gdb
 
@@ -65,3 +65,20 @@ def for_each_request_in_queue(queue: gdb.Value) -> Iterable[gdb.Value]:
         return mq_for_each_request_in_queue(queue)
     return sq_for_each_request_in_queue(queue)
 
+def queue_request_stats(queue: gdb.Value) -> Tuple[int, int, int, int]:
+    """
+    Report various request information for this queue
+
+    Args:
+        queue: The request queue to inspect for request information.
+            The value must be of type ``struct request_queue``.
+
+    Returns:
+        (:obj:`int`, :obj:`int`, :obj:`int`, :obj:`int`): Number queued async
+        requests, number of queued sync requests, number of async requests
+        being processed by the driver, number of sync requests being processed
+        by the driver.
+    """
+    if queue_is_mq(queue):
+        return mq_queue_request_stats(queue)
+    return sq_requests_queued(queue) + sq_requests_in_flight(queue) # type: ignore
