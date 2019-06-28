@@ -7,7 +7,7 @@
 from crash.subsystem.storage import for_each_disk
 from crash.subsystem.storage.decoders import for_each_bio_in_stack
 from crash.subsystem.storage import gendisk_name
-from crash.subsystem.storage.blocksq import for_each_request_in_queue
+from crash.subsystem.storage.block import for_each_request_in_queue
 from crash.types.list import list_for_each_entry
 from crash.util import get_symbol_value
 from crash.cache.syscache import kernel, jiffies_to_msec
