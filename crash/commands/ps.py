@@ -611,13 +611,6 @@ class PSCommand(Command):
     def task_state_string(self, task: LinuxTask) -> str:
         state = task.task_state()
         buf = ""
-        exclusive = False
-
-        try:
-            exclusive = (state & TF.TASK_EXCLUSIVE) == TF.TASK_EXCLUSIVE
-            state &= ~TF.TASK_EXCLUSIVE
-        except AttributeError:
-            pass
 
         for bits in sorted(self.task_states.keys(), reverse=True):
             if (state & bits) == bits:
@@ -626,10 +619,7 @@ class PSCommand(Command):
         if state & TF.TASK_DEAD and task.maybe_dead():
             buf = self.task_states[TF.TASK_DEAD]
 
-        if buf is not None and exclusive:
-            buf += "EX"
-
-        if buf is None:
+        if not buf:
             print(f"Unknown state {state} found")
 
         return buf
