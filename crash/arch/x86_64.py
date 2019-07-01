@@ -24,6 +24,10 @@ class _FetchRegistersBase(FetchRegistersCallback):
             except KeyError:
                 pass
 
+    def fetch_scheduled(self, thread: gdb.InferiorThread,
+                        register: int) -> None:
+        pass
+
 # pylint: disable=abstract-method
 class _FRC_inactive_task_frame(_FetchRegistersBase):
     def fetch_scheduled(self, thread: gdb.InferiorThread,
@@ -54,8 +58,8 @@ class _FRC_inactive_task_frame(_FetchRegistersBase):
         thread.info.valid_stack = True
 
 class _FRC_thread_return(_FetchRegistersBase):
-    def __call__(self, thread: gdb.InferiorThread,
-                 register: gdb.Register) -> None:
+    def fetch_scheduled(self, thread: gdb.InferiorThread,
+                        register: int) -> None:
         task = thread.info.task_struct
 
         # Only write rip when requested; It resets the frame cache
