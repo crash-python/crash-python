@@ -125,7 +125,7 @@ class Page:
     @classmethod
     def setup_zone_type(cls, gdbtype: gdb.Type) -> None:
         max_nr_zones = gdbtype['__MAX_NR_ZONES'].enumval
-        cls.ZONES_WIDTH = int(ceil(log(max_nr_zones)))
+        cls.ZONES_WIDTH = int(ceil(log(max_nr_zones, 2)))
 
     @classmethod
     # pylint: disable=unused-argument
@@ -213,6 +213,7 @@ class Page:
         return self.gdb_obj[Page.slab_page_name]
 
     def get_nid(self) -> int:
+        # TODO: this only works when there are no sections (i.e. sparsemem_vmemmap)
         return self.flags >> (self.BITS_PER_LONG - self.NODES_WIDTH)
 
     def get_zid(self) -> int:
