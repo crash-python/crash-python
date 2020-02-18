@@ -10,6 +10,7 @@ Kernel memory inspection
 
   kmem addr             - try to find addr within kmem caches
   kmem -s [slabname]    - check consistency of single or all kmem cache
+  kmem -S [slabname]    - list objects in a single or all kmem caches
   kmem -z               - report zones
   kmem -V               - report vmstats
 
@@ -40,7 +41,9 @@ class KmemCommand(Command):
 
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-s', nargs='?', const=True, default=False,
-                           dest='slabname')
+                           dest='slabcheck')
+        group.add_argument('-S', nargs='?', const=True, default=False,
+                           dest='slablist')
         group.add_argument('-z', action='store_true', default=False)
         group.add_argument('-V', action='store_true', default=False)
         group.add_argument('address', nargs='?')
@@ -56,14 +59,14 @@ class KmemCommand(Command):
             self.print_vmstats()
             return
 
-        if args.slabname:
-            if args.slabname is True:
+        if args.slabcheck:
+            if args.slabcheck is True:
                 print("Checking all kmem caches...")
                 for cache in kmem_cache_get_all():
                     print(cache.name)
                     cache.check_all()
             else:
-                cache_name = args.slabname
+                cache_name = args.slabcheck
                 print(f"Checking kmem cache {cache_name}")
                 try:
                     cache = kmem_cache_from_name(cache_name)
@@ -72,6 +75,20 @@ class KmemCommand(Command):
                 cache.check_all()
 
             print("Checking done.")
+            return
+
+        if args.slablist:
+            if args.slablist is True:
+                print("Listing all kmem caches...")
+                for cache in kmem_cache_get_all():
+                    cache.list_all()
+            else:
+                cache_name = args.slablist
+                try:
+                    cache = kmem_cache_from_name(cache_name)
+                except KmemCacheNotFound:
+                    raise CommandError(f"Cache {cache_name} not found.")
+                cache.list_all()
             return
 
         if not args.address:
@@ -93,11 +110,14 @@ class KmemCommand(Command):
             (is_used, details) = slab.obj_in_use(obj)
             offset = addr - obj
 
-            offset_str = "" if offset == 0 else f" offset {offset}/0x{offset:x}"
+            offset_str = "" if offset == 0 else f" offset 0x{offset:x} ({offset})"
             details_str = "" if details is None else f" (in {details})"
+            objsize = slab.kmem_cache.object_size
+            state = "ALLOCATED" if is_used else "FREE"
 
-            print(f"{'ALLOCATED' if is_used else 'FREE'}{details_str} "
-                  f"object 0x{obj:x}{offset_str} from cache {name}")
+            print(f"{state}{details_str} object 0x{obj:x}{offset_str} "
+                  f"size 0x{objsize:x} ({objsize}) from cache {name} "
+                  f"slab {slab.short_header()}")
         else:
             obj_str = ""
             if obj is not None:
