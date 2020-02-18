@@ -48,22 +48,29 @@ class Zone:
 
     def _check_free_area(self, area: gdb.Value, is_pcp: bool) -> None:
         nr_free = 0
-        list_array_name = "lists" if is_pcp else "free_list"
+        if is_pcp:
+            list_array_name = "lists"
+            error_desc = "pcplist"
+        else:
+            list_array_name = "free_list"
+            error_desc = "free area"
         for free_list in array_for_each(area[list_array_name]):
-            for page_obj in list_for_each_entry(free_list,
-                                                self.types.page_type,
-                                                "lru"):
-                page = crash.types.page.Page.from_obj(page_obj)
-                nr_free += 1
-                if page.get_nid() != self.nid or page.get_zid() != self.zid:
-                    print("page {:#x} misplaced on {} of zone {}:{}, has flags for zone {}:{}".
-                          format(int(page_obj.address), "pcplist" if is_pcp else "freelist",
-                                 self.nid, self.zid, page.get_nid(), page.get_zid()))
+            try:
+                for page_obj in list_for_each_entry(free_list,
+                                                    self.types.page_type,
+                                                    "lru"):
+                    page = crash.types.page.Page.from_obj(page_obj)
+                    nr_free += 1
+                    if page.get_nid() != self.nid or page.get_zid() != self.zid:
+                        print(f"page 0x{int(page_obj.address):x} misplaced on "
+                              f"{error_desc} of node {self.nid} zone {self.zid}, "
+                              f"has flags for node {page.get_nid()} zone {page.get_zid()}")
+            except BufferError as e:
+                print(f"Error traversing free area: {e}")
         nr_expected = area["count"] if is_pcp else area["nr_free"]
         if nr_free != nr_expected:
-            print("nr_free mismatch in {} {}: expected {}, counted {}".
-                  format("pcplist" if is_pcp else "area", area.address,
-                         nr_expected, nr_free))
+            print(f"nr_free mismatch in {error_desc} 0x{int(area.address):x}: "
+                  f"expected {nr_expected}, counted {nr_free}")
 
     def check_free_pages(self) -> None:
         for area in array_for_each(self.gdb_obj["free_area"]):

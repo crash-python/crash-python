@@ -172,4 +172,6 @@ class KmemCommand(Command):
 
             print()
 
+            zone.check_free_pages()
+
 KmemCommand("kmem")
