@@ -83,6 +83,7 @@ def list_for_each(list_head: gdb.Value, include_head: bool = False,
         raise BufferError("Failed to read list_head {:#x}: {}"
                           .format(int(list_head.address), str(e)))
 
+    last_good_addr = None
     while node.address != list_head.address:
         if exact_cycles:
             if int(node.address) in visited:
@@ -106,8 +107,13 @@ def list_for_each(list_head: gdb.Value, include_head: bool = False,
             # point in giving out bogus list elements
             yield node.address
         except gdb.error as e:
-            raise BufferError("Failed to read list_head {:#x} in list {:#x}: {}"
-                              .format(int(node.address), int(list_head.address), str(e)))
+            if last_good_addr is not None:
+                last_good_str = f"0x{last_good_addr:x}"
+            else:
+                last_good_str = "(none)"
+            raise BufferError(f"Failed to read list_head 0x{int(node.address):x} "
+                              f"in list 0x{int(list_head.address):x}, last good "
+                              f"list_head {last_good_str}: {str(e)}")
 
         try:
             if fast is not None:
@@ -127,6 +133,7 @@ def list_for_each(list_head: gdb.Value, include_head: bool = False,
         if int(nxt) == 0:
             raise CorruptListError("{} -> {} pointer is NULL"
                                    .format(node.address, next_))
+        last_good_addr = int(node.address)
         node = nxt.dereference()
 
     if pending_exception is not None:
