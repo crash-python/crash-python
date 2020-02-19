@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Union, Tuple, List, Iterator, Dict, Optional
+from typing import Union, Tuple, List, Iterator, Dict, Optional, Any
 
 import uuid
 
@@ -507,3 +507,25 @@ def decode_uuid_t(value: gdb.Value) -> uuid.UUID:
         member = '__u_bits'
 
     return decode_uuid(value[member])
+
+def safe_int(value: Any) -> Optional[int]:
+    """
+    Try to parse the input (typically string) as int.
+
+    Args:
+        value (Any): the input to be parsed
+
+    Returns:
+        int: the parsed input value, or
+        None: if input could not be parsed as int
+    """
+    try:
+        # try autodetecting the base first
+        return int(value, 0)
+    except ValueError:
+        try:
+            # try hex number without 0x prefix
+            return int(value, 16)
+        except ValueError:
+            # no luck
+            return None
