@@ -168,6 +168,18 @@ class Slab(ABC):
         """
 
     @abstractmethod
+    def long_header(self) -> str:
+        """
+        Return a long header consisting of slab's address, role and stats.
+        """
+
+    @abstractmethod
+    def print_objects(self) -> None:
+        """
+        Print all objects in slab, indicating if they are free or allocated.
+        """
+
+    @abstractmethod
     def _do_populate_free(self) -> None:
         """ Populate the set of free objects """
 
@@ -270,6 +282,13 @@ class SlabSLAB(Slab):
 
     def short_header(self) -> str:
         return f"0x{self.address:x}"
+
+    def long_header(self) -> str:
+        return f"0x{self.address:x}"
+
+    def print_objects(self) -> None:
+        #TODO implement
+        pass
 
     # pylint: disable=arguments-differ
     def _pr_err(self, msg: str, misplaced: bool = False) -> None:
@@ -483,6 +502,7 @@ class SlabSLUB(Slab):
         self.nr_objects = int(gdb_obj["objects"])
         self.nr_inuse = int(gdb_obj["inuse"])
         self.nr_free = self.nr_objects - self.nr_inuse
+        self.base_address = page_addr(int(gdb_obj.address))
 
     def slab_role(self) -> str:
         self.kmem_cache.slub_process_once()
@@ -498,9 +518,10 @@ class SlabSLUB(Slab):
     def short_header(self) -> str:
         return f"0x{self.address:x} ({self.slab_role()})"
 
-    def print_header(self) -> str:
-        return (f"0x{self.address:x} ({self.slab_role()} objects {self.nr_objects} "
-                f"active {self.nr_inuse} free {self.nr_free}")
+    def long_header(self) -> str:
+        return (f"0x{self.address:x} ({self.slab_role()}) objects {self.nr_objects} "
+                f"active {self.nr_inuse} free {self.nr_free} base addr "
+                f"0x{self.base_address:x}")
 
     def _do_populate_free(self) -> None:
         cpu_freelists = self.kmem_cache.cpu_freelists
@@ -707,7 +728,7 @@ class KmemCache(ABC):
         return KmemCacheSLAB(name, gdb_obj)
 
     @abstractmethod
-    def list_all(self) -> None:
+    def list_all(self, verbosity: int) -> None:
         pass
 
     @abstractmethod
@@ -761,7 +782,7 @@ class KmemCacheSLAB(KmemCache):
     def setup_alien_cache_type(cls, gdbtype: gdb.Type) -> None:
         cls.alien_cache_type_exists = True
 
-    def list_all(self) -> None:
+    def list_all(self, verbosity: int) -> None:
         print("Not yet implemented for SLAB")
 
     def check_all(self) -> None:
@@ -1078,8 +1099,8 @@ class KmemCacheSLUB(KmemCache):
         self.cpu_freelists_sizes: List[int] = [0 for x in for_each_online_cpu()]
         self.processed = False
 
-    def list_all(self) -> None:
-        flags = ProcessingFlags(print_level=3)
+    def list_all(self, verbosity: int) -> None:
+        flags = ProcessingFlags(print_level=verbosity)
         self.process_all(flags)
 
     def check_all(self) -> None:
@@ -1172,9 +1193,9 @@ class KmemCacheSLUB(KmemCache):
                 if fill_cpu_slabs:
                     self._add_percpu_slub(slab, slab_addr, f"CPU {cpu} slab")
                 if flags.print_level >= 2:
-                    print(f"CPU {cpu} slab: {slab.print_header()}")
+                    print(f"CPU {cpu} slab: {slab.long_header()}")
                 slab.warn_frozen(1, f"CPU {cpu}")
-                if flags.print_level >= 3:
+                if flags.print_level >= 4:
                     slab.print_objects()
 
             partial = cpu_slab["partial"]
@@ -1200,8 +1221,9 @@ class KmemCacheSLUB(KmemCache):
                         self._add_percpu_slub(slab, int(partial), f"CPU {cpu} partial")
                     pages = int(partial["pages"])
                     if flags.print_level >= 3:
-                        print(f"  {slab.print_header()}")
-                        slab.print_objects()
+                        print(f"  {slab.long_header()}")
+                        if flags.print_level >= 4:
+                            slab.print_objects()
                     slab.warn_frozen(1, f"CPU {cpu} partial")
                     nr_objects += slab.nr_objects
                     nr_active += slab.nr_inuse
@@ -1257,14 +1279,15 @@ class KmemCacheSLUB(KmemCache):
                 node_nr_partial += 1
                 slub = SlabSLUB.from_list_head(list_head, self)
                 if flags.print_level >= 3:
-                    print(f"Partial slab {slub.print_header()}")
-                    slub.print_objects()
+                    print(f"Partial slab {slub.long_header()}")
+                    if flags.print_level >= 4:
+                        slub.print_objects()
                 slub.warn_frozen(0, f"Node {nid} partial")
                 if not self.processed:
                     self.node_slabs[slub.address] = f"Node {nid} partial"
                 nr_free_objs += slub.nr_free
 
-                if flags.print_level >= 3:
+                if flags.print_level >= 4:
                     slub.print_objects()
             if nr_partial_expected != node_nr_partial:
                 self._pr_err(f" node {nid} partial list has {node_nr_partial} "
@@ -1276,8 +1299,9 @@ class KmemCacheSLUB(KmemCache):
                     nr_full_list_node += 1
                     slub = SlabSLUB.from_list_head(list_head, self)
                     if flags.print_level >= 3:
-                        print(f"Full slab {slub.print_header()}")
-                        slub.print_objects()
+                        print(f"Full slab {slub.long_header()}")
+                        if flags.print_level >= 4:
+                            slub.print_objects()
                     slub.warn_frozen(0, f"Node {nid} full")
                     if not self.processed:
                         self.node_slabs[slub.address] = f"Node {nid} full"
@@ -1346,14 +1370,17 @@ def kmem_cache_from_name(name: str) -> KmemCache:
 def kmem_cache_get_all() -> ValuesView[KmemCache]:
     return __kmem_caches.values()
 
+def slab_from_page(page: Page) -> Slab:
+    if KmemCache.SLUB:
+        return SlabSLUB.from_page(page)
+    return SlabSLAB.from_page(page)
+
 def slab_from_obj_addr(addr: int) -> Optional[Slab]:
     page = page_from_addr(addr).compound_head()
     if not page.is_slab():
         return None
 
-    if KmemCache.SLUB:
-        return SlabSLUB.from_page(page)
-    return SlabSLAB.from_page(page)
+    return slab_from_page(page)
 
 type_cbs = TypeCallbacks([('struct page', SlabSLAB.check_page_type),
                           ('struct slab', SlabSLAB.check_slab_type),

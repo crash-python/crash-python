@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Dict, Union, TypeVar, Iterable, Callable, Tuple
+from typing import Dict, Union, TypeVar, Iterable, Callable, Tuple,\
+                   Optional
 
 from math import log, ceil
 
@@ -260,6 +261,14 @@ def pfn_to_page(pfn: int) -> 'Page':
 def page_from_addr(addr: int) -> 'Page':
     pfn = (addr - Page.directmap_base) // Page.PAGE_SIZE
     return pfn_to_page(pfn)
+
+def safe_page_from_page_addr(addr: int) -> Optional[Page]:
+    if addr < Page.vmemmap_base:
+        return None
+    pfn = (addr - Page.vmemmap_base) // types.page_type.sizeof
+    if pfn > int(symvals.max_pfn):
+        return None
+    return Page.from_page_addr(addr)
 
 def page_from_gdb_obj(gdb_obj: gdb.Value) -> 'Page':
     pfn = (int(gdb_obj.address) - Page.vmemmap_base) // types.page_type.sizeof
