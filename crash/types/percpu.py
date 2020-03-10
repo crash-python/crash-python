@@ -362,7 +362,7 @@ class PerCPUState:
             :obj:`ValueError`: nr_cpus is <= ``0``
         """
         if nr_cpus is None:
-            nr_cpus = self._last_cpu
+            nr_cpus = self._nr_cpus
 
         if nr_cpus <= 0:
             raise ValueError("nr_cpus must be > 0")
