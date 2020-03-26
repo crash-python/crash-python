@@ -700,7 +700,8 @@ class CrashKernel:
             ptid = (LINUX_KERNEL_PID, task['pid'], 0)
 
             try:
-                thread = gdb.selected_inferior().new_thread(ptid, ltask)
+                thread = gdb.selected_inferior().new_thread(ptid)
+                thread.info = ltask
             except gdb.error:
                 print("Failed to setup task @{:#x}".format(int(task.address)))
                 continue
