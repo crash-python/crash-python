@@ -62,13 +62,15 @@ class PerCPUState:
             # This is only an optimization so we don't return NR_CPUS values
             # when there are far fewer CPUs on the system.
             cls._last_cpu = highest_possible_cpu_nr()
+            cls._nr_cpus = cls._last_cpu + 1
         except DelayedAttributeError:
             pass
 
     @classmethod
     # pylint: disable=unused-argument
     def setup_nr_cpus(cls, unused: gdb.Symbol) -> None:
-        cls._nr_cpus = array_size(symvals['__per_cpu_offset'])
+        if cls._nr_cpus == 0:
+            cls._nr_cpus = array_size(symvals['__per_cpu_offset'])
 
         if cls._last_cpu == -1:
             cls._last_cpu = cls._nr_cpus
