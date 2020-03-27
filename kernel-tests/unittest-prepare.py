@@ -46,12 +46,10 @@ try:
         f_out.close()
         f_in.close()
 
-    gdb.execute(f"file {vmlinux}")
-
     from kdump.target import Target
     target = Target(debug=False)
 
-    gdb.execute(f"target kdumpfile {vmcore}")
+    gdb.execute(f"target kdumpfile {vmlinux} {vmcore}")
 except Exception as e:
     print(str(e))
     sys.exit(1)

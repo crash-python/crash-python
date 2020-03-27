@@ -225,14 +225,12 @@ set prompt py-crash>
 set height 0
 set print pretty on
 
-file "$KERNEL"
-
 python
 from kdump.target import Target
 target = Target(debug=False)
 end
 
-target kdumpfile $VMCORE
+target kdumpfile $KERNEL $VMCORE
 
 python
 import sys

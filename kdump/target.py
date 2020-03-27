@@ -4,9 +4,11 @@
 from typing import Tuple, Callable
 
 import sys
+import shlex
 
 from kdumpfile import kdumpfile, KDUMP_KVADDR
 from kdumpfile.exceptions import AddressTranslationException, EOFException
+from kdumpfile.exceptions import NoDataException
 import addrxlat.exceptions
 
 import gdb
@@ -30,11 +32,14 @@ class Target(gdb.Target):
         self.register()
 
     # pylint: disable=unused-argument
-    def open(self, filename: str, from_tty: bool) -> None:
+    def open(self, args: str, from_tty: bool) -> None:
+        argv = shlex.split(args)
+        if len(argv) < 2:
+            raise gdb.GdbError("kdumpfile target requires kernel image and vmcore")
 
-        objfiles = gdb.objfiles()
-        if not objfiles:
-            raise gdb.GdbError("kdumpfile target requires kernel to be already loaded for symbol resolution")
+        vmlinux = argv[0]
+        filename = argv[1]
+
         try:
             self.kdump = kdumpfile(file=filename)
         except Exception as e:
@@ -51,21 +56,24 @@ class Target(gdb.Target):
         except (TypeError, ValueError):
             pass
 
-        vmlinux = gdb.objfiles()[0].filename
-
-
         # Load the kernel at the relocated address
         # Unfortunately, the percpu section has an offset of 0 and
         # ends up getting placed at the offset base.  This is easy
         # enough to handle in the percpu code.
-        result = gdb.execute("add-symbol-file {} -o {:#x}"
+        result = gdb.execute("symbol-file {} -o {:#x}"
                              .format(vmlinux, self.base_offset),
                              to_string=True)
+
         if self.debug:
             print(result)
 
-        # Clear out the old symbol cache
-        gdb.execute("file {}".format(vmlinux))
+        # We don't have an exec-file so we need to set the architecture
+        # explicitly.
+        arch = gdb.objfiles()[0].architecture.name()
+        result = gdb.execute("set architecture {}".format(arch), to_string=True)
+        if self.debug:
+            print(result)
+
 
     def close(self) -> None:
         try:
@@ -93,7 +101,8 @@ class Target(gdb.Target):
                 if self.debug:
                     self.report_error(offset, ln, e)
                 raise gdb.TargetXferEOF(str(e))
-            except addrxlat.exceptions.NoDataError as e: # pylint: disable=no-member
+            # pylint: disable=no-member
+            except (NoDataException, addrxlat.exceptions.NoDataError) as e:
                 if self.debug:
                     self.report_error(offset, ln, e)
                 raise gdb.TargetXferUnavailable(str(e))
