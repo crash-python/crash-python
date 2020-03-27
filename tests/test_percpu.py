@@ -12,7 +12,6 @@ class TestPerCPU(unittest.TestCase):
         gdb.execute("file tests/test-percpu", to_string=True)
 
         try:
-            gdb.execute("set build-id-verbose 0")
             print()
             print("--- Unsuppressable gdb output ---", end='')
 

@@ -220,7 +220,6 @@ if test -n "$DFD"; then
 fi
 
 cat << EOF >> $GDBINIT
-set build-id-verbose 0
 set python print-stack full
 set prompt py-crash> 
 set height 0

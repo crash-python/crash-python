@@ -4,7 +4,6 @@ import unittest
 import gdb
 
 gdbinit = """
-set build-id-verbose 0
 set python print-stack full
 set prompt py-crash>
 set height 0
