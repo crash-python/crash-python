@@ -214,8 +214,12 @@ for path in $SEARCH_DIRS; do
         DFD="$path"
     fi
 done
+
+if test -n "$DFD"; then
+    echo "set debug-file-directory $DFD:/usr/lib/debug" >> $GDBINIT
+fi
+
 cat << EOF >> $GDBINIT
-set debug-file-directory $DFD:/usr/lib/debug
 set build-id-verbose 0
 set python print-stack full
 set prompt py-crash> 
