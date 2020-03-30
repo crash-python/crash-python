@@ -140,7 +140,7 @@ class CrashConfigCache(CrashCache):
         buf_len = len(magic_start)
         buf = self._read_buf_bytes(location['magic']['start'], buf_len)
         if buf != magic_start:
-            raise IOError(f"Missing magic_start in kernel_config_data. Got `{buf}'")
+            raise IOError(f"Missing magic_start in kernel_config_data. Got `{buf!r}'")
 
         buf_len = len(magic_end)
         buf = self._read_buf_bytes(location['magic']['end'], buf_len)

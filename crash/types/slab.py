@@ -561,7 +561,8 @@ class KmemCache:
             check_ok = False
 
         count = errors['num_ok']
-        if count:
+        if (count and errors['first_ok'] is not None and
+            errors['last_ok'] is not None):
             print("{} slab objects were ok between {:#x} and {:#x}"
                   .format(errors['num_ok'], errors['first_ok'], errors['last_ok']))
 
