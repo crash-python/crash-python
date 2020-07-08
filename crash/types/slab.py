@@ -477,9 +477,10 @@ class KmemCache:
 
         slab_list = node[slab_list_fullname[slabtype]]
         for list_head in list_for_each(slab_list, reverse=reverse, exact_cycles=exact_cycles):
+            addr = int(list_head.address)
             try:
-                if int(list_head) in wrong_list_nodes.keys():
-                    wrong_type = wrong_list_nodes[int(list_head)]
+                if addr in wrong_list_nodes.keys():
+                    wrong_type = wrong_list_nodes[addr]
                     print(col_error("Encountered head of {} slab list while traversing {} slab list, skipping"
                                     .format(slab_list_name[wrong_type],
                                             slab_list_name[slabtype])))
@@ -489,7 +490,7 @@ class KmemCache:
             except gdb.NotAvailableError:
                 traceback.print_exc()
                 print("failed to initialize slab object from list_head {:#x}: {}"
-                      .format(int(list_head), sys.exc_info()[0]))
+                      .format(addr, sys.exc_info()[0]))
                 continue
             yield slab
 

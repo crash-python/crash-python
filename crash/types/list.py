@@ -71,7 +71,7 @@ def list_for_each(list_head: gdb.Value, include_head: bool = False,
         visited: Set[int] = set()
 
     if include_head:
-        yield list_head.address
+        yield list_head
 
     try:
         nxt = list_head[next_]
@@ -104,7 +104,7 @@ def list_for_each(list_head: gdb.Value, include_head: bool = False,
             nxt = node[next_]
             # only yield after trying to read something from the node, no
             # point in giving out bogus list elements
-            yield node.address
+            yield node
         except gdb.error as e:
             raise BufferError("Failed to read list_head {:#x} in list {:#x}: {}"
                               .format(int(node.address), int(list_head.address), str(e)))
