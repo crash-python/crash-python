@@ -25,12 +25,21 @@ import argparse
 
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandError, CommandLineError
-from crash.types.slab import kmem_cache_get_all, kmem_cache_from_name
-from crash.types.slab import slab_from_obj_addr, KmemCacheNotFound
 from crash.types.node import for_each_zone, for_each_populated_zone
 from crash.types.vmstat import VmStat
 from crash.util import get_symbol_value
 from crash.exceptions import MissingSymbolError
+from crash.cache.syscache import config
+
+if config["SLUB"]:
+    slub_kernel = True
+else:
+    slub_kernel = False
+    try:
+        from crash.types.slab import kmem_cache_get_all, kmem_cache_from_name
+        from crash.types.slab import slab_from_obj_addr, KmemCacheNotFound
+    except TypeError:
+        slub_kernel = True
 
 class KmemCommand(Command):
     """ kernel memory inspection"""
@@ -54,6 +63,11 @@ class KmemCommand(Command):
 
         if args.V:
             self.print_vmstats()
+            return
+
+        if slub_kernel:
+            # not supported for now
+            print("-s and address options not supported on non-SLAB systems")
             return
 
         if args.slabname:
