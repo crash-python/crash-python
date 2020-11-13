@@ -588,6 +588,9 @@ class LinuxTask:
     def _last_run__last_arrival(self) -> int:
         return int(self.task_struct['sched_info']['last_arrival'])
 
+    def _last_run__return_zero(self) -> int:
+        return 0
+
     @classmethod
     def _pick_last_run(cls) -> None:
         fields = types.task_struct_type.keys()
@@ -601,7 +604,8 @@ class LinuxTask:
         elif 'timestamp' in fields:
             cls._get_last_run = cls._last_run__timestamp
         else:
-            raise RuntimeError("No method to retrieve last run from task found.")
+            cls._get_last_run = cls._last_run__return_zero
+            print("No method to retrieve last run from task found. Consider enabling CONFIG_TASKSTATS and CONFIG_TASK_DELAY_ACCT to activate CONFIG_SCHED_INFO kernel config")
 
     def last_run(self) -> int:
         """

@@ -141,7 +141,7 @@ class Page:
         # TODO: handle kernels with no space for nodes in page flags
         try:
             cls.NODES_WIDTH = int(config['NODES_SHIFT'])
-        except (KeyError, DelayedAttributeError):
+        except (KeyError, TypeError, DelayedAttributeError):
             # XXX
             print("Unable to determine NODES_SHIFT from config, trying 8")
             cls.NODES_WIDTH = 8
