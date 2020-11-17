@@ -24,7 +24,7 @@ class Subsys:
     _available_mask = 0
 
     @classmethod
-    def init_subsys_ids(cls, subsys_enum: gdb.Symbol) -> None:
+    def init_subsys_ids(cls, subsys_enum: gdb.Type) -> None:
         suffix = '_cgrp_id'
         for k in subsys_enum.keys():
             if k == 'CGROUP_SUBSYS_COUNT':
