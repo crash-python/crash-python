@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Dict, Union, TypeVar, Iterable, Callable
+from typing import Dict, Union, TypeVar, Iterable, Callable, Tuple,\
+                   Optional
 
 from math import log, ceil
 
@@ -125,7 +126,7 @@ class Page:
     @classmethod
     def setup_zone_type(cls, gdbtype: gdb.Type) -> None:
         max_nr_zones = gdbtype['__MAX_NR_ZONES'].enumval
-        cls.ZONES_WIDTH = int(ceil(log(max_nr_zones)))
+        cls.ZONES_WIDTH = int(ceil(log(max_nr_zones, 2)))
 
     @classmethod
     # pylint: disable=unused-argument
@@ -177,6 +178,7 @@ class Page:
 
     def __init__(self, obj: gdb.Value, pfn: int) -> None:
         self.gdb_obj = obj
+        self.address = int(obj.address)
         self.pfn = pfn
         self.flags = int(obj["flags"])
 
@@ -213,6 +215,7 @@ class Page:
         return self.gdb_obj[Page.slab_page_name]
 
     def get_nid(self) -> int:
+        # TODO: this only works when there are no sections (i.e. sparsemem_vmemmap)
         return self.flags >> (self.BITS_PER_LONG - self.NODES_WIDTH)
 
     def get_zid(self) -> int:
@@ -248,6 +251,9 @@ symbol_cbs = SymbolCallbacks([('vmemmap_base', Page.setup_vmemmap_base),
                               ('page_offset_base',
                                Page.setup_directmap_base)])
 
+def page_addr(struct_page_addr: int) -> int:
+    pfn = (struct_page_addr - Page.vmemmap_base) // types.page_type.sizeof
+    return Page.directmap_base + (pfn * Page.PAGE_SIZE)
 
 def pfn_to_page(pfn: int) -> 'Page':
     return Page(Page.pfn_to_page(pfn), pfn)
@@ -256,16 +262,44 @@ def page_from_addr(addr: int) -> 'Page':
     pfn = (addr - Page.directmap_base) // Page.PAGE_SIZE
     return pfn_to_page(pfn)
 
+def safe_page_from_page_addr(addr: int) -> Optional[Page]:
+    if addr < Page.vmemmap_base:
+        return None
+    pfn = (addr - Page.vmemmap_base) // types.page_type.sizeof
+    if pfn > int(symvals.max_pfn):
+        return None
+    return Page.from_page_addr(addr)
+
 def page_from_gdb_obj(gdb_obj: gdb.Value) -> 'Page':
     pfn = (int(gdb_obj.address) - Page.vmemmap_base) // types.page_type.sizeof
     return Page(gdb_obj, pfn)
 
-def for_each_page() -> Iterable[gdb.Value]:
+def for_each_struct_page_pfn() -> Iterable[Tuple[gdb.Value, int]]:
     # TODO works only on x86?
     max_pfn = int(symvals.max_pfn)
     for pfn in range(max_pfn):
         try:
-            yield Page.pfn_to_page(pfn)
+            yield (Page.pfn_to_page(pfn), pfn)
         except gdb.error:
             # TODO: distinguish pfn_valid() and report failures for those?
+            pass
+
+def for_each_page() -> Iterable[Page]:
+    # TODO works only on x86?
+    max_pfn = int(symvals.max_pfn)
+    for pfn in range(max_pfn):
+        try:
+            yield pfn_to_page(pfn)
+        except gdb.error:
+            # TODO: distinguish pfn_valid() and report failures for those?
+            pass
+
+# Optimized to filter flags on gdb.Value before instantiating Page
+def for_each_page_flag(flag: int) -> Iterable[Page]:
+    for (struct_page, pfn) in for_each_struct_page_pfn():
+        try:
+            if struct_page["flags"] & flag == 0:
+                continue
+            yield Page(struct_page, pfn)
+        except gdb.error:
             pass

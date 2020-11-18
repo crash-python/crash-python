@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Union, Tuple, List, Iterator, Dict, Optional
+from typing import Union, Tuple, List, Iterator, Dict, Optional, Any
 
 import uuid
 
@@ -304,6 +304,27 @@ def find_member_variant(gdbtype: gdb.Type, variants: List[str]) -> str:
     raise TypeError("Unrecognized '{}': could not find member '{}'"
                     .format(str(gdbtype), variants[0]))
 
+def safe_find_member_variant(gdbtype: gdb.Type, variants: List[str]) -> Optional[str]:
+    """
+    Examines the given type and returns the first found member name
+
+    Over time, structure member names may change.  This routine
+    allows the caller to provide a list of potential names and returns
+    the first one found.
+
+    Args:
+        gdbtype (gdb.Type): The type of structure or union to examine
+        variants (list of str): The names of members to search
+
+    Returns:
+        str: The first member name found or
+        None: if no named member could be found
+    """
+    try:
+        return find_member_variant(gdbtype, variants)
+    except TypeError:
+        return None
+
 def safe_lookup_type(name: str,
                      block: gdb.Block = None) -> Union[gdb.Type, None]:
     """
@@ -486,3 +507,25 @@ def decode_uuid_t(value: gdb.Value) -> uuid.UUID:
         member = '__u_bits'
 
     return decode_uuid(value[member])
+
+def safe_int(value: Any) -> Optional[int]:
+    """
+    Try to parse the input (typically string) as int.
+
+    Args:
+        value (Any): the input to be parsed
+
+    Returns:
+        int: the parsed input value, or
+        None: if input could not be parsed as int
+    """
+    try:
+        # try autodetecting the base first
+        return int(value, 0)
+    except ValueError:
+        try:
+            # try hex number without 0x prefix
+            return int(value, 16)
+        except ValueError:
+            # no luck
+            return None
