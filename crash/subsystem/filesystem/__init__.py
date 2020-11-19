@@ -146,8 +146,8 @@ def get_super_block(desc: AddressSpecifier, force: bool = False) -> gdb.Value:
     if not force:
         try:
             x = int(sb['s_dev']) # pylint: disable=unused-variable
-        except gdb.NotAvailableError:
-            raise gdb.NotAvailableError(f"no superblock available at `{desc}'")
+        except gdb.NotAvailableError as e:
+            raise gdb.NotAvailableError(f"no superblock available at `{desc}'") from e
 
     return sb
 

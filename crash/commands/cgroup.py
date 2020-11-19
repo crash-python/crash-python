@@ -82,7 +82,7 @@ class CgroupCommand(Command):
                     ))
 
         except KeyError:
-            raise CommandError("No such task with pid {}".format(pid))
+            raise CommandError("No such task with pid {}".format(pid)) from None
 
     def show_cgroup_tasks(self, addr: AddressSpecifier) -> None:
         cgrp = find_cgroup(addr)

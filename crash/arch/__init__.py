@@ -45,7 +45,7 @@ class CrashArchitecture:
         try:
             target.set_fetch_registers(self._fetch_registers())
         except AttributeError:
-            raise NotImplementedError("No fetch_registers callback defined")
+            raise NotImplementedError("No fetch_registers callback defined") from None
 
     @classmethod
     def set_fetch_registers(cls,

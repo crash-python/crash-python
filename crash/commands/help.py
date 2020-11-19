@@ -46,7 +46,7 @@ class HelpCommand(Command):
                 try:
                     text = self._commands[cmd].format_help().strip()
                 except KeyError:
-                    raise CommandError("No such command `{}'".format(cmd))
+                    raise CommandError("No such command `{}'".format(cmd)) from None
                 if text is None:
                     print("No help text available.")
                 else:

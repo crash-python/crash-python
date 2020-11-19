@@ -230,7 +230,7 @@ class LogCommand(Command):
         try:
             idx = symvals.log_first_idx
         except DelayedAttributeError:
-            raise LogTypeException('not structured log')
+            raise LogTypeException('not structured log') from None
 
         if symvals.clear_seq < symvals.log_first_seq:
             # mypy seems to think the preceding clear_seq is fine but this
@@ -284,7 +284,7 @@ class LogCommand(Command):
         except LogTypeException:
             pass
         except LogInvalidOption as lio:
-            raise CommandError(str(lio))
+            raise CommandError(str(lio)) from lio
 
         print("Can't find valid log")
 

@@ -10,34 +10,34 @@ try:
     x1 = gdb.Target
     del x1
 except AttributeError as e:
-    raise IncompatibleGDBError("gdb.Target")
+    raise IncompatibleGDBError("gdb.Target") from e
 
 try:
     x2 = gdb.lookup_symbol('x', None)
     del x2
 except TypeError as e:
-    raise IncompatibleGDBError("a compatible gdb.lookup_symbol")
+    raise IncompatibleGDBError("a compatible gdb.lookup_symbol") from e
 
 try:
     x3 = gdb.MinSymbol
     del x3
 except AttributeError as e:
-    raise IncompatibleGDBError("gdb.MinSymbol")
+    raise IncompatibleGDBError("gdb.MinSymbol") from e
 
 try:
     x4 = gdb.Register
     del x4
 except AttributeError as e:
-    raise IncompatibleGDBError("gdb.Register")
+    raise IncompatibleGDBError("gdb.Register") from e
 
 try:
     x6 = gdb.Inferior.new_thread
     del x6
 except AttributeError as e:
-    raise IncompatibleGDBError("gdb.Inferior.new_thread")
+    raise IncompatibleGDBError("gdb.Inferior.new_thread") from e
 
 try:
     x7 = gdb.Objfile.architecture
     del x7
 except AttributeError as e:
-    raise IncompatibleGDBError("gdb.Objfile.architecture")
+    raise IncompatibleGDBError("gdb.Objfile.architecture") from e

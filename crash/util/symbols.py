@@ -99,13 +99,13 @@ class DelayedCollection:
         try:
             return self.get(name)
         except NameError as e:
-            raise KeyError(str(e))
+            raise KeyError(str(e)) from None
 
     def __getattr__(self, name: str) -> Any:
         try:
             return self.get(name)
         except NameError as e:
-            raise AttributeError(str(e))
+            raise AttributeError(str(e)) from None
 
 class Types(DelayedCollection):
     """

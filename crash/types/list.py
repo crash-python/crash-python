@@ -81,7 +81,7 @@ def list_for_each(list_head: gdb.Value, include_head: bool = False,
         node = nxt.dereference()
     except gdb.error as e:
         raise BufferError("Failed to read list_head {:#x}: {}"
-                          .format(int(list_head.address), str(e)))
+                          .format(int(list_head.address), str(e))) from e
 
     last_good_addr = None
     while node.address != list_head.address:
@@ -113,7 +113,7 @@ def list_for_each(list_head: gdb.Value, include_head: bool = False,
                 last_good_str = "(none)"
             raise BufferError(f"Failed to read list_head 0x{int(node.address):x} "
                               f"in list 0x{int(list_head.address):x}, last good "
-                              f"list_head {last_good_str}: {str(e)}")
+                              f"list_head {last_good_str}: {str(e)}") from e
 
         try:
             if fast is not None:

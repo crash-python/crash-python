@@ -237,7 +237,7 @@ class VTOPCommand(Command):
             try:
                 addr = int(addr, 16)
             except ValueError:
-                raise CommandLineError(f"{addr} is not a hex address")
+                raise CommandLineError(f"{addr} is not a hex address") from None
             fulladdr = addrxlat.FullAddress(addrxlat.KVADDR, addr)
             print('{:16}  {:16}'.format('VIRTUAL', 'PHYSICAL'))
             try:

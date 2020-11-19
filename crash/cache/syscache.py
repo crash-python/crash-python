@@ -45,7 +45,7 @@ class CrashUtsnameCache(CrashCache):
         try:
             return self._utsname_cache[name]
         except KeyError:
-            raise DelayedAttributeError(name)
+            raise DelayedAttributeError(name) from None
 
     @property
     def sysname(self) -> str:

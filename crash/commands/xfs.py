@@ -89,7 +89,7 @@ class XFSCommand(Command):
         try:
             sb = get_super_block(args.addr)
         except gdb.NotAvailableError as e:
-            raise CommandError(str(e))
+            raise CommandError(str(e)) from e
 
         mp = xfs_mount(sb)
 
@@ -107,7 +107,7 @@ class XFSCommand(Command):
         try:
             sb = get_super_block(args.addr)
         except gdb.NotAvailableError as e:
-            raise CommandError(str(e))
+            raise CommandError(str(e)) from e
 
         mp = xfs_mount(sb)
         ail = mp['m_ail']
@@ -177,7 +177,7 @@ class XFSCommand(Command):
         try:
             sb = get_super_block(args.addr)
         except gdb.NotAvailableError as e:
-            raise CommandError(str(e))
+            raise CommandError(str(e)) from e
         mp = xfs_mount(sb)
         ddev = mp['m_ddev_targp']
         ldev = mp['m_logdev_targp']

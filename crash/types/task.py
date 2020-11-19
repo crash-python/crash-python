@@ -517,7 +517,7 @@ class LinuxTask:
         try:
             fn = getattr(self, '_get_stack_pointer_fn')
         except AttributeError:
-            raise NotImplementedError("Architecture hasn't provided stack pointer callback")
+            raise NotImplementedError("Architecture hasn't provided stack pointer callback") from None
 
         return fn(self.task_struct['thread'])
 

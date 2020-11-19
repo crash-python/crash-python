@@ -173,9 +173,9 @@ def resolve_type(val: TypeSpecifier) -> gdb.Type:
     elif isinstance(val, str):
         try:
             gdbtype = gdb.lookup_type(val)
-        except gdb.error:
+        except gdb.error as e:
             raise MissingTypeError("Could not resolve type {}"
-                                   .format(val))
+                                   .format(val)) from e
     elif isinstance(val, gdb.Symbol):
         gdbtype = val.value().type
     else:
@@ -252,7 +252,7 @@ def offsetof_type(gdbtype: gdb.Type, member_name: str,
         return __offsetof(gdbtype, member_name, error)
     except _InvalidComponentBaseError as e:
         if error:
-            raise InvalidComponentError(gdbtype, member_name, str(e))
+            raise InvalidComponentError(gdbtype, member_name, str(e)) from e
         return None
 
 def offsetof(gdbtype: gdb.Type, member_name: str,
@@ -384,7 +384,7 @@ def get_typed_pointer(val: AddressSpecifier, gdbtype: gdb.Type) -> gdb.Value:
         try:
             val = int(val, 16)
         except TypeError as e:
-            raise TypeError("string must describe hex address: {}".format(e))
+            raise TypeError("string must describe hex address: {}".format(e)) from None
     else:
         val = int(val)
 

@@ -191,7 +191,7 @@ class KmemCommand(Command):
         try:
             vm_stat = get_symbol_value("vm_stat")
         except MissingSymbolError:
-            raise CommandError("Support for new-style vmstat is unimplemented.")
+            raise CommandError("Support for new-style vmstat is unimplemented.") from None
 
         print("  VM_STAT:")
         #TODO put this... where?

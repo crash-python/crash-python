@@ -129,7 +129,7 @@ class Target(gdb.Target):
         try:
             return self._fetch_registers(thread, register) # type: ignore
         except AttributeError:
-            raise NotImplementedError("Target did not define fetch_registers callback")
+            raise NotImplementedError("Target did not define fetch_registers callback") from None
 
     def prepare_to_store(self, thread: gdb.InferiorThread) -> None:
         pass

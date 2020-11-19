@@ -1369,13 +1369,13 @@ def kmem_cache_from_addr(addr: int) -> KmemCache:
     try:
         return __kmem_caches_by_addr[addr]
     except KeyError:
-        raise KmemCacheNotFound(f"No kmem cache found for {addr}.")
+        raise KmemCacheNotFound(f"No kmem cache found for {addr}.") from None
 
 def kmem_cache_from_name(name: str) -> KmemCache:
     try:
         return __kmem_caches[name]
     except KeyError:
-        raise KmemCacheNotFound(f"No kmem cache found for {name}.")
+        raise KmemCacheNotFound(f"No kmem cache found for {name}.") from None
 
 def kmem_cache_get_all() -> ValuesView[KmemCache]:
     return __kmem_caches.values()

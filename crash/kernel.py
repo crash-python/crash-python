@@ -175,7 +175,7 @@ class CrashKernel:
         try:
             archclass = crash.arch.get_architecture(archname)
         except RuntimeError as e:
-            raise CrashKernelError(str(e))
+            raise CrashKernelError(str(e)) from e
 
         self.arch = archclass()
 
@@ -487,7 +487,7 @@ class CrashKernel:
                                          to_string=True)
                 except gdb.error as e:
                     raise CrashKernelError("Error while loading module `{}': {}"
-                                           .format(modname, str(e)))
+                                           .format(modname, str(e))) from e
                 if debug:
                     print(result)
 
@@ -548,7 +548,7 @@ class CrashKernel:
         try:
             return self.modules_order[path][name]
         except KeyError:
-            raise _NoMatchingFileError(name)
+            raise _NoMatchingFileError(name) from None
 
     def _cache_file_tree(self, path: str, regex: Pattern[str] = None) -> None:
         if not path in self.findmap:
@@ -589,7 +589,7 @@ class CrashKernel:
             modname = self._normalize_modname(name)
             return self.findmap[path]['files'][modname]
         except KeyError:
-            raise _NoMatchingFileError(name)
+            raise _NoMatchingFileError(name) from None
 
     def _find_module_file(self, name: str, path: str) -> str:
         try:
