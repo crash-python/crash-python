@@ -3,6 +3,8 @@
 
 from typing import Dict, Union, List, Tuple
 
+import gdb
+
 from crash.util import array_size, struct_has_member
 from crash.util.symbols import Types, Symvals, MinimalSymvals
 from crash.util.symbols import MinimalSymbolCallbacks, SymbolCallbacks
@@ -11,8 +13,6 @@ from crash.types.module import for_each_module
 from crash.exceptions import DelayedAttributeError, InvalidArgumentError
 from crash.types.page import Page
 from crash.types.cpu import highest_possible_cpu_nr
-
-import gdb
 
 SymbolOrValue = Union[gdb.Value, gdb.Symbol]
 

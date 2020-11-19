@@ -3,12 +3,12 @@
 
 from typing import Iterable, Tuple
 
+import gdb
+
 from crash.util.symbols import Types
 from crash.subsystem.storage import queue_is_mq, rq_is_sync, rq_in_flight
 from crash.types.sbitmap import sbitmap_for_each_set
 from crash.exceptions import InvalidArgumentError
-
-import gdb
 
 class NoQueueError(RuntimeError):
     pass

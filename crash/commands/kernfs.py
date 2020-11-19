@@ -3,12 +3,12 @@
 
 import argparse
 
+import gdb
+
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandLineError, CommandError
 from crash.subsystem.filesystem.kernfs import find_kn, for_each_child
 from crash.subsystem.filesystem.kernfs import KERNFS_DIR, KERNFS_LINK
-
-import gdb
 
 class KernfsCommand(Command):
 

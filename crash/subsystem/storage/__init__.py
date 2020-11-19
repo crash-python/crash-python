@@ -3,14 +3,14 @@
 
 from typing import Iterable
 
+import gdb
+from gdb.types import get_basic_type
+
 from crash.util import container_of, struct_has_member
 from crash.util.symbols import Types, Symvals, SymbolCallbacks, TypeCallbacks
 from crash.types.classdev import for_each_class_device
 from crash.exceptions import DelayedAttributeError, InvalidArgumentError
 from crash.cache.syscache import kernel, jiffies_to_msec
-
-import gdb
-from gdb.types import get_basic_type
 
 types = Types(['struct gendisk', 'struct hd_struct', 'struct device',
                'struct device_type', 'struct bdev_inode',

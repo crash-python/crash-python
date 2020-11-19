@@ -3,12 +3,12 @@
 
 from typing import Dict, Iterator, List
 
+import gdb
+
 from crash.exceptions import InvalidArgumentError, CorruptedError
 from crash.types.list import list_for_each_entry
 from crash.util import AddressSpecifier, get_typed_pointer
 from crash.util.symbols import Types, Symvals, TypeCallbacks, SymbolCallbacks
-
-import gdb
 
 symvals = Symvals(['cgroup_roots', 'cgroup_subsys'])
 types = Types([

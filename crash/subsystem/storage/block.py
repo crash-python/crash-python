@@ -3,14 +3,14 @@
 
 from typing import Iterable, Tuple
 
+import gdb
+
 from crash.util.symbols import Types
 from crash.subsystem.storage import queue_is_mq
 from crash.subsystem.storage.blocksq import sq_for_each_request_in_queue, \
     sq_requests_in_flight, sq_requests_queued
 from crash.subsystem.storage.blockmq import mq_for_each_request_in_queue, \
     mq_requests_in_flight, mq_requests_queued, mq_queue_request_stats
-
-import gdb
 
 def requests_in_flight(queue: gdb.Value) -> Tuple[int, int]:
     """

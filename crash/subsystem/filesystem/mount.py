@@ -14,12 +14,12 @@ will be required and/or returned instead.
 
 from typing import Iterator, Callable, Any
 
+import gdb
+
 from crash.subsystem.filesystem import super_fstype
 from crash.types.list import list_for_each_entry
 from crash.util import container_of, decode_flags, struct_has_member
 from crash.util.symbols import Types, Symvals, TypeCallbacks, SymbolCallbacks
-
-import gdb
 
 MNT_NOSUID = 0x01
 MNT_NODEV = 0x02

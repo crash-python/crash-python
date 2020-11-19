@@ -3,6 +3,8 @@
 
 from typing import List
 
+import gdb
+
 from crash.util import array_for_each
 from crash.util.symbols import Types
 from crash.types.percpu import get_percpu_var
@@ -10,8 +12,6 @@ from crash.types.vmstat import VmStat
 from crash.types.cpu import for_each_online_cpu
 from crash.types.list import list_for_each_entry
 import crash.types.page
-
-import gdb
 
 class Zone:
 

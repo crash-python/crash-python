@@ -59,9 +59,9 @@ import glob
 import importlib
 import argparse
 
-from crash.exceptions import DelayedAttributeError, ArgumentTypeError
-
 import gdb
+
+from crash.exceptions import DelayedAttributeError, ArgumentTypeError
 
 class CommandError(RuntimeError):
     """An error occured while executing this command"""

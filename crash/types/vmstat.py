@@ -3,11 +3,11 @@
 
 from typing import List, Tuple
 
+import gdb
+
 from crash.util.symbols import Types, TypeCallbacks, Symbols
 from crash.types.percpu import get_percpu_var
 from crash.types.cpu import for_each_online_cpu
-
-import gdb
 
 class VmStat:
     types = Types(['enum zone_stat_item', 'enum vm_event_item'])

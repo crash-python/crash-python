@@ -10,11 +10,10 @@ Display character and block devices
 """
 
 import argparse
+
 from crash.commands import Command, ArgumentParser
 from crash.subsystem.storage import for_each_disk, gendisk_name
 from crash.subsystem.storage.block import queue_request_stats
-import gdb
-
 class DevCommand(Command):
     """display character and block devices"""
 

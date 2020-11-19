@@ -3,12 +3,12 @@
 
 from typing import Iterable
 
+import gdb
+
 from crash.util import get_typed_pointer, AddressSpecifier
 from crash.util.symbols import Types
 from crash.exceptions import InvalidArgumentError
 from crash.types.rbtree import rbtree_postorder_for_each_entry
-
-import gdb
 
 types = Types('struct kernfs_node')
 

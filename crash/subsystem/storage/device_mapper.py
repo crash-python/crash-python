@@ -3,12 +3,12 @@
 
 from typing import Callable, Any
 
+import gdb
+
 from crash.util import container_of
 from crash.util.symbols import Types
 from crash.subsystem.storage import block_device_name
 from crash.subsystem.storage.decoders import Decoder, decode_bio
-
-import gdb
 
 class ClonedBioReqDecoder(Decoder):
     """

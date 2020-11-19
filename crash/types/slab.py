@@ -10,6 +10,8 @@ from typing import ValuesView
 import sys
 import traceback
 
+import gdb
+
 from crash.util import container_of, find_member_variant,\
                        safe_find_member_variant
 from crash.util.symbols import Types, TypeCallbacks, SymbolCallbacks
@@ -20,8 +22,6 @@ from crash.types.page import page_from_gdb_obj, page_from_addr, Page, page_addr,
 from crash.types.node import for_each_nid
 from crash.types.cpu import for_each_online_cpu
 from crash.types.node import numa_node_id
-
-import gdb
 
 # TODO: put in utils
 def print_flags(val: int, names: Dict[str, int]) -> str:

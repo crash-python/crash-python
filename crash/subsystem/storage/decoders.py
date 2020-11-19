@@ -3,10 +3,10 @@
 
 from typing import Union, List, Dict, Iterable, Type, Any
 
+import gdb
+
 from crash.infra.lookup import SymbolCallback
 from crash.subsystem.storage import block_device_name
-
-import gdb
 
 EndIOSpecifier = Union[int, str, List[str], gdb.Value, gdb.Symbol]
 

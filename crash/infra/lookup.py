@@ -3,11 +3,11 @@
 
 from typing import Tuple, Any, Union, Optional
 
+import gdb
+
 from crash.infra.callback import ObjfileEventCallback
 from crash.infra.callback import Callback
 from crash.exceptions import DelayedAttributeError
-
-import gdb
 
 class NamedCallback(ObjfileEventCallback):
     """

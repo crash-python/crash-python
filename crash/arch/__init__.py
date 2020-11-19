@@ -3,10 +3,10 @@
 
 from typing import List, Iterator, Any, Optional, Type
 
-import crash
-
 import gdb
 from gdb.FrameDecorator import FrameDecorator
+
+import crash
 
 class FetchRegistersCallback:
     """

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+import gdb
+
 from crash.subsystem.storage import block_device_name
 from crash.subsystem.storage.decoders import Decoder
-
-import gdb
 
 class Ext3Decoder(Decoder):
     """

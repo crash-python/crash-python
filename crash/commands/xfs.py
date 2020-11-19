@@ -23,6 +23,8 @@ COMMANDS
 
 import argparse
 
+import gdb
+
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandLineError, CommandError
 from crash.types.list import list_for_each_entry, list_empty
@@ -42,8 +44,6 @@ from crash.subsystem.filesystem.xfs import xfs_mount_flags, xfs_mount_uuid
 from crash.subsystem.filesystem.xfs import xfs_mount_version
 from crash.util import decode_flags, struct_has_member
 from crash.util.symbols import Types
-
-import gdb
 
 types = Types(['struct xfs_buf *'])
 

@@ -26,10 +26,10 @@ EXAMPLES
 
 import argparse
 
+import gdb
+
 from crash.commands import Command, ArgumentParser
 import crash.cache.tasks
-
-import gdb
 
 class TaskCommand(Command):
     """select task by pid"""

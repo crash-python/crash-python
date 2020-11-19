@@ -31,14 +31,14 @@ import re
 import fnmatch
 import argparse
 
+import gdb
+
 from crash.commands import Command, ArgumentParser
 from crash.types.module import for_each_module
 from crash.util import struct_has_member
 from crash.util.symbols import Types
 from crash.types.list import list_for_each_entry
 from crash.types.percpu import get_percpu_var
-
-import gdb
 
 types = Types(['struct module_use'])
 

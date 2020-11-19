@@ -424,11 +424,11 @@ import argparse
 import fnmatch
 import re
 
+import gdb
+
 from crash.commands import Command, ArgumentParser
 from crash.commands import CommandError
 from crash.types.task import LinuxTask, TaskStateFlags as TF
-
-import gdb
 
 class TaskFormat:
     """

@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+import gdb
+
 import addrxlat
 import crash
+
 from crash.cache.syscache import utsname
 from crash.util import offsetof
 from crash.util.symbols import Types
-
-import gdb
 
 types = Types(['uint32_t *', 'uint64_t *'])
 

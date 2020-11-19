@@ -13,13 +13,13 @@ Display mounted file systems
 
 import argparse
 
+import gdb
+
 from crash.commands import Command, ArgumentParser
 from crash.subsystem.filesystem.mount import d_path, for_each_mount
 from crash.subsystem.filesystem.mount import mount_device, mount_fstype
 from crash.subsystem.filesystem.mount import mount_super, mount_flags
 from crash.subsystem.filesystem.mount import mount_root
-
-import gdb
 
 class MountCommand(Command):
     """display mounted file systems"""

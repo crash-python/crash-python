@@ -3,13 +3,13 @@
 
 from typing import Iterator, Callable, Dict, List
 
+import gdb
+
 from crash.exceptions import InvalidArgumentError, ArgumentTypeError
 from crash.exceptions import UnexpectedGDBTypeError
 from crash.util import array_size, struct_has_member
 from crash.util.symbols import Types, Symvals, SymbolCallbacks
 from crash.types.list import list_for_each_entry
-
-import gdb
 
 PF_EXITING = 0x4
 

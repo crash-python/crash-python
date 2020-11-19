@@ -9,6 +9,7 @@ import fnmatch
 import os.path
 
 from elftools.elf.elffile import ELFFile
+import gdb
 
 import crash
 import crash.arch
@@ -18,8 +19,6 @@ from crash.types.module import for_each_module, for_each_module_section
 from crash.util import get_symbol_value
 from crash.util.symbols import Types, Symvals, Symbols
 from crash.exceptions import MissingSymbolError, InvalidArgumentError
-
-import gdb
 
 class CrashKernelError(RuntimeError):
     """Raised when an error occurs while initializing the debugging session"""

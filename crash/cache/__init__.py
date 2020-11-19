@@ -5,9 +5,9 @@ import os
 import glob
 import importlib
 
-from crash.infra import autoload_submodules
-
 import gdb
+
+from crash.infra import autoload_submodules
 
 class CrashCache:
     def refresh(self) -> None:

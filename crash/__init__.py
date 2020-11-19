@@ -2,6 +2,7 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
+
 import kdump.target
 
 def current_target() -> kdump.target.Target:

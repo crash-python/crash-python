@@ -3,13 +3,13 @@
 
 from typing import Iterable, Tuple
 
+import gdb
+
 from crash.util import struct_has_member
 from crash.util.symbols import Types
 from crash.types.list import list_for_each_entry
 from crash.subsystem.storage import queue_is_mq
 from crash.exceptions import InvalidArgumentError
-
-import gdb
 
 class NoQueueError(RuntimeError):
     pass

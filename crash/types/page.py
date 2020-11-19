@@ -6,14 +6,14 @@ from typing import Dict, Union, TypeVar, Iterable, Callable, Tuple,\
 
 from math import log, ceil
 
+import gdb
+
 import crash
 from crash.util import find_member_variant
 from crash.util.symbols import Types, Symvals, TypeCallbacks
 from crash.util.symbols import SymbolCallbacks, MinimalSymbolCallbacks
 from crash.cache.syscache import config
 from crash.exceptions import DelayedAttributeError
-
-import gdb
 
 #TODO debuginfo won't tell us, depends on version?
 PAGE_MAPPING_ANON = 1

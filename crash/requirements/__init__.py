@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from crash.exceptions import IncompatibleGDBError
-
 # Perform some sanity checks to ensure that we can actually work
 import gdb
+
+from crash.exceptions import IncompatibleGDBError
 
 try:
     x1 = gdb.Target

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+import gdb
+
 from crash.arch import CrashArchitecture, KernelFrameFilter, register_arch
 from crash.arch import FetchRegistersCallback
 from crash.util.symbols import Types, MinimalSymvals
 from crash.util.symbols import TypeCallbacks, MinimalSymbolCallbacks
-
-import gdb
 
 types = Types(['struct inactive_task_frame *', 'struct thread_info *',
                'unsigned long *'])

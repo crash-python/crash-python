@@ -6,11 +6,11 @@ The crash.types.classdev module offers helpers to work with class devices.
 
 from typing import Iterable
 
+import gdb
+
 from crash.types.klist import klist_for_each
 from crash.util import struct_has_member, container_of
 from crash.util.symbols import Types, TypeCallbacks
-
-import gdb
 
 types = Types(['struct device', 'struct device_private'])
 
