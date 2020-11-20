@@ -78,4 +78,3 @@ def sq_requests_queued(queue: gdb.Value) -> Tuple[int, int]:
         rqlist = queue['root_rl']
     return (int(rqlist['count'][0]),
             int(rqlist['count'][1]))
-

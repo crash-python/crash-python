@@ -26,7 +26,7 @@ def requests_in_flight(queue: gdb.Value) -> Tuple[int, int]:
         of sync requests.
     """
     if queue_is_mq(queue):
-       return mq_requests_in_flight(queue)
+        return mq_requests_in_flight(queue)
     return sq_requests_in_flight(queue)
 
 def requests_queued(queue: gdb.Value) -> Tuple[int, int]:
@@ -43,7 +43,7 @@ def requests_queued(queue: gdb.Value) -> Tuple[int, int]:
         the number of sync requests.
     """
     if queue_is_mq(queue):
-       return mq_requests_queued(queue)
+        return mq_requests_queued(queue)
     return sq_requests_queued(queue)
 
 def for_each_request_in_queue(queue: gdb.Value) -> Iterable[gdb.Value]:

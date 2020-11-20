@@ -38,4 +38,3 @@ def sbitmap_for_each_set(sbitmap: gdb.Value) -> Iterable[int]:
         for j in range(0, bits):
             if word & (1 << j):
                 yield offset + j
-
