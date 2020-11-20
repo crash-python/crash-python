@@ -68,7 +68,7 @@ def mq_for_each_request_in_queue(queue: gdb.Value, reserved: bool = True) \
         tags = hctx['tags']
         if int(hctx['nr_ctx']) == 0 or int(tags) == 0:
             continue
-        if reserved == True and int(tags['nr_reserved_tags']) > 0:
+        if reserved is True and int(tags['nr_reserved_tags']) > 0:
             for tag in sbitmap_for_each_set(tags['breserved_tags']['sb']):
                 rq = tags['rqs'][tag]
                 if int(rq) != 0 and rq['q'] == queue:

@@ -34,9 +34,9 @@ class CgroupCommand(Command):
         super().__init__(name, parser)
 
     def execute(self, args: argparse.Namespace) -> None:
-        if args.t != False:
+        if args.t is not False:
             self.show_task(args.t)
-        elif args.g != False:
+        elif args.g is not False:
             self.show_cgroup_tasks(args.g)
         elif args.s:
             raise NotImplementedError("NI")
