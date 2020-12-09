@@ -192,19 +192,25 @@ if ! $GDB -nx -batch -x $GDBINIT -x $TEST_GDBINIT; then
 fi
 
 ZKERNEL="$1"
-KERNEL="${ZKERNEL%.gz}"
 
 if ! test -e "$ZKERNEL"; then
     echo "$ZKERNEL: No such file or directory"
     exit 1
 fi
 
-if test "$KERNEL" != "$ZKERNEL"; then
-    KERNEL="$TMPDIR/$(basename "$KERNEL")"
-    zcat $ZKERNEL > $KERNEL
-else
-    KERNEL="$ZKERNEL"
-fi
+case "$ZKERNEL" in
+    *.gz)
+        KERNEL="$TMPDIR/$(basename "${ZKERNEL%.gz}")"
+        zcat $ZKERNEL > $KERNEL
+        ;;
+    *.xz)
+        KERNEL="$TMPDIR/$(basename "${ZKERNEL%.xz}")"
+        xzcat $ZKERNEL > $KERNEL
+        ;;
+    *)
+        KERNEL=$ZKERNEL
+        ;;
+esac
 
 VMCORE=$2
 for path in $SEARCH_DIRS; do
