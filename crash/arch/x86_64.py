@@ -2,6 +2,9 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import gdb
+import re
+
+from typing import Optional
 
 from crash.arch import CrashArchitecture, KernelFrameFilter, register_arch
 from crash.arch import FetchRegistersCallback
@@ -35,13 +38,16 @@ class _FRC_inactive_task_frame(_FetchRegistersBase):
         task = thread.info.task_struct
 
         rsp = task['thread']['sp'].cast(types.unsigned_long_p_type)
+
+        rsp = thread.arch.adjust_scheduled_frame_offset(rsp)
+
         thread.registers['rsp'].value = rsp
 
         frame = rsp.cast(types.inactive_task_frame_p_type).dereference()
 
         # Only write rip when requested; It resets the frame cache
         if register in (16, -1):
-            thread.registers['rip'].value = frame['ret_addr']
+            thread.registers['rip'].value = thread.arch.get_scheduled_rip()
             if register == 16:
                 return
 
@@ -100,6 +106,8 @@ class x86_64Architecture(CrashArchitecture):
     ident = "i386:x86-64"
     aliases = ["x86_64"]
 
+    _frame_offset : Optional[int] = None
+
     def __init__(self) -> None:
         super(x86_64Architecture, self).__init__()
 
@@ -110,6 +118,49 @@ class x86_64Architecture(CrashArchitecture):
         task = thread.info.task_struct
         thread_info = task['stack'].cast(types.thread_info_p_type)
         thread.info.set_thread_info(thread_info)
+
+    # We don't have CFI for __switch_to_asm but we do know what it looks like.
+    # We push 6 registers and then swap rsp, so we can just rewind back
+    # to __switch_to_asm getting called and then populate the registers that
+    # were saved on the stack.
+    def setup_scheduled_frame_offset(self, task: gdb.Value) -> None:
+        if self._frame_offset:
+            return
+
+        top = int(task['stack']) + 16*1024
+        callq = re.compile("callq.*<(\w+)>")
+
+        orig_rsp = rsp = task['thread']['sp'].cast(types.unsigned_long_p_type)
+
+        count = 0
+        while int(rsp) < top:
+            val = int(rsp.dereference()) - 5
+            if val > self.filter.address:
+                try:
+                    insn = gdb.execute(f"x/i {val:#x}", to_string=True)
+                except Exception as e:
+                    rsp += 1
+                    count += 1
+                    continue
+
+                m = callq.search(insn)
+                if m and m.group(1) == "__switch_to_asm":
+                    self._frame_offset = rsp - orig_rsp  + 1
+                    self._scheduled_rip = val
+                    return
+
+            rsp += 1
+            count += 1
+
+        raise RuntimeError("Cannot locate stack frame offset for __schedule")
+
+    def adjust_scheduled_frame_offset(self, rsp: gdb.Value) -> gdb.Value:
+        if self._frame_offset:
+            return rsp + self._frame_offset
+        return rsp
+
+    def get_scheduled_rip(self) -> None:
+        return self._scheduled_rip
 
     @classmethod
     # pylint: disable=unused-argument

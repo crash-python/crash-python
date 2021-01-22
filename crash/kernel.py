@@ -694,13 +694,15 @@ class CrashKernel:
                 cpu = rqscurrs[int(task.address)]
                 regs = self.vmcore.attr.cpu[cpu].reg
                 ltask.set_active(cpu, regs)
-
+            else:
+                self.arch.setup_scheduled_frame_offset(task)
 
             ptid = (LINUX_KERNEL_PID, task['pid'], 0)
 
             try:
                 thread = gdb.selected_inferior().new_thread(ptid)
                 thread.info = ltask
+                thread.arch = self.arch
             except gdb.error:
                 print("Failed to setup task @{:#x}".format(int(task.address)))
                 continue

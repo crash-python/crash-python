@@ -67,6 +67,9 @@ class CrashArchitecture:
     def get_stack_pointer(self, thread_struct: gdb.Value) -> int:
         raise NotImplementedError("get_stack_pointer is not implemented")
 
+    def setup_scheduled_frame_offset(self, task: gdb.Value) -> None:
+        pass
+
 # This keeps stack traces from continuing into userspace and causing problems.
 class KernelFrameFilter:
     def __init__(self, address: int) -> None:
