@@ -47,7 +47,10 @@ def for_each_module_section(module: gdb.Value) -> Iterable[Tuple[str, int]]:
 
     for sec in range(0, attrs['nsections']):
         attr = attrs['attrs'][sec]
-        name = attr['name'].string()
+        if 'battr' in attr.type:
+            name = attr['battr']['attr']['name'].string()
+        elif 'name' in attr.type:
+            name = attr['name'].string()
         if name == '.text':
             continue
 
