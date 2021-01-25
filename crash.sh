@@ -149,13 +149,14 @@ GDBINIT="$TMPDIR/gdbinit"
 
 set -e
 
-GDB=
-for gdb in crash-python-gdb gdb; do
-    if $gdb -v > /dev/null 2> /dev/null; then
-        GDB=$gdb
-        break
-    fi
-done
+if test -z "$GDB"; then
+    for gdb in crash-python-gdb gdb; do
+        if $gdb -v > /dev/null 2> /dev/null; then
+            GDB=$gdb
+            break
+        fi
+    done
+fi
 
 if [ -z "$GDB" ]; then
     echo "ERROR: gdb is not available." >&2
