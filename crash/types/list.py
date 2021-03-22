@@ -100,7 +100,7 @@ def list_for_each(list_head: gdb.Value, include_head: bool = False,
                 # broken prev link means there might be a cycle that
                 # does not include the initial head, so start detecting
                 # cycles
-                if not exact_cycles and fast is not None:
+                if not exact_cycles and fast is None:
                     fast = node
             nxt = node[next_]
             # only yield after trying to read something from the node, no
@@ -122,7 +122,7 @@ def list_for_each(list_head: gdb.Value, include_head: bool = False,
                 # algorithm)
                 for i in range(2): # pylint: disable=unused-variable
                     fast = fast[next_].dereference()
-                    if node.address == fast.address:
+                    if int(node.address) == int(fast.address):
                         raise ListCycleError("Cycle in list detected.")
         except gdb.error:
             # we hit an unreadable element, so just stop detecting cycles
