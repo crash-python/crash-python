@@ -148,6 +148,7 @@ import gdb
 from crash.commands import Command, ArgumentParser, CommandError
 from crash.exceptions import DelayedAttributeError
 from crash.subsystem.printk import LogTypeException, LogInvalidOption
+from crash.subsystem.printk.lockless_ringbuffer import lockless_rb_show
 from crash.subsystem.printk.structured_ringbuffer import structured_rb_show
 from crash.subsystem.printk.plain_ringbuffer import plain_rb_show
 
@@ -164,6 +165,12 @@ class LogCommand(Command):
         Command.__init__(self, name, parser)
 
     def execute(self, args: argparse.Namespace) -> None:
+        try:
+            lockless_rb_show(args)
+            return
+        except LogTypeException:
+            pass
+
         try:
             structured_rb_show(args)
             return
