@@ -187,8 +187,7 @@ class LogCommand(Command):
 
         return '\n'.join(lines)
 
-    def log_from_idx(self, logbuf: gdb.Value, idx: int,
-                     dict_needed: bool = False) -> Dict:
+    def log_from_idx(self, logbuf: gdb.Value, idx: int) -> Dict:
         msg = (logbuf + idx).cast(types.printk_log_p_type)
 
         try:
@@ -198,6 +197,13 @@ class LogCommand(Command):
         except UnicodeDecodeError as e:
             print(e)
 
+        textlen = int(msg['text_len'])
+        dictlen = int(msg['dict_len'])
+
+        dictval = (msg.cast(types.char_p_type) +
+                   types.printk_log_p_type.target().sizeof + textlen)
+        dict = dictval.string(length=dictlen)
+
         msglen = int(msg['len'])
 
         # A zero-length message means we wrap back to the beginning
@@ -206,27 +212,17 @@ class LogCommand(Command):
         else:
             nextidx = idx + msglen
 
-        textlen = int(msg['text_len'])
-
         msgdict = {
             'text' : text[0:textlen],
             'timestamp' : int(msg['ts_nsec']),
             'level' : int(msg['level']),
             'next' : nextidx,
-            'dict' : [],
+            'dict' : dict[0:dictlen],
         }
 
-        if dict_needed:
-            dict_len = int(msg['dict_len'])
-            d = (msg.cast(types.char_p_type) +
-                 types.printk_log_p_type.target().sizeof + textlen)
-            if dict_len > 0:
-                s = d.string('ascii', 'backslashreplace', dict_len)
-                msgdict['dict'].append(s)
         return msgdict
 
-    def get_log_msgs(self,
-                     dict_needed: bool = False) -> Iterable[Dict[str, Any]]:
+    def get_log_msgs(self) -> Iterable[Dict[str, Any]]:
         try:
             idx = symvals.log_first_idx
         except DelayedAttributeError:
@@ -241,13 +237,13 @@ class LogCommand(Command):
         idx = symvals.log_first_idx
 
         while seq < symvals.log_next_seq:
-            msg = self.log_from_idx(symvals.log_buf, idx, dict_needed)
+            msg = self.log_from_idx(symvals.log_buf, idx)
             seq += 1
             idx = msg['next']
             yield msg
 
     def handle_structured_log(self, args: argparse.Namespace) -> None:
-        for msg in self.get_log_msgs(args.d):
+        for msg in self.get_log_msgs():
             timestamp = ''
             if not args.t:
                 usecs = int(msg['timestamp'])
@@ -261,8 +257,9 @@ class LogCommand(Command):
             for line in msg['text'].split('\n'):
                 print('{}{}{}'.format(level, timestamp, line))
 
-            for d in msg['dict']:
-                print(d)
+            if (args.d and msg['dict']):
+                for dict in msg['dict'].split('\0'):
+                    print('  {}'.format(dict))
 
     def handle_logbuf(self, args: argparse.Namespace) -> None:
         if symvals.log_buf_len and symvals.log_buf:
