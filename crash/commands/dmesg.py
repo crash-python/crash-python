@@ -141,24 +141,16 @@ Display the same message text as above, with appended dictionary data:
 
 from typing import Dict, Iterable, Any
 
-import re
 import argparse
 
 import gdb
 
 from crash.commands import Command, ArgumentParser, CommandError
 from crash.exceptions import DelayedAttributeError
-from crash.util.symbols import Types, Symvals
-
-types = Types(['struct printk_log *', 'char *'])
-symvals = Symvals(['log_buf', 'log_buf_len', 'log_first_idx', 'log_next_idx',
-                   'clear_seq', 'log_first_seq', 'log_next_seq'])
-
-class LogTypeException(Exception):
-    pass
-
-class LogInvalidOption(Exception):
-    pass
+from crash.subsystem.printk import LogTypeException, LogInvalidOption
+from crash.subsystem.printk.lockless_ringbuffer import lockless_rb_show
+from crash.subsystem.printk.structured_ringbuffer import structured_rb_show
+from crash.subsystem.printk.plain_ringbuffer import plain_rb_show
 
 class LogCommand(Command):
     """dump system message buffer"""
@@ -172,114 +164,21 @@ class LogCommand(Command):
 
         Command.__init__(self, name, parser)
 
-    @classmethod
-    def filter_unstructured_log(cls, log: str, args: argparse.Namespace) -> str:
-        lines = log.split('\n')
-        if not args.m:
-            newlog = []
-            for line in lines:
-                if not args.m:
-                    line = re.sub(r'^<[0-9]+>', '', line)
-                if args.t:
-                    line = re.sub(r'^\[[0-9\. ]+\] ', '', line)
-                newlog.append(line)
-            lines = newlog
-
-        return '\n'.join(lines)
-
-    def log_from_idx(self, logbuf: gdb.Value, idx: int,
-                     dict_needed: bool = False) -> Dict:
-        msg = (logbuf + idx).cast(types.printk_log_p_type)
-
-        try:
-            textval = (msg.cast(types.char_p_type) +
-                       types.printk_log_p_type.target().sizeof)
-            text = textval.string(length=int(msg['text_len']))
-        except UnicodeDecodeError as e:
-            print(e)
-
-        msglen = int(msg['len'])
-
-        # A zero-length message means we wrap back to the beginning
-        if msglen == 0:
-            nextidx = 0
-        else:
-            nextidx = idx + msglen
-
-        textlen = int(msg['text_len'])
-
-        msgdict = {
-            'text' : text[0:textlen],
-            'timestamp' : int(msg['ts_nsec']),
-            'level' : int(msg['level']),
-            'next' : nextidx,
-            'dict' : [],
-        }
-
-        if dict_needed:
-            dict_len = int(msg['dict_len'])
-            d = (msg.cast(types.char_p_type) +
-                 types.printk_log_p_type.target().sizeof + textlen)
-            if dict_len > 0:
-                s = d.string('ascii', 'backslashreplace', dict_len)
-                msgdict['dict'].append(s)
-        return msgdict
-
-    def get_log_msgs(self,
-                     dict_needed: bool = False) -> Iterable[Dict[str, Any]]:
-        try:
-            idx = symvals.log_first_idx
-        except DelayedAttributeError:
-            raise LogTypeException('not structured log') from None
-
-        if symvals.clear_seq < symvals.log_first_seq:
-            # mypy seems to think the preceding clear_seq is fine but this
-            # one isn't.  Derp.
-            symvals.clear_seq = symvals.log_first_seq # type: ignore
-
-        seq = symvals.clear_seq
-        idx = symvals.log_first_idx
-
-        while seq < symvals.log_next_seq:
-            msg = self.log_from_idx(symvals.log_buf, idx, dict_needed)
-            seq += 1
-            idx = msg['next']
-            yield msg
-
-    def handle_structured_log(self, args: argparse.Namespace) -> None:
-        for msg in self.get_log_msgs(args.d):
-            timestamp = ''
-            if not args.t:
-                usecs = int(msg['timestamp'])
-                timestamp = ('[{:5d}.{:06d}] '
-                             .format(usecs // 1000000000,
-                                     (usecs % 1000000000) // 1000))
-            level = ''
-            if args.m:
-                level = '<{:d}>'.format(msg['level'])
-
-            for line in msg['text'].split('\n'):
-                print('{}{}{}'.format(level, timestamp, line))
-
-            for d in msg['dict']:
-                print(d)
-
-    def handle_logbuf(self, args: argparse.Namespace) -> None:
-        if symvals.log_buf_len and symvals.log_buf:
-            if args.d:
-                raise LogInvalidOption("Unstructured logs don't offer key/value pair support")
-
-            print(self.filter_unstructured_log(symvals.log_buf.string('utf-8', 'replace'), args))
-
     def execute(self, args: argparse.Namespace) -> None:
         try:
-            self.handle_structured_log(args)
+            lockless_rb_show(args)
             return
         except LogTypeException:
             pass
 
         try:
-            self.handle_logbuf(args)
+            structured_rb_show(args)
+            return
+        except LogTypeException:
+            pass
+
+        try:
+            plain_rb_show(args)
             return
         except LogTypeException:
             pass
