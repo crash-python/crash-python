@@ -163,6 +163,8 @@ if [ -z "$GDB" ]; then
     exit 1
 fi
 
+:> $GDBINIT
+
 # If we're using crash.sh from the git repo, use the modules from the git repo
 DIR="$(dirname $0)"
 if [ -e "$DIR/setup.py" ]; then
@@ -183,7 +185,6 @@ if [ -e "$DIR/setup.py" ]; then
     done
 else
     export CRASH_PYTHON_HELP="/usr/share/crash-python/help"
-    :> $GDBINIT
     TEST_GDBINIT="/usr/share/crash-python/test-gdb-compatibility.gdbinit"
 fi
 
