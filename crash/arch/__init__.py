@@ -4,6 +4,8 @@
 from typing import List, Iterator, Any, Optional, Type
 
 import gdb
+from gdb import RegisterNameType, RegisterCollectionType
+from gdb import FetchRegistersCallbackType
 from gdb.FrameDecorator import FrameDecorator
 
 import crash
@@ -15,41 +17,42 @@ class FetchRegistersCallback:
     The architecture code must implement the :meth:`fetch_active` and
     :meth:`fetch_scheduled` methods.
     """
-    def fetch_active(self, thread: gdb.InferiorThread, register: int) -> None:
+    def fetch_active(self, thread: gdb.InferiorThread,
+                     register: RegisterNameType) -> RegisterCollectionType:
         raise NotImplementedError("Target has no fetch_active callback")
 
     def fetch_scheduled(self, thread: gdb.InferiorThread,
-                        register: int) -> None:
+                        register: RegisterNameType) -> RegisterCollectionType:
         raise NotImplementedError("Target has no fetch_scheduled callback")
 
     def __call__(self, thread: gdb.InferiorThread,
-                 register: gdb.Register) -> None:
-        if register is None:
-            regnum = -1
-        else:
-            regnum = register.regnum
+                 register: RegisterNameType) -> RegisterCollectionType:
 
         if thread.info.active:
-            return self.fetch_active(thread, regnum)
+            return self.fetch_active(thread, register)
 
-        return self.fetch_scheduled(thread, regnum)
+        return self.fetch_scheduled(thread, register)
 
 class CrashArchitecture:
     ident = "base-class"
     aliases: List[str] = list()
 
-    _fetch_registers: Type[FetchRegistersCallback]
+    _fetch_registers: FetchRegistersCallbackType
 
     def __init__(self) -> None:
         target = gdb.current_target()
+        if target is None:
+            raise ValueError("No target loaded") from None
+        if not isinstance(target, gdb.LinuxKernelTarget):
+            raise ValueError("Incorrect target loaded") from None
+
         try:
             target.set_fetch_registers(self._fetch_registers())
         except AttributeError:
             raise NotImplementedError("No fetch_registers callback defined") from None
 
     @classmethod
-    def set_fetch_registers(cls,
-                            callback: Type[FetchRegistersCallback]) -> None:
+    def set_fetch_registers(cls, callback: FetchRegistersCallbackType) -> None:
         """
         Set a fetch_regisers callback for the Target to use.
 

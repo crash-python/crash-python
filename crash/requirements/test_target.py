@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
-from typing import Tuple
+from typing import Optional, Tuple
 
 import gdb
 
 PTID = Tuple[int, int, int]
 
-class TestTarget(gdb.Target):
+class TestTarget(gdb.LinuxKernelTarget):
     def __init__(self) -> None:
         super().__init__()
 
@@ -21,13 +21,9 @@ class TestTarget(gdb.Target):
         pass
 
     def fetch_registers(self, thread: gdb.InferiorThread,
-                        register: gdb.Register) -> None:
+                        register: Optional[gdb.RegisterDescriptor]) -> Optional[gdb.RegisterCollectionType]:
         pass
 
     # pylint: disable=unused-argument
     def thread_alive(self, ptid: PTID) -> bool:
         return True
-
-    def setup_task(self) -> None:
-        ptid = (1, 1, 0)
-        gdb.selected_inferior().new_thread(ptid, self)

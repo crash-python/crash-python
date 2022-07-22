@@ -25,19 +25,13 @@ except AttributeError as e:
     raise IncompatibleGDBError("gdb.MinSymbol") from e
 
 try:
-    x4 = gdb.Register
+    x4 = gdb.RegisterDescriptor
     del x4
 except AttributeError as e:
     raise IncompatibleGDBError("gdb.Register") from e
 
 try:
-    x6 = gdb.Inferior.new_thread
-    del x6
+    x5 = gdb.LinuxKernelTarget
+    del x5
 except AttributeError as e:
-    raise IncompatibleGDBError("gdb.Inferior.new_thread") from e
-
-try:
-    x7 = gdb.Objfile.architecture
-    del x7
-except AttributeError as e:
-    raise IncompatibleGDBError("gdb.Objfile.architecture") from e
+    raise IncompatibleGDBError("gdb.LinuxKernelTarget") from e

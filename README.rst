@@ -91,8 +91,8 @@ It requires the following components to work successfully:
 
 - `Python <https://python.org/>`_ 3.6 or newer
 - `pyelftools <https://github.com/eliben/pyelftools>`_
-- `libkdumpfile <https://github.com/ptesarik/libkdumpfile>`_
-- `GDB <https://github.com/crash-python/gdb-python/tree/gdb-9.1-target>`_ with python extensions and built with Python 3.6 or newer.
+- `libkdumpfile <https://github.com/jeffmahoney/libkdumpfile/tree/kdumpfile_object_from_native>`_ with the kdumpfile_object_from_native API
+- `GDB <https://github.com/crash-python/gdb-python/tree/gdb-12.1-target>`_ with python extensions and built with Python 3.6 or newer.
 
 If you are using a SUSE or openSUSE release, pre-built packages are available on the `Open Build Service <https://download.opensuse.org/repositories/home:/jeff_mahoney:/crash-python/>`_.
 

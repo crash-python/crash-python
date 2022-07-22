@@ -233,12 +233,15 @@ set prompt py-crash>
 set height 0
 set print pretty on
 
+file $KERNEL
+core $VMCORE
+
 python
 from kdump.target import Target
 target = Target(debug=False)
 end
 
-target kdumpfile $KERNEL $VMCORE
+target kdumpfile
 
 python
 import sys
@@ -290,8 +293,6 @@ except RuntimeError as e:
     traceback.print_exc()
     sys.exit(1)
 
-target.unregister()
-del target
 EOF
 
 # This is how we debug gdb problems when running crash

@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
+from typing import Dict, Optional, Union
+
 class Target(object):
-    class kdump(object):
-        pass
+    pass
+
+class LinuxKernelTarget(Target):
+    class kdumpfile(object):
         def get_addrxlat_ctx():
             pass
         class get_addrxlat_sys():
@@ -75,6 +79,14 @@ class NewObjFileEvent(object):
 
 class Frame(object):
     pass
+
+class RegisterDescriptor:
+    pass
+
+RegisterNameType = Union[RegisterDescriptor, str]
+RegisterValueType = Optional[Union[int, bytearray]]
+RegisterCollectionType = Dict[RegisterNameType, RegisterValueType]
+
 
 SYMBOL_VAR_DOMAIN = 0
 COMMAND_USER = 0
