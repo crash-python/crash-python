@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Pattern, Union, List, Dict, Any, Optional
+from typing import Pattern, Union, List, Dict, Any, Optional, BinaryIO
 
 import sys
 import re
 import fnmatch
 import os.path
+import tempfile
 
 from elftools.elf.elffile import ELFFile
 import gdb
 
-import kdump.target
+# This is from the C extension and published via __all__; pylint bug?
+# pylint: disable=no-name-in-module
+from zstd import decompress as zstd_decompress
 
+import kdump.target
 import crash
 import crash.arch
 import crash.arch.x86_64
@@ -382,20 +386,19 @@ class CrashKernel:
 
         return self._get_minsymbol_as_string('vermagic')
 
-    def extract_modinfo_from_module(self, modpath: str) -> Dict[str, str]:
+    def extract_modinfo_from_module(self, modfile: BinaryIO) -> Dict[str, str]:
         """
         Returns the modinfo from a module file
 
         Args:
-            modpath: The path to the module file.
+            modpath: An open module file
 
         Returns:
             dict: A dictionary containing the names and values of the modinfo
             variables.
         """
-        f = open(modpath, 'rb')
 
-        elf = ELFFile(f)
+        elf = ELFFile(modfile)
         modinfo = elf.get_section_by_name('.modinfo')
 
         d = {}
@@ -406,7 +409,6 @@ class CrashKernel:
                 d[val[0:eq]] = val[eq + 1:]
 
         del elf
-        f.close()
         return d
 
     def _get_module_sections(self, module: gdb.Value) -> str:
@@ -415,8 +417,9 @@ class CrashKernel:
             out.append("-s {} {:#x}".format(name, addr))
         return " ".join(out)
 
-    def _check_module_version(self, modpath: str, module: gdb.Value) -> None:
-        modinfo = self.extract_modinfo_from_module(modpath)
+    def _check_module_version(self, modfile: BinaryIO, module: gdb.Value) -> None:
+        modinfo = self.extract_modinfo_from_module(modfile)
+        modpath = modfile.name
 
         vermagic = modinfo.get('vermagic', None)
 
@@ -432,6 +435,56 @@ class CrashKernel:
         if mi_srcversion != mod_srcversion:
             raise _ModSourceVersionMismatchError(modpath, mi_srcversion,
                                                  mod_srcversion)
+
+    def _try_load_module(self, modname: str, module: gdb.Value, modfile: BinaryIO,
+                         verbose: bool = False, debug: bool = False) -> gdb.Objfile:
+        self._check_module_version(modfile, module)
+
+        modpath = modfile.name
+
+        if 'module_core' in module.type:
+            addr = int(module['module_core'])
+        else:
+            addr = int(module['core_layout']['base'])
+
+        if debug:
+            print(f"Loading {modpath} at {addr:#x} from {modname}")
+        elif verbose:
+            print(f"Loading {modname} at {addr:#x}")
+        else:
+            print(".", end='')
+            sys.stdout.flush()
+
+        sections = self._get_module_sections(module)
+
+        percpu = int(module['percpu'])
+        if percpu > 0:
+            sections += " -s .data..percpu {:#x}".format(percpu)
+
+        try:
+            result = gdb.execute("add-symbol-file {} {:#x} {}"
+                                 .format(modpath, addr, sections),
+                                 to_string=True)
+        except gdb.error as e:
+            raise CrashKernelError("Error while loading module `{}': {}"
+                                   .format(modname, str(e))) from e
+        if debug:
+            print(result)
+
+        return gdb.lookup_objfile(modpath)
+
+    def try_load_module(self, modname: str, module: gdb.Value, modpath: str,
+                        tmpdirname: str,
+                        verbose: bool = False, debug: bool = False) -> gdb.Objfile:
+        if modpath.endswith(".zst"):
+            with open(modpath, 'rb') as cmodfile:
+                with open(os.path.join(tmpdirname, modname + ".ko"), 'w+b') as modfile:
+                    modfile.write(zstd_decompress(cmodfile.read()))
+                    return self._try_load_module(modname, module, modfile, debug)
+        else:
+            with open(modpath, 'rb') as modfile:
+                return self._try_load_module(modname, module, modfile, debug)
+
 
     def load_modules(self, verbose: bool = False, debug: bool = False) -> None:
         """
@@ -450,81 +503,57 @@ class CrashKernel:
                 This does not include a failure to locate a module or
                 its debuginfo.
         """
-        print("Loading modules for {}".format(utsname.release), end='')
+        count = 0
+        for module in for_each_module():
+            count += 1
+        print(f"Loading {count} modules for {utsname.release}", end='')
         if verbose:
             print(":", flush=True)
+        else:
+            print(".", end='', flush=True)
         failed = 0
         loaded = 0
+
         pause_objfile_callbacks()
-        for module in for_each_module():
-            modname = "{}".format(module['name'].string())
-            modfname = "{}.ko".format(modname)
-            found = False
-            for path in self.module_path:
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            for module in for_each_module():
+                modname = module['name'].string()
+                modfname = f"{modname}.ko"
+                objfile = None
+                for path in self.module_path:
 
-                try:
-                    modpath = self._find_module_file(modfname, path)
-                except _NoMatchingFileError:
-                    continue
+                    try:
+                        modpath = self._find_module_file(modfname, path)
+                    except _NoMatchingFileError:
+                        continue
 
-                try:
-                    self._check_module_version(modpath, module)
-                except _ModinfoMismatchError as e:
-                    if verbose:
-                        print(str(e))
-                    continue
+                    try:
+                        objfile = self.try_load_module(modname, module, modpath,
+                                                       tmpdirname, verbose, debug)
+                    except (_ModinfoMismatchError, OSError) as e:
+                        if verbose:
+                            print(f"Module open failed: {str(e)}")
+                        continue
 
-                found = True
+                    if not objfile.has_symbols():
+                        self._load_module_debuginfo(objfile, modpath, verbose)
+                    elif debug:
+                        print(" + has debug symbols")
+                    break
 
-                if 'module_core' in module.type:
-                    addr = int(module['module_core'])
+                if objfile:
+                    if not objfile.has_symbols():
+                        print("Couldn't find debuginfo for {}".format(modname))
+                    loaded += 1
                 else:
-                    addr = int(module['core_layout']['base'])
+                    if failed == 0:
+                        print()
+                    print("Couldn't find module file for {}".format(modname))
+                    failed += 1
 
-                if debug:
-                    print("Loading {} at {:#x}".format(modpath, addr))
-                elif verbose:
-                    print("Loading {} at {:#x}".format(modname, addr))
-                else:
+                if (loaded + failed) % 10 == 10:
                     print(".", end='')
                     sys.stdout.flush()
-
-                sections = self._get_module_sections(module)
-
-                percpu = int(module['percpu'])
-                if percpu > 0:
-                    sections += " -s .data..percpu {:#x}".format(percpu)
-
-                try:
-                    result = gdb.execute("add-symbol-file {} {:#x} {}"
-                                         .format(modpath, addr, sections),
-                                         to_string=True)
-                except gdb.error as e:
-                    raise CrashKernelError("Error while loading module `{}': {}"
-                                           .format(modname, str(e))) from e
-                if debug:
-                    print(result)
-
-                objfile = gdb.lookup_objfile(modpath)
-                if not objfile.has_symbols():
-                    self._load_module_debuginfo(objfile, modpath, verbose)
-                elif debug:
-                    print(" + has debug symbols")
-
-                break
-
-            if not found:
-                if failed == 0:
-                    print()
-                print("Couldn't find module file for {}".format(modname))
-                failed += 1
-            else:
-                if not objfile.has_symbols():
-                    print("Couldn't find debuginfo for {}".format(modname))
-                loaded += 1
-            if (loaded + failed) % 10 == 10:
-                print(".", end='')
-                sys.stdout.flush()
         print(" done. ({} loaded".format(loaded), end='')
         if failed:
             print(", {} failed)".format(failed))
@@ -552,6 +581,8 @@ class CrashKernel:
                 modpath = os.path.join(path, modpath)
                 if os.path.exists(modpath):
                     self.modules_order[path][modname] = modpath
+                if os.path.exists(modpath + ".zst"):
+                    self.modules_order[path][modname] = modpath + ".zst"
             f.close()
         except OSError:
             pass
@@ -656,7 +687,9 @@ class CrashKernel:
         if modpath is None:
             raise RuntimeError("loaded objfile has no filename???")
         if ".gz" in modpath:
-            modpath = modpath.replace(".gz", "")
+            modpath = modpath[:-3]
+        elif ".zst" in modpath:
+            modpath = modpath[:-4]
         filename = "{}.debug".format(os.path.basename(modpath))
 
         build_id_path = self.build_id_path(objfile)
