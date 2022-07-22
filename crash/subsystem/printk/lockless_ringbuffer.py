@@ -134,7 +134,7 @@ class PrbDataRing:
     def get_text(self, blk_lpos: PrbDataBlkLPos, len: int) -> str:
         ''' return string stored at the given blk_lpos '''
         data_block = self.get_data_block(blk_lpos)
-        return data_block.data.string(length=len)
+        return data_block.data.cast(types.char_p_type).string(length=len)
 
 
 class PrbDescRing:
