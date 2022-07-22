@@ -14,7 +14,7 @@ setup(
     },
     python_requires='>=3.6',
 
-    install_requires = [ 'pyelftools', 'addrxlat' ],
+    install_requires = [ 'pyelftools', 'addrxlat', 'zstd' ],
 
     author = "Jeff Mahoney",
     author_email = "jeffm@suse.com",
