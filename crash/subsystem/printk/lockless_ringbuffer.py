@@ -92,11 +92,11 @@ class PrbDesc:
         ''' Return state of the descriptor '''
         return (self.state_var & self.sv_mask) >> self.sv_shift
 
-    def is_finalized(self):
+    def is_finalized(self) -> bool:
         ''' Finalized desriptor points to a valid (deta) message '''
         return self.desc_state() == 0x2
 
-    def is_reusable(self):
+    def is_reusable(self) -> bool:
         '''
         Reusable descriptor still has a valid sequence number
         but the data are gone.
