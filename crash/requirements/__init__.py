@@ -3,8 +3,9 @@
 
 # Perform some sanity checks to ensure that we can actually work
 import gdb
+import kdumpfile
 
-from crash.exceptions import IncompatibleGDBError
+from crash.exceptions import IncompatibleGDBError, IncompatibleKdumpfileError
 
 try:
     x1 = gdb.Target
@@ -25,19 +26,16 @@ except AttributeError as e:
     raise IncompatibleGDBError("gdb.MinSymbol") from e
 
 try:
-    x4 = gdb.Register
+    x4 = gdb.RegisterDescriptor
     del x4
 except AttributeError as e:
     raise IncompatibleGDBError("gdb.Register") from e
 
 try:
-    x6 = gdb.Inferior.new_thread
-    del x6
+    x5 = gdb.LinuxKernelTarget
+    del x5
 except AttributeError as e:
-    raise IncompatibleGDBError("gdb.Inferior.new_thread") from e
+    raise IncompatibleGDBError("gdb.LinuxKernelTarget") from e
 
-try:
-    x7 = gdb.Objfile.architecture
-    del x7
-except AttributeError as e:
-    raise IncompatibleGDBError("gdb.Objfile.architecture") from e
+if not hasattr(kdumpfile.kdumpfile, "from_pointer"):
+    raise IncompatibleKdumpfileError("from_pointer method")

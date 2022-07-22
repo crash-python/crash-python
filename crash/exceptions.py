@@ -11,6 +11,12 @@ class IncompatibleGDBError(RuntimeError):
     def __init__(self, message: str) -> None:
         super().__init__(self._fmt.format(message))
 
+class IncompatibleKdumpfileError(RuntimeError):
+    """This version of kdumpfile is incompatible"""
+    _fmt = "The installed kdumpfile module doesn't provide {}"
+    def __init__(self, message: str) -> None:
+        super().__init__(self._fmt.format(message))
+
 class MissingSymbolError(RuntimeError):
     """The requested symbol cannot be located."""
 

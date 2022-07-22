@@ -18,7 +18,7 @@ import crash.arch
 import crash.arch.x86_64
 import crash.arch.ppc64
 from crash.types.module import for_each_module, for_each_module_section
-from crash.util import get_symbol_value
+from crash.util import get_symbol_value, get_typed_pointer
 from crash.util.symbols import Types, Symvals, Symbols
 from crash.exceptions import MissingSymbolError, InvalidArgumentError
 from crash.infra.callback import pause_objfile_callbacks, unpause_objfile_callbacks
@@ -189,15 +189,13 @@ class CrashKernel:
 
         self.vermagic = self.extract_vermagic()
 
-        archname = obj.architecture.name()
+        archname = crash.archname()
         try:
             archclass = crash.arch.get_architecture(archname)
         except RuntimeError as e:
             raise CrashKernelError(str(e)) from e
 
         self.arch = archclass()
-
-        self.vmcore = self.target.kdump
 
         self.crashing_thread: Optional[gdb.InferiorThread] = None
 
@@ -687,7 +685,7 @@ class CrashKernel:
         populated, which allows symbolic stack traces to be made available.
         """
         from crash.types.percpu import get_percpu_vars
-        from crash.types.task import LinuxTask, for_each_all_tasks
+        from crash.types.task import LinuxTask, types as task_types
         import crash.cache.tasks # pylint: disable=redefined-outer-name
         gdb.execute('set print thread-events 0')
 
@@ -703,27 +701,26 @@ class CrashKernel:
         except MissingSymbolError:
             crashing_cpu = -1
 
-        for task in for_each_all_tasks():
-            ltask = LinuxTask(task)
+        kdumpfile = self.target.kdumpfile
+        task_struct_p_type = task_types.task_struct_type.pointer()
 
-            active = int(task.address) in rqscurrs
+        for thread in gdb.selected_inferior().threads():
+            task_address = thread.ptid[2]
+
+            task = get_typed_pointer(task_address, task_struct_p_type)
+
+            ltask = LinuxTask(task.dereference())
+
+            active = task_address in rqscurrs
             if active:
-                cpu = rqscurrs[int(task.address)]
-                regs = self.vmcore.attr.cpu[cpu].reg
+                cpu = rqscurrs[task_address]
+                regs = kdumpfile.attr.cpu[cpu].reg
                 ltask.set_active(cpu, regs)
             else:
                 self.arch.setup_scheduled_frame_offset(task)
 
-            ptid = (LINUX_KERNEL_PID, task['pid'], 0)
-
-            try:
-                thread = gdb.selected_inferior().new_thread(ptid)
-                thread.info = ltask
-                thread.arch = self.arch
-            except gdb.error:
-                print("Failed to setup task @{:#x}".format(int(task.address)))
-                continue
-            thread.name = task['comm'].string()
+            thread.info = ltask
+            thread.arch = self.arch
             if active and cpu == crashing_cpu:
                 self.crashing_thread = thread
 
@@ -738,5 +735,3 @@ class CrashKernel:
                 print(".", end='')
                 sys.stdout.flush()
         print(" done. ({} tasks total)".format(task_count))
-
-        gdb.selected_inferior().executing = False

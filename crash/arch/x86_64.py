@@ -3,6 +3,7 @@
 
 from typing import Optional
 import re
+import sys
 
 import gdb
 
@@ -17,62 +18,62 @@ msymvals = MinimalSymvals(['thread_return'])
 
 # pylint: disable=abstract-method
 class _FetchRegistersBase(FetchRegistersCallback):
-    def fetch_active(self, thread: gdb.InferiorThread, register: int) -> None:
+    def fetch_active(self, thread: gdb.InferiorThread,
+                     register: Optional[gdb.RegisterDescriptor]) -> gdb.RegisterCollectionType:
+        regmap = {
+                "rflags" : "eflags"
+        }
+        registers = {}
         task = thread.info
         for reg in task.regs:
-            if reg == "rip" and register not in (16, -1):
+            if (reg == "rip" and register is not None and
+                register.name != "rip"):
                 continue
             try:
-                thread.registers[reg].value = task.regs[reg]
+                # vmcore uses rflags, gdb uses eflags
+                if reg in regmap:
+                    reg = regmap[reg]
+                registers[reg] = task.regs[reg]
             except KeyError:
                 pass
 
-    def fetch_scheduled(self, thread: gdb.InferiorThread,
-                        register: int) -> None:
-        pass
+        return registers
 
 # pylint: disable=abstract-method
 class _FRC_inactive_task_frame(_FetchRegistersBase):
     def fetch_scheduled(self, thread: gdb.InferiorThread,
-                        register: int) -> None:
+                        register: Optional[gdb.RegisterDescriptor]) -> gdb.RegisterCollectionType:
+        registers: gdb.RegisterCollectionType = {}
         task = thread.info.task_struct
 
         rsp = task['thread']['sp'].cast(types.unsigned_long_p_type)
 
         rsp = thread.arch.adjust_scheduled_frame_offset(rsp)
 
-        thread.registers['rsp'].value = rsp
+        registers['rsp'] = rsp
 
         frame = rsp.cast(types.inactive_task_frame_p_type).dereference()
 
-        # Only write rip when requested; It resets the frame cache
-        if register in (16, -1):
-            thread.registers['rip'].value = thread.arch.get_scheduled_rip()
-            if register == 16:
-                return
-
-        thread.registers['rbp'].value = frame['bp']
-        thread.registers['rbx'].value = frame['bx']
-        thread.registers['r12'].value = frame['r12']
-        thread.registers['r13'].value = frame['r13']
-        thread.registers['r14'].value = frame['r14']
-        thread.registers['r15'].value = frame['r15']
-        thread.registers['cs'].value = 2*8
-        thread.registers['ss'].value = 3*8
+        registers['rip'] = thread.arch.get_scheduled_rip()
+        registers['rbp'] = frame['bp']
+        registers['rbx'] = frame['bx']
+        registers['r12'] = frame['r12']
+        registers['r13'] = frame['r13']
+        registers['r14'] = frame['r14']
+        registers['r15'] = frame['r15']
+        registers['cs'] = 2*8
+        registers['ss'] = 3*8
 
         thread.info.stack_pointer = rsp
         thread.info.valid_stack = True
 
+        return registers
+
 class _FRC_thread_return(_FetchRegistersBase):
     def fetch_scheduled(self, thread: gdb.InferiorThread,
-                        register: int) -> None:
+                        register: Optional[gdb.RegisterDescriptor]) -> gdb.RegisterCollectionType:
+        registers: gdb.RegisterCollectionType = {}
         task = thread.info.task_struct
-
-        # Only write rip when requested; It resets the frame cache
-        if register in (16, -1):
-            thread.registers['rip'].value = msymvals.thread_return
-            if register == 16:
-                return
 
         rsp = task['thread']['sp'].cast(types.unsigned_long_p_type)
         rbp = rsp.dereference().cast(types.unsigned_long_p_type)
@@ -89,18 +90,21 @@ class _FRC_thread_return(_FetchRegistersBase):
         # if ex:
         #     print("EXCEPTION STACK: pid {:d}".format(task['pid']))
 
-        thread.registers['rsp'].value = rsp
-        thread.registers['rbp'].value = rbp
-        thread.registers['rbx'].value = rbx
-        thread.registers['r12'].value = r12
-        thread.registers['r13'].value = r13
-        thread.registers['r14'].value = r14
-        thread.registers['r15'].value = r15
-        thread.registers['cs'].value = 2*8
-        thread.registers['ss'].value = 3*8
+        registers['rip'] = msymvals.thread_return
+        registers['rsp'] = rsp
+        registers['rbp'] = rbp
+        registers['rbx'] = rbx
+        registers['r12'] = r12
+        registers['r13'] = r13
+        registers['r14'] = r14
+        registers['r15'] = r15
+        registers['cs'] = 2*8
+        registers['ss'] = 3*8
 
         thread.info.stack_pointer = rsp
         thread.info.valid_stack = True
+
+        return registers
 
 class x86_64Architecture(CrashArchitecture):
     ident = "i386:x86-64"
@@ -130,7 +134,7 @@ class x86_64Architecture(CrashArchitecture):
             return
 
         top = int(task['stack']) + 16*1024
-        callq = re.compile("callq.*<(\w+)>")
+        callq = re.compile("callq?.*<(\w+)>")
 
         orig_rsp = rsp = task['thread']['sp'].cast(types.unsigned_long_p_type)
 
@@ -143,6 +147,9 @@ class x86_64Architecture(CrashArchitecture):
                 except Exception as e:
                     rsp += 1
                     count += 1
+                    continue
+
+                if not insn:
                     continue
 
                 m = callq.search(insn)

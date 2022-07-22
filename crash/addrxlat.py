@@ -5,6 +5,7 @@ import addrxlat
 
 import gdb
 import crash
+import kdump.target
 
 from crash.cache.syscache import utsname
 from crash.util import offsetof
@@ -50,8 +51,10 @@ class CrashAddressTranslation:
     def __init__(self) -> None:
         try:
             target = gdb.current_target()
-            self.context = target.kdump.get_addrxlat_ctx()
-            self.system = target.kdump.get_addrxlat_sys()
+            if not isinstance(target, kdump.target.Target):
+                raise TypeError("Not using kdump target")
+            self.context = target.kdumpfile.get_addrxlat_ctx()
+            self.system = target.kdumpfile.get_addrxlat_sys()
         except AttributeError:
             self.context = TranslationContext()
             self.system = addrxlat.System()
