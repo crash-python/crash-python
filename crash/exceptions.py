@@ -23,6 +23,9 @@ class MissingSymbolError(RuntimeError):
 class MissingTypeError(RuntimeError):
     """The requested type cannot be located."""
 
+class MissingFieldError(RuntimeError):
+    """The requested field cannot be located."""
+
 class CorruptedError(RuntimeError):
     """A corrupted data structure has been encountered."""
 

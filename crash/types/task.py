@@ -6,7 +6,7 @@ from typing import Iterator, Callable, Dict, List
 import gdb
 
 from crash.exceptions import InvalidArgumentError, ArgumentTypeError
-from crash.exceptions import UnexpectedGDBTypeError
+from crash.exceptions import UnexpectedGDBTypeError, MissingFieldError
 from crash.util import array_size, struct_has_member
 from crash.util.symbols import Types, Symvals, SymbolCallbacks
 from crash.types.list import list_for_each_entry
@@ -50,6 +50,8 @@ class TaskStateFlags:
     TASK_NOLOAD: int = TASK_FLAG_UNINITIALIZED
     TASK_NEW: int = TASK_FLAG_UNINITIALIZED
     TASK_IDLE: int = TASK_FLAG_UNINITIALIZED
+
+    _state_field: str = 'state'
 
     def __init__(self) -> None:
         raise NotImplementedError("This class is not meant to be instantiated")
@@ -225,6 +227,8 @@ class LinuxTask:
     _get_rss: Callable[['LinuxTask'], int]
     _get_last_run: Callable[['LinuxTask'], int]
 
+    _state_field: str
+
     def __init__(self, task_struct: gdb.Value) -> None:
         self._init_task_types(task_struct)
 
@@ -263,8 +267,15 @@ class LinuxTask:
             # within gdb.  Equality requires a deep comparison rather than
             # a simple pointer comparison.
             types.override('struct task_struct', task.type)
-            fields = types.task_struct_type.fields()
+            fields = [x.name for x in types.task_struct_type.fields()]
             cls._task_state_has_exit_state = 'exit_state' in fields
+            if 'state' in fields:
+                cls._state_field = 'state'
+            elif '__state' in fields:
+                cls._state_field = '__state'
+            else:
+                raise MissingFieldError("No way to resolve task_struct.state")
+
             cls._pick_get_rss()
             cls._pick_last_run()
             cls._valid = True
@@ -348,7 +359,7 @@ class LinuxTask:
         Returns:
             :obj:`int`: The state flags for this task.
         """
-        state = int(self.task_struct['state'])
+        state = int(self.task_struct[self._state_field])
         if self._task_state_has_exit_state:
             state |= int(self.task_struct['exit_state'])
         return state
