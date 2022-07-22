@@ -28,7 +28,7 @@ def numa_node_id(cpu: int) -> int:
     Returns:
         :obj:`int`: The NUMA node ID for the specified CPU.
     """
-    if crash.current_target().arch.name() == "powerpc:common64":
+    if crash.archname() == "powerpc:common64":
         return int(symvals.numa_cpu_lookup_table[cpu])
     return int(get_percpu_var(symbols.numa_node, cpu))
 

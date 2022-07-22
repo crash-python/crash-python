@@ -11,6 +11,8 @@ import os.path
 from elftools.elf.elffile import ELFFile
 import gdb
 
+import kdump.target
+
 import crash
 import crash.arch
 import crash.arch.x86_64
@@ -128,12 +130,26 @@ class CrashKernel:
     symvals = Symvals(['init_task'])
     symbols = Symbols(['runqueues'])
 
+    def check_target(self) -> kdump.target.Target:
+        target = gdb.current_target()
+
+        if target is None:
+            raise ValueError("No current target")
+
+        if not isinstance(target, kdump.target.Target):
+            raise ValueError(f"Current target {type(target)} is not supported")
+
+        return target
+
     # pylint: disable=unused-argument
     def __init__(self, roots: PathSpecifier = None,
                  vmlinux_debuginfo: PathSpecifier = None,
                  module_path: PathSpecifier = None,
                  module_debuginfo_path: PathSpecifier = None,
                  verbose: bool = False, debug: bool = False) -> None:
+
+        self.target = self.check_target()
+
         self.findmap: Dict[str, Dict[Any, Any]] = dict()
         self.modules_order: Dict[str, Dict[str, str]] = dict()
         obj = gdb.objfiles()[0]
@@ -179,7 +195,6 @@ class CrashKernel:
 
         self.arch = archclass()
 
-        self.target = crash.current_target()
         self.vmcore = self.target.kdump
 
         self.crashing_thread: Optional[gdb.InferiorThread] = None
