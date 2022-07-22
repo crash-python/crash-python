@@ -188,7 +188,7 @@ else
     TEST_GDBINIT="/usr/share/crash-python/test-gdb-compatibility.gdbinit"
 fi
 
-if ! $GDB -nx -batch -x $GDBINIT -x $TEST_GDBINIT; then
+if ! $GDB $GDB_CMDLINE -nx -batch -x $GDBINIT -x $TEST_GDBINIT; then
     echo "fatal: crash-python cannot initialize" >&2
     exit 1
 fi
@@ -296,12 +296,12 @@ EOF
 
 # This is how we debug gdb problems when running crash
 if [ "$DEBUGMODE" = "gdb" ]; then
-    RUN="run -nx -q -x $GDBINIT"
+    RUN="run $GDB_CMDLINE -nx -q -x $GDBINIT"
 
     echo $RUN > $TMPDIR/gdbinit-debug
     gdb $GDB -nx -q -x $TMPDIR/gdbinit-debug
 elif [ "$DEBUGMODE" = "valgrind" ]; then
     valgrind --keep-stacktraces=alloc-and-free $GDB -nh -q -x $GDBINIT
 else
-    $GDB -nx -q -x $GDBINIT
+    $GDB $GDB_CMDLINE -nx -q -x $GDBINIT
 fi
