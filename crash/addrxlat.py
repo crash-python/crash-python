@@ -49,7 +49,7 @@ class TranslationContext(addrxlat.Context):
 class CrashAddressTranslation:
     def __init__(self) -> None:
         try:
-            target = crash.current_target()
+            target = gdb.current_target()
             self.context = target.kdump.get_addrxlat_ctx()
             self.system = target.kdump.get_addrxlat_sys()
         except AttributeError:

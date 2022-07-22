@@ -41,7 +41,7 @@ class CrashArchitecture:
     _fetch_registers: Type[FetchRegistersCallback]
 
     def __init__(self) -> None:
-        target = crash.current_target()
+        target = gdb.current_target()
         try:
             target.set_fetch_registers(self._fetch_registers())
         except AttributeError:
