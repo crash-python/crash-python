@@ -154,7 +154,6 @@ class x86_64Architecture(CrashArchitecture):
 
                 m = callq.search(insn)
                 if m and m.group(1) == "__switch_to_asm":
-                    self._frame_offset = rsp - orig_rsp  + 1
                     self._scheduled_rip = val
                     return
 
