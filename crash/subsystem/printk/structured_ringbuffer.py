@@ -31,7 +31,7 @@ def log_from_idx(logbuf: gdb.Value, idx: int) -> Dict:
 
     dictval = (msg.cast(types.char_p_type) +
                types.printk_log_p_type.target().sizeof + textlen)
-    dict = dictval.string(length=dictlen)
+    msgdict = dictval.string(length=dictlen)
 
     msglen = int(msg['len'])
 
@@ -41,15 +41,13 @@ def log_from_idx(logbuf: gdb.Value, idx: int) -> Dict:
     else:
         nextidx = idx + msglen
 
-    msgdict = {
+    return {
         'text' : text[0:textlen],
         'timestamp' : int(msg['ts_nsec']),
         'level' : int(msg['level']),
         'next' : nextidx,
-        'dict' : dict[0:dictlen],
+        'dict' : msgdict[0:dictlen],
     }
-
-    return msgdict
 
 def get_log_msgs() -> Iterable[Dict[str, Any]]:
     try:
@@ -88,5 +86,5 @@ def structured_rb_show(args: argparse.Namespace) -> None:
             print('{}{}{}'.format(level, timestamp, line))
 
         if (args.d and msg['dict']):
-            for dict in msg['dict'].split('\0'):
-                print('  {}'.format(dict))
+            for entry in msg['dict'].split('\0'):
+                print('  {}'.format(entry))
