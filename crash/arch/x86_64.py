@@ -114,6 +114,8 @@ class x86_64Architecture(CrashArchitecture):
         # Stop stack traces with addresses below this
         self.filter = KernelFrameFilter(0xffff000000000000)
 
+        self._scheduled_rip: int
+
     def setup_thread_info(self, thread: gdb.InferiorThread) -> None:
         task = thread.info.task_struct
         thread_info = task['stack'].cast(types.thread_info_p_type)
@@ -159,7 +161,7 @@ class x86_64Architecture(CrashArchitecture):
             return rsp + self._frame_offset
         return rsp
 
-    def get_scheduled_rip(self) -> None:
+    def get_scheduled_rip(self) -> int:
         return self._scheduled_rip
 
     @classmethod
