@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Iterable
+from typing import Callable, Iterable
 
 import gdb
 from gdb.types import get_basic_type
@@ -20,6 +20,13 @@ symvals = Symvals(['block_class', 'blockdev_superblock', 'disk_type',
                    'part_type'])
 READ = 0
 WRITE = 1
+
+# Values will be filled in via callback.  These are declared here to honor
+# imports for lint.
+REQ_FUA: int
+REQ_PREFLUSH: int
+REQ_STARTED: int
+REQ_SYNC: int
 
 def dev_to_gendisk(dev: gdb.Value) -> gdb.Value:
     """
@@ -295,12 +302,21 @@ def rq_is_sync(request: gdb.Value) -> bool:
         :obj:`bool`: True for synchronous requests, False otherwise.
     """
     return (request['cmd_flags'] & 1 == 0 or
-            request['cmd_flags'] & (REQ_SYNC | REQ_FUA | REQ_PREFLUSH) != 0) # type: ignore
+            request['cmd_flags'] & (REQ_SYNC | REQ_FUA | REQ_PREFLUSH) != 0)
 
-# This is a stub to make static checker happy. It gets overridden once 'struct
-# request' is resolved.
-def _rq_in_flight(request: gdb.Value) -> bool:
-    raise RuntimeError("struct request type not resolved yet!")
+
+_rq_in_flight: Callable[[gdb.Value], bool]
+
+def _rq_in_flight_rq_state(request: gdb.Value) -> bool:
+    return (request['rq_state'] !=
+            types.enum_mq_rq_state_type['MQ_RQ_IDLE'])
+
+def _rq_in_flight_atomic_flags(request: gdb.Value) -> bool:
+    return (request['atomic_flags'] &
+            (1 << int(types.enum_rq_atomic_flags_type['REQ_ATOM_STARTED'].enumval)) != 0)
+
+def _rq_in_flight_cmd_flags(request: gdb.Value) -> bool:
+    return request['cmd_flags'] & REQ_STARTED != 0
 
 def rq_in_flight(request: gdb.Value) -> bool:
     """
@@ -359,18 +375,13 @@ def _export_req_flags(req_flag_bits: gdb.Type) -> None:
 # Check struct request and define functions based on its current form in this
 # kernel
 def _check_struct_request(request_s: gdb.Type) -> None:
-    global _rq_in_flight
     if struct_has_member(request_s, 'rq_state'):
-        def _rq_in_flight(request: gdb.Value) -> bool:
-            return (request['rq_state'] !=
-                    types.enum_mq_rq_state_type['MQ_RQ_IDLE'])
+        impl = _rq_in_flight_rq_state
     elif struct_has_member(request_s, 'atomic_flags'):
-        def _rq_in_flight(request: gdb.Value) -> bool:
-            return (request['atomic_flags'] &
-                    (1 << int(types.enum_rq_atomic_flags_type['REQ_ATOM_STARTED'].enumval)) != 0)
+        impl = _rq_in_flight_atomic_flags
     else:
-        def _rq_in_flight(request: gdb.Value) -> bool:
-            return request['cmd_flags'] & REQ_STARTED != 0 # type: ignore
+        impl = _rq_in_flight_cmd_flags
+    globals()['_rq_in_flight'] = impl
 
 symbol_cbs = SymbolCallbacks([('disk_type', _check_types),
                               ('part_type', _check_types)])
