@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Dict, Iterable, Any
-
 import argparse
-import sys
+
 import gdb
 
 from crash.util.symbols import Types, Symvals
 from crash.exceptions import DelayedAttributeError
-from crash.subsystem.printk import LogTypeException, LogInvalidOption
+from crash.subsystem.printk import LogTypeException
 
 types = Types(['struct printk_info *',
                'struct prb_desc *',
@@ -131,10 +129,10 @@ class PrbDataRing:
         blk_p = self.data.cast(types.char_p_type) + begin_idx
         return PrbDataBlock(blk_p.cast(types.prb_data_block_p_type))
 
-    def get_text(self, blk_lpos: PrbDataBlkLPos, len: int) -> str:
+    def get_text(self, blk_lpos: PrbDataBlkLPos, _len: int) -> str:
         ''' return string stored at the given blk_lpos '''
         data_block = self.get_data_block(blk_lpos)
-        return data_block.data.cast(types.char_p_type).string(length=len)
+        return data_block.data.cast(types.char_p_type).string(length=_len)
 
 
 class PrbDescRing:
@@ -154,20 +152,20 @@ class PrbDescRing:
         self.tail_id = atomic_long_read(dr['tail_id'])
         self.mask_id = (1 << self.count_bits) - 1
 
-    def get_idx(self, id: int) -> int:
+    def get_idx(self, _id: int) -> int:
         ''' Return index to the desc ring for the given id '''
-        return id & self.mask_id
+        return _id & self.mask_id
 
-    def get_desc(self, id: int) -> PrbDesc:
+    def get_desc(self, _id: int) -> PrbDesc:
         ''' Return prb_desc structure for the given id '''
-        idx = self.get_idx(id)
+        idx = self.get_idx(_id)
         desc_p = (self.descs.cast(types.char_p_type) +
                   types.prb_desc_p_type.target().sizeof * idx)
         return PrbDesc(desc_p.cast(types.prb_desc_p_type))
 
-    def get_info(self, id: int) -> PrintkInfo:
+    def get_info(self, _id: int) -> PrintkInfo:
         ''' return printk_info structure for the given id '''
-        idx = self.get_idx(id)
+        idx = self.get_idx(_id)
         info_p = (self.infos.cast(types.char_p_type) +
                   types.printk_info_p_type.target().sizeof * idx)
         return PrintkInfo(info_p.cast(types.printk_info_p_type))
@@ -184,10 +182,10 @@ class PrbRingBuffer:
 
     def is_valid_desc(self, desc: PrbDesc, info: PrintkInfo, seq: int) -> bool:
         ''' Does the descritor constains consistent values? '''
-        if (not (desc.is_finalized() or desc.is_reusable())):
+        if not (desc.is_finalized() or desc.is_reusable()):
             return False
         # Must match the expected seq number. Otherwise is being updated.
-        return (info.seq == seq)
+        return info.seq == seq
 
     def first_seq(self) -> int:
         '''
@@ -202,11 +200,11 @@ class PrbRingBuffer:
         # As a result, the valid sequence number should be either in tail_id
         # or tail_id + 1 entry.
         for i in range(0, 1):
-            id = self.desc_ring.tail_id + i
-            desc = self.desc_ring.get_desc(id)
+            _id = self.desc_ring.tail_id + i
+            desc = self.desc_ring.get_desc(_id)
 
-            if (desc.is_finalized() or desc.is_reusable()):
-                info = self.desc_ring.get_info(id)
+            if desc.is_finalized() or desc.is_reusable():
+                info = self.desc_ring.get_info(_id)
                 return info.seq
 
         # Something went wrong. Do not continue with an invalid sequence number.
@@ -230,13 +228,13 @@ class PrbRingBuffer:
             level = '<{:d}>'.format(info.level)
 
         text = self.data_ring.get_text(desc.text_blk_lpos, info.text_len)
-        print('{}{}{}'.format(level,timestamp,text))
+        print('{}{}{}'.format(level, timestamp, text))
 
-        if (args.d):
+        if args.d:
             # Only two dev_info values are supported at the moment
-            if (len(info.dev_info.subsystem)):
+            if info.dev_info.subsystem:
                 print('  SUBSYSTEM={}'.format(info.dev_info.subsystem))
-            if (len(info.dev_info.device)):
+            if info.dev_info.device:
                 print('  DEVICE={}'.format(info.dev_info.device))
 
     def show_log(self, args: argparse.Namespace) -> None:
@@ -247,7 +245,7 @@ class PrbRingBuffer:
         while True:
             desc = self.desc_ring.get_desc(seq)
             info = self.desc_ring.get_info(seq)
-            if (not self.is_valid_desc(desc, info, seq)):
+            if not self.is_valid_desc(desc, info, seq):
                 break
 
             seq += 1
@@ -255,7 +253,7 @@ class PrbRingBuffer:
             # Sequence numbers are stored in separate ring buffer.
             # The descriptor ring might include valid sequence numbers
             # but the data might already be replaced.
-            if (desc.is_reusable()):
+            if desc.is_reusable():
                 continue
 
             self.show_msg(desc, info, args)
@@ -273,10 +271,8 @@ def lockless_rb_show(args: argparse.Namespace) -> None:
     """
 
     try:
-        test = symvals.prb
+        prb = PrbRingBuffer(symvals.prb)
     except DelayedAttributeError:
         raise LogTypeException('not lockless log') from None
-
-    prb = PrbRingBuffer(symvals.prb)
 
     prb.show_log(args)
