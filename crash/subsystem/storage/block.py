@@ -5,7 +5,6 @@ from typing import Iterable, Tuple
 
 import gdb
 
-from crash.util.symbols import Types
 from crash.subsystem.storage import queue_is_mq
 from crash.subsystem.storage.blocksq import sq_for_each_request_in_queue, \
     sq_requests_in_flight, sq_requests_queued

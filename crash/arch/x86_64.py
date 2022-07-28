@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-import gdb
+from typing import Optional
 import re
 
-from typing import Optional
+import gdb
 
 from crash.arch import CrashArchitecture, KernelFrameFilter, register_arch
 from crash.arch import FetchRegistersCallback

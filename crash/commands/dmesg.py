@@ -139,14 +139,9 @@ Display the same message text as above, with appended dictionary data:
   ...
 """
 
-from typing import Dict, Iterable, Any
-
 import argparse
 
-import gdb
-
 from crash.commands import Command, ArgumentParser, CommandError
-from crash.exceptions import DelayedAttributeError
 from crash.subsystem.printk import LogTypeException, LogInvalidOption
 from crash.subsystem.printk.lockless_ringbuffer import lockless_rb_show
 from crash.subsystem.printk.structured_ringbuffer import structured_rb_show
