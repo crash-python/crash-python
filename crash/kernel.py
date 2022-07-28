@@ -21,6 +21,8 @@ from crash.types.module import for_each_module, for_each_module_section
 from crash.util import get_symbol_value
 from crash.util.symbols import Types, Symvals, Symbols
 from crash.exceptions import MissingSymbolError, InvalidArgumentError
+from crash.infra.callback import pause_objfile_callbacks, unpause_objfile_callbacks
+from crash.cache.syscache import utsname
 
 class CrashKernelError(RuntimeError):
     """Raised when an error occurs while initializing the debugging session"""
@@ -450,13 +452,12 @@ class CrashKernel:
                 This does not include a failure to locate a module or
                 its debuginfo.
         """
-        import crash.cache.syscache # pylint: disable=redefined-outer-name
-        version = crash.cache.syscache.utsname.release
-        print("Loading modules for {}".format(version), end='')
+        print("Loading modules for {}".format(utsname.release), end='')
         if verbose:
             print(":", flush=True)
         failed = 0
         loaded = 0
+        pause_objfile_callbacks()
         for module in for_each_module():
             modname = "{}".format(module['name'].string())
             modfname = "{}.ko".format(modname)
@@ -535,6 +536,7 @@ class CrashKernel:
         # We shouldn't need this again, so why keep it around?
         del self.findmap
         self.findmap = {}
+        unpause_objfile_callbacks()
 
     def _normalize_modname(self, mod: str) -> str:
         return mod.replace('-', '_')

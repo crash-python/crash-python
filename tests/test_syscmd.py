@@ -7,12 +7,14 @@ import sys
 from io import StringIO
 
 from crash.exceptions import MissingSymbolError
+import crash.infra.callback
 from crash.commands import CommandLineError
 from crash.commands.syscmd import SysCommand
 
 class TestSysCmd(unittest.TestCase):
     def setUp(self):
         gdb.execute("file tests/test-syscache", to_string=True)
+        crash.infra.callback.target_ready()
         self.cmd = SysCommand("pysys")
 
     def tearDown(self):

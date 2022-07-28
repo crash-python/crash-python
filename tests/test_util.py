@@ -3,6 +3,7 @@
 import unittest
 import gdb
 
+import crash.infra.callback
 from crash.exceptions import MissingTypeError, MissingSymbolError
 from crash.util import offsetof, container_of, resolve_type
 from crash.util import get_symbol_value, safe_get_symbol_value
@@ -10,12 +11,14 @@ from crash.exceptions import ArgumentTypeError
 from crash.exceptions import NotStructOrUnionError
 from crash.util import InvalidComponentError
 
+
 def getsym(sym):
     return gdb.lookup_symbol(sym, None)[0].value()
 
 class TestUtil(unittest.TestCase):
     def setUp(self):
         gdb.execute("file tests/test-util")
+        crash.infra.callback.target_ready()
         self.ulong = gdb.lookup_type('unsigned long')
         self.ulongsize = self.ulong.sizeof
         self.test_struct = gdb.lookup_type("struct test")

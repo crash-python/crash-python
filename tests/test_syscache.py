@@ -2,9 +2,13 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import unittest
+from unittest.mock import patch
 import gdb
 import sys
 from importlib import reload
+
+import crash.infra.callback
+from crash.infra.callback import ObjfileEventCallback
 
 from crash.exceptions import DelayedAttributeError
 fake_config = (
@@ -35,6 +39,7 @@ class TestSysCache(unittest.TestCase):
         self.utsname = crash.cache.syscache.utsname
         self.kernel = crash.cache.syscache.kernel
         self.config = crash.cache.syscache.config
+        crash.infra.callback.target_ready()
 
     def clear_namespace(self):
         gdb.execute("file")
@@ -50,7 +55,7 @@ class TestSysCache(unittest.TestCase):
 
     def test_utsname_no_sym(self):
         gdb.execute("file")
-        gdb.execute("maint flush-symbol-cache")
+        gdb.execute("maint flush symbol-cache")
         self.cycle_namespace()
         utsname = self.CrashUtsnameCache()
         with self.assertRaises(DelayedAttributeError):

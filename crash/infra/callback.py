@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Callable, Any, Union, TypeVar, Optional
+from typing import Any, Callable, List, Optional, TypeVar, Union
+
+import abc
 
 import gdb
 
@@ -16,7 +18,7 @@ class CallbackCompleted(RuntimeError):
         super().__init__(msg)
         self.callback_obj = callback_obj
 
-class ObjfileEventCallback:
+class ObjfileEventCallback(metaclass=abc.ABCMeta):
     """
     A generic objfile callback class
 
@@ -30,11 +32,61 @@ class ObjfileEventCallback:
     Consumers of this interface must also call :meth:`connect_callback` to
     connect the object to the callback infrastructure.
     """
-    def __init__(self) -> None:
+
+    _target_waitlist: List['ObjfileEventCallback'] = list()
+    _pending_list: List['ObjfileEventCallback'] = list()
+    _paused: bool = False
+    _connected_to_objfile_callback: bool = False
+
+    def check_target(self) -> bool:
+        return isinstance(gdb.current_target(), gdb.LinuxKernelTarget)
+
+    def __init__(self, wait_for_target: bool = True) -> None:
         self.completed = False
         self.connected = False
+        self._waiting_for_target = wait_for_target and not self.check_target()
 
-        self._setup_symbol_cache_flush_callback()
+        if not self._connected_to_objfile_callback:
+            # pylint: disable=no-member
+            gdb.events.new_objfile.connect(self._new_objfile_callback)
+            self._connected_to_objfile_callback = True
+
+    # pylint: disable=unused-argument
+    @classmethod
+    def _new_objfile_callback(cls, event: gdb.NewObjFileEvent) -> None:
+        cls.evaluate_all()
+
+    @classmethod
+    def target_ready(cls) -> None:
+        for callback in cls._target_waitlist:
+            callback.complete_wait_for_target()
+
+        cls._target_waitlist[:] = list()
+        cls._update_pending()
+
+    @classmethod
+    def evaluate_all(cls) -> None:
+        if not cls._paused:
+            for callback in cls._pending_list:
+                callback.evaluate(False)
+            cls._update_pending()
+
+    @classmethod
+    def pause(cls) -> None:
+        cls._paused = True
+
+    @classmethod
+    def unpause(cls) -> None:
+        cls._paused = False
+        cls.evaluate_all()
+    @classmethod
+    def dump_lists(cls) -> None:
+        print(f"Pending list: {[str(x) for x in ObjfileEventCallback._pending_list]}")
+        print(f"Target waitlist: {[str(x) for x in ObjfileEventCallback._target_waitlist]}")
+
+    def complete_wait_for_target(self) -> None:
+        self._waiting_for_target = False
+        self.evaluate(False)
 
     def connect_callback(self) -> bool:
         """
@@ -49,27 +101,26 @@ class ObjfileEventCallback:
         if self.connected:
             return False
 
-        self.connected = True
-
-        # We don't want to do lookups immediately if we don't have
-        # an objfile.  It'll fail for any custom types but it can
-        # also return builtin types that are eventually changed.
-        objfiles = gdb.objfiles()
-        if objfiles:
-            result = self.check_ready()
-            if not (result is None or result is False):
-                completed = self.callback(result)
-                if completed is None:
-                    completed = True
-                self.completed = completed
+        if not self._waiting_for_target:
+            # We don't want to do lookups immediately if we don't have
+            # an objfile.  It'll fail for any custom types but it can
+            # also return builtin types that are eventually changed.
+            if gdb.objfiles():
+                self.evaluate()
+        else:
+            self._target_waitlist.append(self)
 
         if self.completed is False:
-            # pylint: disable=no-member
-            gdb.events.new_objfile.connect(self._new_objfile_callback)
+            self.connected = True
+            self._pending_list.append(self)
 
         return self.completed
 
-    def complete(self) -> None:
+    @classmethod
+    def _update_pending(cls) -> None:
+        cls._pending_list[:] = [x for x in cls._pending_list if x.connected]
+
+    def complete(self, update_now: bool = True) -> None:
         """
         Complete and disconnect this callback from the event system.
 
@@ -77,43 +128,26 @@ class ObjfileEventCallback:
             :obj:`CallbackCompleted`: This callback has already been completed.
         """
         if not self.completed:
-            # pylint: disable=no-member
-            gdb.events.new_objfile.disconnect(self._new_objfile_callback)
             self.completed = True
-            self.connected = False
+            if self.connected:
+                self.connected = False
+                if update_now:
+                    self._update_pending()
         else:
             raise CallbackCompleted(self)
 
-    _symbol_cache_flush_setup = False
-    @classmethod
-    def _setup_symbol_cache_flush_callback(cls) -> None:
-        if not cls._symbol_cache_flush_setup:
-            # pylint: disable=no-member
-            gdb.events.new_objfile.connect(cls._flush_symbol_cache_callback)
-            cls._symbol_cache_flush_setup = True
+    def evaluate(self, update_now: bool = True) -> None:
+        if not self._waiting_for_target:
+            try:
+                result = self.check_ready()
+                if not (result is None or result is False):
+                    completed = self.callback(result)
+                    if completed is True or completed is None:
+                        self.complete(update_now)
+            except gdb.error:
+                pass
 
-
-    # GDB does this itself, but Python is initialized ahead of the
-    # symtab code.  The symtab observer is behind the python observers
-    # in the execution queue so the cache flush executes /after/ us.
-    @classmethod
-    # pylint: disable=unused-argument
-    def _flush_symbol_cache_callback(cls, event: gdb.NewObjFileEvent) -> None:
-        gdb.execute("maint flush-symbol-cache")
-
-    # pylint: disable=unused-argument
-    def _new_objfile_callback(self, event: gdb.NewObjFileEvent) -> None:
-        # GDB purposely copies the event list prior to calling the callbacks
-        # If we remove an event from another handler, it will still be sent
-        if self.completed:
-            return
-
-        result = self.check_ready()
-        if not (result is None or result is False):
-            completed = self.callback(result)
-            if completed is True or completed is None:
-                self.complete()
-
+    @abc.abstractmethod
     def check_ready(self) -> Any:
         """
         The method that derived classes implement for detecting when the
@@ -124,8 +158,9 @@ class ObjfileEventCallback:
             be passed untouched to :meth:`callback` if the result is anything
             other than :obj:`None` or :obj:`False`.
         """
-        raise NotImplementedError("check_ready must be implemented by derived class.")
+        pass
 
+    @abc.abstractmethod
     def callback(self, result: Any) -> Optional[bool]:
         """
         The callback that derived classes implement for handling the
@@ -139,4 +174,19 @@ class ObjfileEventCallback:
             the callback succeeded and will be completed and removed.
             Otherwise, the callback will stay connected for future completion.
         """
-        raise NotImplementedError("callback must be implemented by derived class.")
+        pass
+
+def target_ready() -> None:
+    ObjfileEventCallback.target_ready()
+
+def evaluate_all() -> None:
+    ObjfileEventCallback.evaluate_all()
+
+def pause_objfile_callbacks() -> None:
+    ObjfileEventCallback.pause()
+
+def unpause_objfile_callbacks() -> None:
+    ObjfileEventCallback.unpause()
+
+def dump_lists() -> None:
+    ObjfileEventCallback.dump_lists()

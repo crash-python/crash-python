@@ -5,11 +5,13 @@ import unittest
 import gdb
 
 import crash
+import crash.infra.callback
 import crash.types.percpu as percpu
 
 class TestPerCPU(unittest.TestCase):
     def setUp(self):
         gdb.execute("file tests/test-percpu", to_string=True)
+        crash.infra.callback.target_ready()
 
         try:
             print()

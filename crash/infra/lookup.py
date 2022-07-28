@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
-from typing import Tuple, Any, Union, Optional
+from typing import Any, Optional, Tuple, Type, Union
 
 import gdb
 
@@ -9,6 +9,7 @@ from crash.infra.callback import ObjfileEventCallback
 from crash.infra.callback import Callback
 from crash.exceptions import DelayedAttributeError
 
+# pylint: disable=abstract-method
 class NamedCallback(ObjfileEventCallback):
     """
     A base class for Callbacks with names
@@ -28,30 +29,13 @@ class NamedCallback(ObjfileEventCallback):
         attrname (:obj:`str`): The name of symbol or type being resolved
             translated for use as an attribute name.
     """
-    def __init__(self, name: str, callback: Callback,
-                 attrname: str = None) -> None:
-        super().__init__()
+    def __init__(self, name: str, callback: Callback, wait_for_target: bool = True, **kwargs: Any) -> None:
+        super().__init__(wait_for_target)
 
         self.name = name
-        self.attrname = self.name
-
-        if attrname is not None:
-            self.attrname = attrname
+        self.attrname = kwargs.get('attrname', self.name)
 
         self._callback = callback
-
-    # This is silly but it avoids pylint abstract-method warnings
-    def check_ready(self) -> Any:
-        """
-        The method that derived classes implement for detecting when the
-        conditions required to call the callback have been met.
-
-        Returns:
-            :obj:`object`: This method can return an arbitrary object.  It will
-            be passed untouched to :meth:`callback` if the result is anything
-            other than :obj:`None` or :obj:`False`.
-        """
-        raise NotImplementedError("check_ready must be implemented by derived class.")
 
     def callback(self, result: Any) -> Union[None, bool]:
         """
@@ -82,9 +66,9 @@ class MinimalSymbolCallback(NamedCallback):
         callback: The callback to execute when the minimal symbol is discovered
         symbol_file (optional): Name of the symbol file to use
     """
-    def __init__(self, name: str, callback: Callback,
+    def __init__(self, name: str, callback: Callback, wait_for_target: bool = True,
                  symbol_file: str = None) -> None:
-        super().__init__(name, callback)
+        super().__init__(name, callback, wait_for_target)
 
         self.symbol_file = symbol_file
 
@@ -120,9 +104,9 @@ class SymbolCallback(NamedCallback):
           is assumed to be one of the value associated with :obj:`gdb.Symbol`
           constant, i.e. SYMBOL_*_DOMAIN.
     """
-    def __init__(self, name: str, callback: Callback,
+    def __init__(self, name: str, callback: Callback, wait_for_target: bool = True,
                  domain: int = gdb.SYMBOL_VAR_DOMAIN) -> None:
-        super().__init__(name, callback)
+        super().__init__(name, callback, wait_for_target)
 
         self.domain = domain
 
@@ -183,11 +167,11 @@ class TypeCallback(NamedCallback):
         block (optional): The :obj:`gdb.Block` to search for the symbol
 
     """
-    def __init__(self, name: str, callback: Callback,
-                 block: gdb.Block = None) -> None:
+    def __init__(self, name: str, callback: Callback, wait_for_target: bool = True,
+                 block: gdb.Block = None, **kwargs: Any) -> None:
         (name, attrname, self.pointer) = self.resolve_type(name)
 
-        super().__init__(name, callback, attrname)
+        super().__init__(name, callback, wait_for_target, attrname=attrname)
 
         self.block = block
 
@@ -264,20 +248,22 @@ class DelayedValue:
     A generic class for making class attributes available that describe
     to-be-loaded symbols, minimal symbols, and types.
     """
-    def __init__(self, name: str, attrname: str = None) -> None:
+    def __init__(self, name: str, wait_for_target: bool = True, **kwargs: Any) -> None:
         if name is None or not isinstance(name, str):
             raise ValueError("Name must be a valid string")
 
         self.name = name
-
-        if attrname is None:
-            self.attrname = name
-        else:
-            self.attrname = attrname
+        self.wait_for_target = wait_for_target
+        self.attrname = kwargs.get('attrname', self.name)
 
         assert self.attrname is not None
 
+        self.cb: NamedCallback
+
         self.value: Any = None
+
+    def attach_callback(self, cbcls: Type[NamedCallback], **kwargs: Any) -> None:
+        self.cb = cbcls(self.name, self.callback, self.wait_for_target, **kwargs)
 
     def get(self) -> Any:
         if self.value is None:
@@ -288,6 +274,13 @@ class DelayedValue:
         if self.value is not None:
             return
         self.value = value
+        try:
+            del self.cb
+        except AttributeError:
+            pass
+
+    def __str__(self) -> str:
+        return "{} attached with {}".format(self.__class__, str(self.cb))
 
 class DelayedMinimalSymbol(DelayedValue):
     """
@@ -296,12 +289,9 @@ class DelayedMinimalSymbol(DelayedValue):
     Args:
         name: The name of the minimal symbol
     """
-    def __init__(self, name: str) -> None:
-        super().__init__(name)
-        self.cb = MinimalSymbolCallback(name, self.callback)
-
-    def __str__(self) -> str:
-        return "{} attached with {}".format(self.__class__, str(self.cb))
+    def __init__(self, name: str, wait_for_target: bool = True) -> None:
+        super().__init__(name, wait_for_target)
+        self.attach_callback(MinimalSymbolCallback)
 
 class DelayedSymbol(DelayedValue):
     """
@@ -310,12 +300,9 @@ class DelayedSymbol(DelayedValue):
     Args:
         name: The name of the symbol
     """
-    def __init__(self, name: str) -> None:
-        super().__init__(name)
-        self.cb = SymbolCallback(name, self.callback)
-
-    def __str__(self) -> str:
-        return "{} attached with {}".format(self.__class__, str(self.cb))
+    def __init__(self, name: str, wait_for_target: bool = True) -> None:
+        super().__init__(name, wait_for_target)
+        self.attach_callback(SymbolCallback)
 
 class DelayedType(DelayedValue):
     """
@@ -324,10 +311,11 @@ class DelayedType(DelayedValue):
     Args:
         name: The name of the type.
     """
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, wait_for_target: bool = True,
+                 block: gdb.Block = None) -> None:
         (name, attrname, self.pointer) = TypeCallback.resolve_type(name)
-        super().__init__(name, attrname)
-        self.cb = TypeCallback(name, self.callback)
+        super().__init__(name, wait_for_target, attrname=attrname)
+        self.attach_callback(TypeCallback, block=block)
 
     def __str__(self) -> str:
         return "{} attached with {}".format(self.__class__, str(self.callback))
@@ -352,7 +340,7 @@ class DelayedSymval(DelayedSymbol):
         self.value = symval
 
     def __str__(self) -> str:
-        return "{} attached with {}".format(self.__class__, str(self.cb))
+        return "{} attached with {}".format(self.__class__, str(self.callback))
 
 class DelayedMinimalSymval(DelayedMinimalSymbol):
     """
@@ -364,6 +352,3 @@ class DelayedMinimalSymval(DelayedMinimalSymbol):
     """
     def callback(self, value: gdb.MinSymbol) -> None:
         self.value = int(value.value().address)
-
-    def __str__(self) -> str:
-        return "{} attached with {}".format(self.__class__, str(self.cb))

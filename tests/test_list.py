@@ -2,7 +2,10 @@
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import unittest
+from unittest.mock import patch
 import gdb
+
+import crash.infra.callback
 
 from crash.exceptions import ArgumentTypeError, UnexpectedGDBTypeError
 from crash.exceptions import InvalidArgumentError
@@ -15,6 +18,7 @@ def get_symbol(name):
 class TestList(unittest.TestCase):
     def setUp(self):
         gdb.execute("file tests/test-list")
+        crash.infra.callback.target_ready()
         self.list_head = gdb.lookup_type("struct list_head")
 
     def tearDown(self):

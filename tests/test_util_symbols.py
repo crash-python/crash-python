@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*- # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import unittest
+from unittest.mock import patch
 import platform
 import gdb
 
 from crash.exceptions import DelayedAttributeError
 
+from crash.infra.lookup import NamedCallback
 from crash.util.symbols import MinimalSymbols, Symbols, Symvals, Types
 from crash.util.symbols import TypeCallbacks, SymbolCallbacks
 from crash.util.symbols import MinimalSymbolCallbacks
@@ -19,7 +21,8 @@ class TestDelayedContainers(unittest.TestCase):
 
     def msymbol_test(self):
         class Test(object):
-            msymbols = MinimalSymbols([ 'test_struct' ])
+            with patch.object(NamedCallback, 'check_target', return_value=True):
+                msymbols = MinimalSymbols([ 'test_struct' ])
         return Test
 
     def test_bad_msymbol_name(self):
@@ -51,7 +54,8 @@ class TestDelayedContainers(unittest.TestCase):
 
     def symbol_test(self):
         class Test(object):
-            symbols = Symbols([ 'test_struct' ])
+            with patch.object(NamedCallback, 'check_target', return_value=True):
+                symbols = Symbols([ 'test_struct' ])
         return Test
 
     def test_bad_symbol_name(self):
@@ -83,7 +87,8 @@ class TestDelayedContainers(unittest.TestCase):
 
     def symval_test(self):
         class Test(object):
-            symvals = Symvals( [ 'test_struct' ] )
+            with patch.object(NamedCallback, 'check_target', return_value=True):
+                symvals = Symvals( [ 'test_struct' ] )
         return Test
 
     def test_bad_symval_name(self):
@@ -115,7 +120,8 @@ class TestDelayedContainers(unittest.TestCase):
 
     def type_test(self):
         class Test(object):
-            types = Types( [ 'struct test' ] )
+            with patch.object(NamedCallback, 'check_target', return_value=True):
+                types = Types( [ 'struct test' ] )
         return Test
 
     def test_bad_type_name(self):
@@ -149,7 +155,8 @@ class TestDelayedContainers(unittest.TestCase):
 
     def ptype_test(self):
         class Test(object):
-            types = Types( [ 'struct test *' ])
+            with patch.object(NamedCallback, 'check_target', return_value=True):
+                types = Types( [ 'struct test *' ])
         return Test
 
     def test_bad_ptype_name(self):
@@ -190,8 +197,9 @@ class TestDelayedContainers(unittest.TestCase):
                 def check_ulong(cls, gdbtype):
                     cls.ulong_valid = True
 
-            type_cbs = TypeCallbacks( [ ('unsigned long',
-                                         nested.check_ulong) ] )
+            with patch.object(NamedCallback, 'check_target', return_value=True):
+                type_cbs = TypeCallbacks( [ ('unsigned long',
+                                             nested.check_ulong) ] )
         return Test
 
     def test_type_callback_nofile(self):
@@ -211,17 +219,19 @@ class TestDelayedContainers(unittest.TestCase):
 
     def type_callback_test_multi(self):
         class Test(object):
-            class nested(object):
-                types = Types( [ 'unsigned long' ] )
+            with patch.object(NamedCallback, 'check_target', return_value=True):
+                class nested(object):
+                    types = Types( [ 'unsigned long' ] )
 
-                ulong_valid = False
+                    ulong_valid = False
 
-                @classmethod
-                def check_ulong(cls, gdbtype):
-                    cls.ulong_valid = True
+                    @classmethod
+                    def check_ulong(cls, gdbtype):
+                        cls.ulong_valid = True
 
-            type_cbs = TypeCallbacks( [ ('unsigned long',
-                                         nested.check_ulong) ] )
+            with patch.object(NamedCallback, 'check_target', return_value=True):
+                type_cbs = TypeCallbacks( [ ('unsigned long',
+                                             nested.check_ulong) ] )
 
         return Test
 
