@@ -90,8 +90,7 @@ The ``lint`` target does allow several options:
 
 - ``E=1`` -- Only report errors
 - ``PYLINT_ARGS`` -- Override the default arguments.  It will still operate
-  on the :py:mod:`crash` and :py:mod:`kdump` modules but no other default
-  arguments will be used.
+  on the :py:mod:`crash` modules but no other default arguments will be used.
 
 Testing with vmcores
 --------------------

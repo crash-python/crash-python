@@ -5,6 +5,7 @@ from typing import Iterator, Callable, Dict, List
 
 import gdb
 
+from crash.target import check_target
 from crash.exceptions import InvalidArgumentError, ArgumentTypeError
 from crash.exceptions import UnexpectedGDBTypeError, MissingFieldError
 from crash.util import array_size, struct_has_member
@@ -245,6 +246,7 @@ class LinuxTask:
         self.cpu = -1
         self.regs: Dict[str, int] = dict()
 
+        self.thread_struct: gdb.Value
         self.thread_info: gdb.Value
         self.thread: gdb.InferiorThread
 
@@ -308,6 +310,33 @@ class LinuxTask:
         if not isinstance(thread, gdb.InferiorThread):
             raise TypeError("Expected gdb.InferiorThread")
         self.thread = thread
+
+    def set_thread_struct(self, thread_struct: gdb.Value) -> None:
+        """
+        Set the thread struct for this task
+
+        The thread struct structure is architecture specific.  This method
+        allows the architecture code to assign its thread struct structure
+        to this task.
+
+        Args:
+            thread_struct: The ``struct thread_struct`` to be associated with
+                this task.  The value must be of type ``struct thread_struct``.
+        """
+        self.thread_struct = thread_struct
+
+    def get_thread_struct(self) -> gdb.Value:
+        """
+        Get the thread struct for this task
+
+        The thread struct structure is architecture specific and so this
+        method abstracts its retreival.
+
+        Returns:
+            :obj:`gdb.Value`: The struct thread_struct associated with this
+                task.  The type of the value is ``struct thread_struct``.
+        """
+        return self.thread_struct
 
     def set_thread_info(self, thread_info: gdb.Value) -> None:
         """
@@ -500,20 +529,6 @@ class LinuxTask:
 
         return False
 
-    @classmethod
-    def set_get_stack_pointer(cls, fn: Callable[[gdb.Value], int]) -> None:
-        """
-        Set the stack pointer callback for this architecture
-
-        The callback must accept a :obj:`gdb.Value` of type
-        ``struct thread`` and return a :obj:`int` containing the address
-        of the stack pointer.
-
-        Args:
-            fn: The callback to use.  It will be used by all tasks.
-        """
-        setattr(cls, '_get_stack_pointer_fn', fn)
-
     def get_stack_pointer(self) -> int:
         """
         Get the stack pointer for this task
@@ -525,12 +540,8 @@ class LinuxTask:
             :obj:`NotImplementedError`: The architecture hasn't provided
             a stack pointer callback.
         """
-        try:
-            fn = getattr(self, '_get_stack_pointer_fn')
-        except AttributeError:
-            raise NotImplementedError("Architecture hasn't provided stack pointer callback") from None
-
-        return fn(self.task_struct['thread'])
+        target = check_target()
+        return target.get_stack_pointer(self.thread)
 
     def _get_rss_field(self) -> int:
         return int(self.task_struct['mm']['rss'].value())

@@ -237,18 +237,10 @@ file $KERNEL
 core $VMCORE
 
 python
-from kdump.target import Target
-target = Target(debug=False)
-end
-
-target kdumpfile
-
-python
 import sys
 import traceback
 try:
     import crash.session
-    from crash.kernel import CrashKernel
 except RuntimeError as e:
     print("crash-python: {}, exiting".format(str(e)), file=sys.stderr)
     traceback.print_exc()
@@ -278,10 +270,8 @@ if len(s) > 0:
     module_debuginfo_path = s.split(" ")
 
 try:
-    kernel = CrashKernel(roots, vmlinux_debuginfo, module_path,
+    x = crash.session.Session(roots, vmlinux_debuginfo, module_path,
                          module_debuginfo_path, verbose, debug)
-
-    x = crash.session.Session(kernel, verbose=verbose, debug=debug)
     print("The 'pyhelp' command will list the command extensions.")
 except gdb.error as e:
     print("crash-python: {}, exiting".format(str(e)), file=sys.stderr)
