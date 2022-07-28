@@ -14,7 +14,7 @@ class NoQueueError(RuntimeError):
     pass
 
 types = Types(['struct request', 'struct request_queue',
-               'struct sbitmap_queue', 'struct blk_mq_hw_ctx' ])
+               'struct sbitmap_queue', 'struct blk_mq_hw_ctx'])
 
 def _check_queue_type(queue: gdb.Value) -> None:
     if not queue_is_mq(queue):

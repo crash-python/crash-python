@@ -213,7 +213,7 @@ class SlabSLAB(Slab):
 
     BUFCTL_END = ~0 & 0xffffffff
 
-    kmem_cache : 'KmemCacheSLAB'
+    kmem_cache: 'KmemCacheSLAB'
 
     def __init__(self, gdb_obj: gdb.Value, kmem_cache: 'KmemCacheSLAB',
                  error: bool = False) -> None:
@@ -501,7 +501,7 @@ class SlabSLAB(Slab):
 
 class SlabSLUB(Slab):
 
-    kmem_cache : 'KmemCacheSLUB'
+    kmem_cache: 'KmemCacheSLUB'
 
     def __init__(self, gdb_obj: gdb.Value, kmem_cache: 'KmemCacheSLUB') -> None:
         super().__init__(gdb_obj, kmem_cache)
@@ -770,7 +770,7 @@ class KmemCacheSLAB(KmemCache):
 
     slab_list_name = {0: "partial", 1: "full", 2: "free"}
     slab_list_fullname = {0: "slabs_partial", 1: "slabs_full", 2: "slabs_free"}
-    buffer_size : int
+    buffer_size: int
 
     def __init__(self, name: str, gdb_obj: gdb.Value) -> None:
         super().__init__(name, gdb_obj)
@@ -1012,7 +1012,7 @@ class KmemCacheSLAB(KmemCache):
 
         count = errors['num_ok']
         if (count and errors['first_ok'] is not None and
-            errors['last_ok'] is not None):
+                errors['last_ok'] is not None):
             print(f"{errors['num_ok']} slab objects were ok between "
                   f"0x{errors['first_ok']:x} and 0x{errors['last_ok']:x}")
 

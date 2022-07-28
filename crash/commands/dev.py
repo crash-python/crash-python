@@ -17,14 +17,14 @@ from crash.subsystem.storage.block import queue_request_stats
 class DevCommand(Command):
     """display character and block devices"""
 
-    def __init__(self, name : str) -> None:
+    def __init__(self, name: str) -> None:
         parser = ArgumentParser(prog=name)
 
         parser.add_argument('-d', action='store_true', default=False)
 
         super().__init__(name, parser)
 
-    def execute(self, args : argparse.Namespace) -> None:
+    def execute(self, args: argparse.Namespace) -> None:
         if args.d:
             print("{:^5} {:^16} {:^10} {:^16} {:^5} {:^5} {:^5} {:^5}"
                   .format("MAJOR", "GENDISK", "NAME", "REQUEST_QUEUE",
