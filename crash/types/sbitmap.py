@@ -10,7 +10,6 @@ from typing import Iterable
 
 import gdb
 
-from crash.exceptions import InvalidArgumentError
 from crash.util.symbols import Types
 from crash.util import struct_has_member
 

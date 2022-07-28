@@ -4,10 +4,8 @@
 import argparse
 import re
 
-import gdb
-
 from crash.util.symbols import Types, Symvals
-from crash.subsystem.printk import LogTypeException, LogInvalidOption
+from crash.subsystem.printk import LogInvalidOption
 
 types = Types(['char *'])
 symvals = Symvals(['log_buf', 'log_buf_len'])

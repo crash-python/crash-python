@@ -9,7 +9,7 @@ import gdb
 
 from crash.util.symbols import Types, Symvals
 from crash.exceptions import DelayedAttributeError
-from crash.subsystem.printk import LogTypeException, LogInvalidOption
+from crash.subsystem.printk import LogTypeException
 
 types = Types(['struct printk_log *', 'char *'])
 symvals = Symvals(['log_buf', 'log_buf_len', 'log_first_idx', 'log_next_idx',
