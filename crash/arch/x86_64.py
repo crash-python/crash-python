@@ -106,7 +106,7 @@ class x86_64Architecture(CrashArchitecture):
     ident = "i386:x86-64"
     aliases = ["x86_64"]
 
-    _frame_offset : Optional[int] = None
+    _frame_offset: Optional[int] = None
 
     def __init__(self) -> None:
         super(x86_64Architecture, self).__init__()

@@ -367,7 +367,7 @@ def _check_struct_request(request_s: gdb.Type) -> None:
     elif struct_has_member(request_s, 'atomic_flags'):
         def _rq_in_flight(request: gdb.Value) -> bool:
             return (request['atomic_flags'] &
-                (1 << int(types.enum_rq_atomic_flags_type['REQ_ATOM_STARTED'].enumval)) != 0)
+                    (1 << int(types.enum_rq_atomic_flags_type['REQ_ATOM_STARTED'].enumval)) != 0)
     else:
         def _rq_in_flight(request: gdb.Value) -> bool:
             return request['cmd_flags'] & REQ_STARTED != 0 # type: ignore
@@ -377,4 +377,3 @@ symbol_cbs = SymbolCallbacks([('disk_type', _check_types),
 type_cbs = TypeCallbacks([('struct device_type', _check_types),
                           ('enum req_flag_bits', _export_req_flags),
                           ('struct request', _check_struct_request)])
-
