@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*- # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
 
 import unittest
+from unittest.mock import patch
 import gdb
 
 from crash.exceptions import DelayedAttributeError
-from crash.infra.callback import ObjfileEventCallback
 from crash.infra.lookup import SymbolCallback, TypeCallback
 from crash.infra.lookup import MinimalSymbolCallback
 from crash.infra.lookup import DelayedType, DelayedSymbol, DelayedSymval
@@ -74,14 +74,18 @@ class TestMinimalSymbolCallback(unittest.TestCase):
     def tearDown(self):
         gdb.execute("file")
 
-    def load_file(self):
+    def load_util_file(self):
         gdb.execute("file tests/test-util")
+
+    def load_list_file(self):
+        gdb.execute("file tests/test-list")
 
     def get_test_class(self):
         class test_class(object):
             def __init__(self):
                 self.found = False
-                cb = MinimalSymbolCallback('test_struct', self.callback)
+                with patch.object(MinimalSymbolCallback, 'check_target', return_value=True):
+                    cb = MinimalSymbolCallback('test_struct', self.callback)
 
             def callback(self, result):
                 self.found = True
@@ -93,12 +97,12 @@ class TestMinimalSymbolCallback(unittest.TestCase):
         test_class = self.get_test_class()
         x = test_class()
         self.assertFalse(x.found)
-        gdb.execute("file tests/test-list")
+        self.load_list_file()
         self.assertFalse(x.found)
 
     def test_minsymbol_found_immediately(self):
         test_class = self.get_test_class()
-        self.load_file()
+        self.load_util_file()
         x = test_class()
         self.assertTrue(x.found)
         self.assertTrue(isinstance(x.result, gdb.MinSymbol))
@@ -107,7 +111,7 @@ class TestMinimalSymbolCallback(unittest.TestCase):
         test_class = self.get_test_class()
         x = test_class()
         self.assertFalse(x.found)
-        self.load_file()
+        self.load_util_file()
         self.assertTrue(x.found)
         self.assertTrue(isinstance(x.result, gdb.MinSymbol))
 
@@ -115,9 +119,9 @@ class TestMinimalSymbolCallback(unittest.TestCase):
         test_class = self.get_test_class()
         x = test_class()
         self.assertFalse(x.found)
-        gdb.execute("file tests/test-list")
+        self.load_list_file()
         self.assertFalse(x.found)
-        self.load_file()
+        self.load_util_file()
         self.assertTrue(x.found)
         self.assertTrue(isinstance(x.result, gdb.MinSymbol))
 
@@ -132,7 +136,8 @@ class TestSymbolCallback(unittest.TestCase):
         class test_class(object):
             def __init__(self):
                 self.found = False
-                cb = SymbolCallback('test_struct', self.callback)
+                with patch.object(SymbolCallback, 'check_target', return_value=True):
+                    cb = SymbolCallback('test_struct', self.callback)
 
             def callback(self, result):
                 self.found = True
@@ -183,7 +188,8 @@ class TestTypeCallback(unittest.TestCase):
         class test_class(object):
             def __init__(self):
                 self.found = False
-                cb = TypeCallback('struct test', self.callback)
+                with patch.object(TypeCallback, 'check_target', return_value=True):
+                    cb = TypeCallback('struct test', self.callback)
 
             def callback(self, result):
                 self.found = True

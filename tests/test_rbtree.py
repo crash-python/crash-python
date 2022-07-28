@@ -4,6 +4,7 @@
 import unittest
 import gdb
 
+import crash.infra.callback
 from crash.types.rbtree import rbtree_postorder_for_each, rbtree_postorder_for_each_entry
 
 def get_symbol(name):
@@ -12,6 +13,7 @@ def get_symbol(name):
 class TestRbtree(unittest.TestCase):
     def setUp(self):
         gdb.execute("file tests/test-rbtree", to_string=True)
+        crash.infra.callback.target_ready()
         try:
             print()
             print("--- Unsuppressable gdb output ---", end='')

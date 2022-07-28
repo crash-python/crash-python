@@ -4,6 +4,7 @@
 import unittest
 import sys
 
+import crash.infra.callback
 import crash.types.bitmap as bm
 
 import gdb
@@ -11,6 +12,7 @@ import gdb
 class TestBitmap(unittest.TestCase):
     def setUp(self):
         gdb.execute("file tests/test-percpu")
+        crash.infra.callback.target_ready()
         ulong = gdb.lookup_type('unsigned long')
         ulong_array = ulong.array(0)
 

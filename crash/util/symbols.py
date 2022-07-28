@@ -48,14 +48,14 @@ class DelayedCollection:
             the container object *or* the contained object if it has
             been overridden via :meth:`override`.
     """
-    def __init__(self, cls: Type[DelayedValue], names: Names) -> None:
+    def __init__(self, cls: Type[DelayedValue], names: Names, wait_for_target: bool) -> None:
         self.attrs: Dict[str, DelayedValue] = {}
 
         if isinstance(names, str):
             names = [names]
 
         for name in names:
-            t = cls(name)
+            t = cls(name, wait_for_target=wait_for_target)
             self.attrs[t.attrname] = t
             self.attrs[t.name] = t
 
@@ -129,8 +129,8 @@ class Types(DelayedCollection):
         names: A :obj:`str` or :obj:`list` of :obj:`str` containing the names
             of the types to resolve.
     """
-    def __init__(self, names: Names) -> None:
-        super(Types, self).__init__(DelayedType, names)
+    def __init__(self, names: Names, wait_for_target: bool = True) -> None:
+        super(Types, self).__init__(DelayedType, names, wait_for_target)
 
     def override(self, name: str, value: gdb.Type) -> None: # type: ignore
         """
@@ -171,8 +171,8 @@ class Symbols(DelayedCollection):
         names: A :obj:`str` or :obj:`list` of :obj:`str` containing the names
             of the symbols to resolve.
     """
-    def __init__(self, names: Names) -> None:
-        super(Symbols, self).__init__(DelayedSymbol, names)
+    def __init__(self, names: Names, wait_for_target: bool = True) -> None:
+        super(Symbols, self).__init__(DelayedSymbol, names, wait_for_target)
 
 class Symvals(DelayedCollection):
     """
@@ -205,8 +205,8 @@ class Symvals(DelayedCollection):
         names: A :obj:`str` or :obj:`list` of :obj:`str` containing the names
             of the symbols to resolve.
     """
-    def __init__(self, names: Names) -> None:
-        super(Symvals, self).__init__(DelayedSymval, names)
+    def __init__(self, names: Names, wait_for_target: bool = True) -> None:
+        super(Symvals, self).__init__(DelayedSymval, names, wait_for_target)
 
 class MinimalSymbols(DelayedCollection):
     """
@@ -239,8 +239,8 @@ class MinimalSymbols(DelayedCollection):
         names: A :obj:`str` or :obj:`list` of :obj:`str` containing the names
             of the minimal symbols to resolve.
     """
-    def __init__(self, names: Names) -> None:
-        super(MinimalSymbols, self).__init__(DelayedMinimalSymbol, names)
+    def __init__(self, names: Names, wait_for_target: bool = True) -> None:
+        super().__init__(DelayedMinimalSymbol, names, wait_for_target)
 
 class MinimalSymvals(DelayedCollection):
     """
@@ -268,8 +268,8 @@ class MinimalSymvals(DelayedCollection):
         names: A :obj:`str` or :obj:`list` of :obj:`str` containing the names
             of the minimal symbols to resolve.
     """
-    def __init__(self, names: Names) -> None:
-        super(MinimalSymvals, self).__init__(DelayedMinimalSymval, names)
+    def __init__(self, names: Names, wait_for_target: bool = True) -> None:
+        super().__init__(DelayedMinimalSymval, names, wait_for_target)
 
 class DelayedValues(DelayedCollection):
     """
@@ -303,30 +303,30 @@ class DelayedValues(DelayedCollection):
     Args:
         names: The names to use for the :obj:`.DelayedValue` objects.
     """
-    def __init__(self, names: Names) -> None:
-        super(DelayedValues, self).__init__(DelayedValue, names)
+    def __init__(self, names: Names, wait_for_target: bool = True) -> None:
+        super().__init__(DelayedValue, names, wait_for_target)
 
 CallbackSpecifier = Tuple[str, Callable]
 CallbackSpecifiers = Union[List[CallbackSpecifier], CallbackSpecifier]
 
 class CallbackCollection:
-    def __init__(self, cls: Type[NamedCallback],
-                 cbs: CallbackSpecifiers) -> None:
+    def __init__(self, cls: Type[NamedCallback], cbs: CallbackSpecifiers,
+                 wait_for_target: bool) -> None:
         if isinstance(cbs, tuple):
             cbs = [cbs]
 
         for cb in cbs:
-            t = cls(cb[0], cb[1])
+            t = cls(cb[0], cb[1], wait_for_target=wait_for_target)
             setattr(self, t.attrname, t)
 
 class TypeCallbacks(CallbackCollection):
-    def __init__(self, cbs: CallbackSpecifiers) -> None:
-        super().__init__(TypeCallback, cbs)
+    def __init__(self, cbs: CallbackSpecifiers, wait_for_target: bool = True) -> None:
+        super().__init__(TypeCallback, cbs, wait_for_target)
 
 class SymbolCallbacks(CallbackCollection):
-    def __init__(self, cbs: CallbackSpecifiers) -> None:
-        super().__init__(SymbolCallback, cbs)
+    def __init__(self, cbs: CallbackSpecifiers, wait_for_target: bool = True) -> None:
+        super().__init__(SymbolCallback, cbs, wait_for_target)
 
 class MinimalSymbolCallbacks(CallbackCollection):
-    def __init__(self, cbs: CallbackSpecifiers) -> None:
-        super().__init__(MinimalSymbolCallback, cbs)
+    def __init__(self, cbs: CallbackSpecifiers, wait_for_target: bool = True) -> None:
+        super().__init__(MinimalSymbolCallback, cbs, wait_for_target)
