@@ -60,11 +60,6 @@ def run_apidoc(_):
             print(line, file=f, end='')
     f.close()
 
-    out_dir = os.path.join(cur_dir, "kdump")
-    mod_dir = os.path.join(cur_dir, "..", "kdump")
-    argv = [ '-M', '-e', '-H', 'Kdump Target API Reference', '-f',
-            '-o', out_dir, mod_dir ]
-    main(argv)
 
     print("*** Generating doc templates")
 

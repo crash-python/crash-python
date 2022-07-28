@@ -6,7 +6,6 @@ Development
 
    api_changes
    testing
-   kdump/modules
    crash/modules
 
    gdb-internals

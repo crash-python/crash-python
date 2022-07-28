@@ -10,7 +10,7 @@ endif
 all: clean build doc test
 
 doc-source-clean:
-	rm -f doc-source/crash/*.rst doc-source/kdump/*.rst
+	rm -f doc-source/crash/*.rst
 	rm -f doc-source/commands/*.rst
 
 doc-clean: doc-source-clean
@@ -54,8 +54,6 @@ textdir=$(docdir)/text
 doc-text-install: doc-help
 	install -m 755 -d $(DESTDIR)$(textdir)/crash
 	install -m 644 -t $(DESTDIR)$(textdir)/crash docs/text/crash/*.txt
-	install -m 755 -d $(DESTDIR)$(textdir)/kdump
-	install -m 644 -t $(DESTDIR)$(textdir)/kdump docs/text/kdump/*.txt
 	install -m 644 -t $(DESTDIR)$(textdir) docs/text/*.txt
 
 htmldir=$(docdir)/html
@@ -68,7 +66,7 @@ unit-tests: force-rebuild
 	sh tests/run-tests.sh
 
 lint: force-rebuild
-	sh tests/run-pylint.sh $(PYLINT_ARGS) crash kdump
+	sh tests/run-pylint.sh $(PYLINT_ARGS) crash
 
 static-check: force-rebuild
 	sh tests/run-static-checks.sh

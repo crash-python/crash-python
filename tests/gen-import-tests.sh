@@ -13,7 +13,7 @@ import unittest
 class TestImports(unittest.TestCase):
 END
 
-for f in $(cd $DIR ; find crash kdump -name '*.py'); do
+for f in $(cd $DIR ; find crash -name '*.py'); do
 	path=$(echo $f | sed -e 's#/__init__.py##' -e 's#.py##')
 	name=$(echo $path | tr / .)
 	tname=$(echo $path | tr / _)

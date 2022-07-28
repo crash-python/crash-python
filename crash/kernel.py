@@ -16,14 +16,11 @@ import gdb
 # pylint: disable=no-name-in-module
 from zstd import decompress as zstd_decompress
 
-import kdump.target
 import crash
-import crash.arch
-import crash.arch.x86_64
-import crash.arch.ppc64
+import crash.target
 from crash.types.module import for_each_module, for_each_module_section
-from crash.util import get_symbol_value, get_typed_pointer
-from crash.util.symbols import Types, Symvals, Symbols
+from crash.util import get_symbol_value
+from crash.util.symbols import Types
 from crash.exceptions import MissingSymbolError, InvalidArgumentError
 from crash.infra.callback import pause_objfile_callbacks, unpause_objfile_callbacks
 from crash.cache.syscache import utsname
@@ -133,19 +130,6 @@ class CrashKernel:
 
     """
     types = Types(['char *'])
-    symvals = Symvals(['init_task'])
-    symbols = Symbols(['runqueues'])
-
-    def check_target(self) -> kdump.target.Target:
-        target = gdb.current_target()
-
-        if target is None:
-            raise ValueError("No current target")
-
-        if not isinstance(target, kdump.target.Target):
-            raise ValueError(f"Current target {type(target)} is not supported")
-
-        return target
 
     # pylint: disable=unused-argument
     def __init__(self, roots: PathSpecifier = None,
@@ -154,7 +138,7 @@ class CrashKernel:
                  module_debuginfo_path: PathSpecifier = None,
                  verbose: bool = False, debug: bool = False) -> None:
 
-        self.target = self.check_target()
+        self.target = crash.target.check_target()
 
         self.findmap: Dict[str, Dict[Any, Any]] = dict()
         self.modules_order: Dict[str, Dict[str, str]] = dict()
@@ -192,16 +176,6 @@ class CrashKernel:
                                    .format(kernel))
 
         self.vermagic = self.extract_vermagic()
-
-        archname = crash.archname()
-        try:
-            archclass = crash.arch.get_architecture(archname)
-        except RuntimeError as e:
-            raise CrashKernelError(str(e)) from e
-
-        self.arch = archclass()
-
-        self.crashing_thread: Optional[gdb.InferiorThread] = None
 
     def _setup_roots(self, roots: PathSpecifier = None,
                      verbose: bool = False) -> None:
@@ -707,64 +681,3 @@ class CrashKernel:
 
             if self._try_load_debuginfo(objfile, filepath, verbose):
                 break
-
-    def setup_tasks(self) -> None:
-        """
-        Populate GDB's thread list using the kernel's task lists
-
-        This method will iterate over the kernel's task lists, create a
-        LinuxTask object, and create a gdb thread for each one.  The
-        threads will be built so that the registers are ready to be
-        populated, which allows symbolic stack traces to be made available.
-        """
-        from crash.types.percpu import get_percpu_vars
-        from crash.types.task import LinuxTask, types as task_types
-        import crash.cache.tasks # pylint: disable=redefined-outer-name
-        gdb.execute('set print thread-events 0')
-
-        rqs = get_percpu_vars(self.symbols.runqueues)
-        rqscurrs = {int(x["curr"]) : k for (k, x) in rqs.items()}
-
-        print("Loading tasks...", end='')
-        sys.stdout.flush()
-
-        task_count = 0
-        try:
-            crashing_cpu = int(get_symbol_value('crashing_cpu'))
-        except MissingSymbolError:
-            crashing_cpu = -1
-
-        kdumpfile = self.target.kdumpfile
-        task_struct_p_type = task_types.task_struct_type.pointer()
-
-        for thread in gdb.selected_inferior().threads():
-            task_address = thread.ptid[2]
-
-            task = get_typed_pointer(task_address, task_struct_p_type)
-
-            ltask = LinuxTask(task.dereference())
-
-            active = task_address in rqscurrs
-            if active:
-                cpu = rqscurrs[task_address]
-                regs = kdumpfile.attr.cpu[cpu].reg
-                ltask.set_active(cpu, regs)
-            else:
-                self.arch.setup_scheduled_frame_offset(task)
-
-            thread.info = ltask
-            thread.arch = self.arch
-            if active and cpu == crashing_cpu:
-                self.crashing_thread = thread
-
-            self.arch.setup_thread_info(thread)
-            ltask.attach_thread(thread)
-            ltask.set_get_stack_pointer(self.arch.get_stack_pointer)
-
-            crash.cache.tasks.cache_task(ltask)
-
-            task_count += 1
-            if task_count % 100 == 0:
-                print(".", end='')
-                sys.stdout.flush()
-        print(" done. ({} tasks total)".format(task_count))

@@ -15,13 +15,11 @@ common_args = ["--ignore-missing-imports",
                "--disallow-untyped-globals"]
 
 try:
-    ret = main(None, stdout=sys.stdout, stderr=sys.stderr, args=["-p", "kdump"] + common_args)
-    ret2 = main(None, stdout=sys.stdout, stderr=sys.stderr, args=["-p", "crash"] + common_args)
+    ret = main(None, stdout=sys.stdout, stderr=sys.stderr, args=["-p", "crash"] + common_args)
 except TypeError:
-    ret = main(None, args=["-p", "kdump"] + common_args)
-    ret2 = main(None, args=["-p", "crash"] + common_args)
+    ret = main(None, args=["-p", "crash"] + common_args)
 
-if ret or ret2:
+if ret:
     print("static checking failed.", file=sys.stderr)
     sys.exit(1)
 
