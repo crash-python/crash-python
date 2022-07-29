@@ -75,6 +75,7 @@ class KmemCommand(Command):
                     pass
         return cache
 
+    # pylint: disable=too-many-return-statements
     def execute(self, args: argparse.Namespace) -> None:
         if args.z:
             self.print_zones()
