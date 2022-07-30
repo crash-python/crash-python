@@ -16,6 +16,8 @@ def autoload_submodules(caller: str,
     except KeyError:
         mod = importlib.import_module(caller)
         mods.append(caller)
+    if mod.__file__ is None:
+        return list()
     path = os.path.dirname(mod.__file__)
     modules = glob.glob("{}/[A-Za-z0-9_]*.py".format(path))
     for modname in modules:
