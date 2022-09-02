@@ -20,7 +20,8 @@ class DevCommand(Command):
     def __init__(self, name: str) -> None:
         parser = ArgumentParser(prog=name)
 
-        parser.add_argument('-d', action='store_true', default=False)
+        parser.add_argument('-d', action='store_true', default=False,
+                            required=True)
 
         super().__init__(name, parser)
 
