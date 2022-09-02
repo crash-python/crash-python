@@ -6,14 +6,14 @@ from typing import Callable, Iterable
 import gdb
 from gdb.types import get_basic_type
 
-from crash.util import container_of, struct_has_member
+from crash.util import container_of, struct_has_member, InvalidComponentError
 from crash.util.symbols import Types, Symvals, SymbolCallbacks, TypeCallbacks
 from crash.types.classdev import for_each_class_device
 from crash.exceptions import DelayedAttributeError, InvalidArgumentError
 from crash.cache.syscache import kernel, jiffies_to_msec
 
 types = Types(['struct gendisk', 'struct hd_struct', 'struct device',
-               'struct device_type', 'struct bdev_inode',
+               'struct device_type', 'struct bdev_inode', 'struct block_device',
                'struct request_queue', 'struct request', 'enum req_flag_bits',
                'enum mq_rq_state', 'enum rq_atomic_flags'])
 symvals = Symvals(['block_class', 'blockdev_superblock', 'disk_type',
@@ -28,6 +28,21 @@ REQ_PREFLUSH: int
 REQ_STARTED: int
 REQ_SYNC: int
 
+def dev_to_bdev(dev: gdb.Value) -> gdb.Value:
+    """
+    Converts a ``struct device'' that is embedded in a ``struct block_device``
+    back to the ``struct block_device``.
+
+    Args:
+        dev: A ``struct device'' contained within a ``struct block_device``.
+            The vlaue must be of type ``struct device``.
+
+    Returns:
+        :obj:`gdb.Value`: The converted block device.  The value is of type
+        ``struct block_device``.
+    """
+    return container_of(dev, types.block_device_type, 'bd_device')
+
 def dev_to_gendisk(dev: gdb.Value) -> gdb.Value:
     """
     Converts a ``struct device`` that is embedded in a ``struct gendisk``
@@ -41,7 +56,10 @@ def dev_to_gendisk(dev: gdb.Value) -> gdb.Value:
         :obj:`gdb.Value`: The converted gendisk.  The value is of type
         ``struct gendisk``.
     """
-    return container_of(dev, types.gendisk_type, 'part0.__dev')
+    try:
+        return container_of(dev, types.gendisk_type, 'part0.__dev')
+    except InvalidComponentError:
+        return dev_to_bdev(dev)['bd_disk']
 
 def dev_to_part(dev: gdb.Value) -> gdb.Value:
     """
@@ -72,6 +90,9 @@ def gendisk_to_dev(gendisk: gdb.Value) -> gdb.Value:
         :obj:`gdb.Value`: The converted ``struct device``.  The value is
         of type ``struct device``.
     """
+
+    if struct_has_member(gendisk['part0'], 'bd_device'):
+        return gendisk['part0']['bd_device']
 
     return gendisk['part0']['__dev']
 
