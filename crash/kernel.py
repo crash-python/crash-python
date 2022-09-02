@@ -435,6 +435,8 @@ class CrashKernel:
         if percpu > 0:
             sections += " -s .data..percpu {:#x}".format(percpu)
 
+        sections += " -o 0xff000000"
+
         try:
             result = gdb.execute("add-symbol-file {} {:#x} {}"
                                  .format(modpath, addr, sections),
