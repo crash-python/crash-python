@@ -145,7 +145,7 @@ License:
 
 .. start-license
 
-Copyright 2016-2019 Jeff Mahoney, `SUSE <https://www.suse.com/>`_.
+Copyright 2016-2022 Jeff Mahoney, `SUSE <https://www.suse.com/>`_.
 
 crash-python is licensed under the `GPLv2 <https://www.gnu.org/licenses/gpl-2.0.en.html>`_.
 
