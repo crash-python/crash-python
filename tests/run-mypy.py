@@ -15,9 +15,12 @@ common_args = ["--ignore-missing-imports",
                "--disallow-untyped-globals"]
 
 try:
-    ret = main(None, stdout=sys.stdout, stderr=sys.stderr, args=["-p", "crash"] + common_args)
+    ret = main(stdout=sys.stdout, stderr=sys.stderr, args=["-p", "crash"] + common_args)
 except TypeError:
-    ret = main(None, args=["-p", "crash"] + common_args)
+    try:
+        ret = main(None, stdout=sys.stdout, stderr=sys.stderr, args=["-p", "crash"] + common_args)
+    except TypeError:
+        ret = main(None, args=["-p", "crash"] + common_args)
 
 if ret:
     print("static checking failed.", file=sys.stderr)
