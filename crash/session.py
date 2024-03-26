@@ -36,7 +36,13 @@ class Session:
         self.debug = debug
         self.verbose = verbose
 
-        target = crash.target.setup_target()
+        try:
+            target = crash.target.setup_target()
+        except crash.target.IncorrectTargetError as e:
+            print(str(e))
+            print("Further debugging may not be possible.")
+            return
+
         from crash.kernel import CrashKernel, CrashKernelError
 
         self.kernel = CrashKernel(roots, vmlinux_debuginfo, module_path,
